@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "wyml.refmap.json",
   "mixins": [
+    "MixinEntityDensityManager",
     "MixinWorldEntitySpawner"
   ],
   "minVersion": "0.8"

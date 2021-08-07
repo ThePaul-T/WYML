@@ -92,7 +92,7 @@ dependencies {
     minecraft "net.minecraftforge:forge:${project.mc_version}-${project.forge_version}"
 //	runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:1.16.2-4.0.0.1")
 //    compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:1.16.2-4.0.0.1:api")
-    runtimeOnly fg.deobf("mezz.jei:jei-${project.mc_version}:${project.jei_version}")
+//    runtimeOnly fg.deobf("mezz.jei:jei-${project.mc_version}:${project.jei_version}")
     annotationProcessor 'org.spongepowered:mixin:0.8:processor'
 }
 
