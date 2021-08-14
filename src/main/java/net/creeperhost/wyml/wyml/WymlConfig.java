@@ -1,4 +1,4 @@
-package net.creeperhost.wyml;
+package net.creeperhost.wyml.wyml;
 
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.electronwill.nightconfig.core.io.WritingMode;

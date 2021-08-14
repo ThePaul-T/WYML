@@ -1,4 +1,4 @@
-package net.creeperhost.wyml;
+package net.creeperhost.wyml.wyml;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.entity.EntityClassification;

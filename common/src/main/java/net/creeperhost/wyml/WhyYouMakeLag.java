@@ -17,9 +17,9 @@ public class WhyYouMakeLag
     public static int trueCount = 0;
     public static MinecraftServer minecraftServer;
     public static int ticks = 0;
-    public static Object2IntOpenHashMap<EntityClassification> mobCategoryCounts;
-    public static HashMap<EntityClassification, Integer> spawnableChunkCount = new HashMap<>();
-    private static AtomicReference<HashMap<String, WYMLSpawnManager>> spawnManager = new AtomicReference<>();
+//    public static Object2IntOpenHashMap<EntityClassification> mobCategoryCounts;
+//    public static HashMap<EntityClassification, Integer> spawnableChunkCount = new HashMap<>();
+//    private static AtomicReference<HashMap<String, WYMLSpawnManager>> spawnManager = new AtomicReference<>();
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
 

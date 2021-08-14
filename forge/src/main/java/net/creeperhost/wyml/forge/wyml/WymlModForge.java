@@ -1,7 +1,7 @@
-package net.creeperhost.forge.wyml;
+package net.creeperhost.wyml.forge.wyml;
 
 import me.shedaniel.architectury.platform.forge.EventBuses;
-import net.creeperhost.WhyYouMakeLag;
+import net.creeperhost.wyml.WhyYouMakeLag;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 

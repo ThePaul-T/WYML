@@ -1,6 +1,6 @@
-package net.creeperhost.fabric.wyml;
+package net.creeperhost.wyml.fabric.wyml;
 
-import net.creeperhost.WhyYouMakeLag;
+import net.creeperhost.wyml.WhyYouMakeLag;
 import net.fabricmc.api.ModInitializer;
 
 public class WymlModFabric implements ModInitializer {

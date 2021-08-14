@@ -4,8 +4,8 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "wyml.refmap.json",
   "mixins": [
-    "MixinEntityDensityManager",
-    "MixinWorldEntitySpawner"
+    "net.creeperhost.wyml.wyml.mixins.MixinEntityDensityManager",
+    "net.creeperhost.wyml.wyml.mixins.MixinWorldEntitySpawner"
   ],
   "minVersion": "0.8"
 }

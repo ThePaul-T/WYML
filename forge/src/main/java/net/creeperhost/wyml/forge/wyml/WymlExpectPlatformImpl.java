@@ -1,7 +1,7 @@
-package net.creeperhost.fabric.wyml;
+package net.creeperhost.wyml.forge.wyml;
 
-import net.creeperhost.WymlExpectPlatform;
-import net.fabricmc.loader.api.FabricLoader;
+import net.creeperhost.wyml.WymlExpectPlatform;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.nio.file.Path;
 
@@ -11,6 +11,6 @@ public class WymlExpectPlatformImpl
      * This is our actual method to {@link WymlExpectPlatform#getConfigDirectory()}.
      */
     public static Path getConfigDirectory() {
-        return FabricLoader.getInstance().getConfigDir();
+        return FMLPaths.CONFIGDIR.get();
     }
 }
