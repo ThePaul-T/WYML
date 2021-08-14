@@ -16,7 +16,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.creeperhost.wyml.fabric.wyml.WymlModFabric"
+      "net.creeperhost.wyml.fabric.WymlModFabric"
     ]
   },
   "depends": {

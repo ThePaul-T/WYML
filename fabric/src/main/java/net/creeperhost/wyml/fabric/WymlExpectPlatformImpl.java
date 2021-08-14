@@ -1,4 +1,4 @@
-package net.creeperhost.wyml.fabric.wyml;
+package net.creeperhost.wyml.fabric;
 
 import net.creeperhost.wyml.WymlExpectPlatform;
 import net.fabricmc.loader.api.FabricLoader;
