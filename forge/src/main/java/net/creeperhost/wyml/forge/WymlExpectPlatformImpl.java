@@ -1,4 +1,4 @@
-package net.creeperhost.wyml.forge.wyml;
+package net.creeperhost.wyml.forge;
 
 import net.creeperhost.wyml.WymlExpectPlatform;
 import net.minecraftforge.fml.loading.FMLPaths;

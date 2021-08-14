@@ -1,23 +1,8 @@
 package net.creeperhost.wyml.wyml;
 
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLPaths;
-
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Mod(WhyYouMakeLag.MOD_ID)
 public class WhyYouMakeLag
 {
     public static final String MOD_ID = "wyml";

@@ -1,4 +1,4 @@
-package net.creeperhost.wyml.forge.wyml;
+package net.creeperhost.wyml.forge;
 
 import me.shedaniel.architectury.platform.forge.EventBuses;
 import net.creeperhost.wyml.WhyYouMakeLag;
