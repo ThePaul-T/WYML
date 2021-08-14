@@ -1,4 +1,4 @@
-package net.creeperhost;
+package net.creeperhost.wyml;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import me.shedaniel.architectury.platform.Platform;

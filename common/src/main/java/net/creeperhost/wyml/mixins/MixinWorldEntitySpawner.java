@@ -1,4 +1,4 @@
-package net.creeperhost.mixins;
+package net.creeperhost.wyml.mixins;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureManager;

@@ -1,7 +1,7 @@
-package net.creeperhost.wyml.mixins;
+package net.creeperhost.wyml.wyml.mixins;
 
-import net.creeperhost.wyml.WhyYouMakeLag;
-import net.creeperhost.wyml.WymlConfig;
+import net.creeperhost.wyml.wyml.WhyYouMakeLag;
+import net.creeperhost.wyml.wyml.WymlConfig;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;

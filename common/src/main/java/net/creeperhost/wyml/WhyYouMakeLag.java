@@ -1,4 +1,4 @@
-package net.creeperhost;
+package net.creeperhost.wyml;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.server.MinecraftServer;

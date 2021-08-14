@@ -1,8 +1,7 @@
-package net.creeperhost.wyml.mixins;
+package net.creeperhost.wyml.wyml.mixins;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.creeperhost.wyml.WhyYouMakeLag;
-import net.creeperhost.wyml.WymlConfig;
+import net.creeperhost.wyml.wyml.WhyYouMakeLag;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.server.MinecraftServer;

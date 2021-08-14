@@ -1,4 +1,4 @@
-package net.creeperhost;
+package net.creeperhost.wyml;
 
 public class WymlConfig
 {

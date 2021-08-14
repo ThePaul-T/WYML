@@ -1,4 +1,4 @@
-package net.creeperhost.mixins;
+package net.creeperhost.wyml.mixins;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.creeperhost.wyml.WYMLSpawnManager;
