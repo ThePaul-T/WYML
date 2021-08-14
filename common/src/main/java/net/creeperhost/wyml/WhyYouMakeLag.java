@@ -60,7 +60,9 @@ public class WhyYouMakeLag
 
     public static LongSet getForceLoadedChunks()
     {
-       return minecraftServer.getLevel(Level.OVERWORLD).getForcedChunks();
+        if(minecraftServer == null) return null;
+        if(minecraftServer.getLevel(Level.OVERWORLD) == null) return null;
+        return minecraftServer.getLevel(Level.OVERWORLD).getForcedChunks();
     }
 
     public static int getTicks()
