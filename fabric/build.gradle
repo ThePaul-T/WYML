@@ -88,6 +88,6 @@ publishing {
     }
 
     loom {
-        mixinConfig 'mixins.minetogether.json'
+        mixinConfig 'wyml.mixins.json'
     }
 }

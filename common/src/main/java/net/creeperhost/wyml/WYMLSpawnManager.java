@@ -75,9 +75,9 @@ public class WYMLSpawnManager
     public synchronized void increaseSpawningCount(BlockPos pos)
     {
         startRate++;
-        if(WhyYouMakeLag.ticks > (startSpawnSampleTick + WymlConfig.SAMPLE_TICKS.get()))
+        if(WhyYouMakeLag.getTicks() > (startSpawnSampleTick + WymlConfig.instance.SAMPLE_TICKS.get()))
         {
-            startSpawnSampleTick = WhyYouMakeLag.ticks;
+            startSpawnSampleTick = WhyYouMakeLag.getTicks();
             spawnsInTick = 0;
         }
         spawnLocation sl = new spawnLocation();
@@ -88,22 +88,22 @@ public class WYMLSpawnManager
         if(!sl.success){
             sl.position = pos;
             sl.success = false;
-            sl.lastUpdated = WhyYouMakeLag.ticks;
+            sl.lastUpdated = WhyYouMakeLag.getTicks();
         }
         prevSpawns.put(pos.asLong(), sl);
         spawnsInTick++;
-        lastSpawnRequestTick = WhyYouMakeLag.ticks;
+        lastSpawnRequestTick = WhyYouMakeLag.getTicks();
         spawningCount++;
         requiresSave = true;
     }
     public void isSaving()
     {
         requiresSave = false;
-        lastUpdatedTick = WhyYouMakeLag.ticks;
+        lastUpdatedTick = WhyYouMakeLag.getTicks();
     }
     public boolean hasExpired()
     {
-        return ((lastUpdatedTick + WymlConfig.MANAGER_CACHE_TICKS.get()) > WhyYouMakeLag.ticks && !isPaused() && isSaved());
+        return ((lastUpdatedTick + WymlConfig.instance.MANAGER_CACHE_TICKS.get()) > WhyYouMakeLag.getTicks() && !isPaused() && isSaved());
     }
     public int countBlockCache()
     {
@@ -117,7 +117,7 @@ public class WYMLSpawnManager
             Set<Long> ids = prevSpawns.keySet();
             for (long id : ids) {
                 spawnLocation sl = prevSpawns.get(id);
-                if (sl.lastUpdated > (WhyYouMakeLag.ticks + WymlConfig.SPAWNLOC_CACHE_TICKS.get()) || sl.success) {
+                if (sl.lastUpdated > (WhyYouMakeLag.getTicks() + WymlConfig.instance.SPAWNLOC_CACHE_TICKS.get()) || sl.success) {
                     toRemove.add(id);
                 }
             }
@@ -142,7 +142,7 @@ public class WYMLSpawnManager
             //TODO: Just remove from prevSpawns maybe if it's success? Only remember failures as we do nothing special with the success cache
             spawnLocation sl = prevSpawns.get(pos.asLong());
             sl.success = true;
-            sl.lastUpdated = WhyYouMakeLag.ticks;
+            sl.lastUpdated = WhyYouMakeLag.getTicks();
             prevSpawns.put(pos.asLong(), sl);
         }
         finishRate++;
@@ -152,10 +152,10 @@ public class WYMLSpawnManager
     }
     public int getSpawnsInSample()
     {
-        if(WhyYouMakeLag.ticks < startSpawnSampleTick+WymlConfig.SAMPLE_TICKS.get())
+        if(WhyYouMakeLag.getTicks() < startSpawnSampleTick+WymlConfig.instance.SAMPLE_TICKS.get())
         {
             int retVal = spawnsInTick;
-            int sampleLength = (WhyYouMakeLag.ticks-startSpawnSampleTick);
+            int sampleLength = (WhyYouMakeLag.getTicks()-startSpawnSampleTick);
             if(sampleLength > 0) retVal = spawnsInTick/sampleLength;
             return retVal;
         }
@@ -170,12 +170,12 @@ public class WYMLSpawnManager
     {
         resetSpawningCount();
         slowMode = true;
-        slowModeStart = WhyYouMakeLag.ticks;
+        slowModeStart = WhyYouMakeLag.getTicks();
         requiresSave = true;
     }
     public int ticksSinceSlow()
     {
-        int diff = WhyYouMakeLag.ticks - slowModeStart;
+        int diff = WhyYouMakeLag.getTicks() - slowModeStart;
         if(diff < 0) diff = 99999;
         return diff;
     }
@@ -195,17 +195,17 @@ public class WYMLSpawnManager
     {
         isPaused = true;
         pausedFor = ticks;
-        pauseTick = WhyYouMakeLag.ticks;
+        pauseTick = WhyYouMakeLag.getTicks();
         requiresSave = true;
     }
     public boolean isPaused()
     {
-        if((isPaused && (pauseTick + pausedFor) > WhyYouMakeLag.ticks)||(isPaused && getFailRate() < (100d - WymlConfig.RESUME_RATE.get())))
+        if((isPaused && (pauseTick + pausedFor) > WhyYouMakeLag.getTicks())||(isPaused && getFailRate() < (100d - WymlConfig.instance.RESUME_RATE.get())))
         {
             return true;
         } else {
             if(isPaused) {
-                if(WymlConfig.DEBUG_PRINT.get()) System.out.println("Resuming spawns for class "+getClassification().getName() + " at " + getChunk() + " due to timeout or failure rate decease ["+getFailRate()+"%].");
+                if(WymlConfig.instance.DEBUG_PRINT.get()) System.out.println("Resuming spawns for class "+getClassification().getName() + " at " + getChunk() + " due to timeout or failure rate decease ["+getFailRate()+"%].");
                 isPaused = false;
                 startRate = 0;
                 finishRate = 0;
@@ -222,7 +222,7 @@ public class WYMLSpawnManager
         if(prevSpawns.containsKey(pos.asLong()))
         {
             spawnLocation sl = prevSpawns.get(pos.asLong());
-            if(sl.lastUpdated < (WhyYouMakeLag.ticks + WymlConfig.SPAWNLOC_CACHE_TICKS.get()))
+            if(sl.lastUpdated < (WhyYouMakeLag.getTicks() + WymlConfig.instance.SPAWNLOC_CACHE_TICKS.get()))
             {
                 return !sl.success;
             }

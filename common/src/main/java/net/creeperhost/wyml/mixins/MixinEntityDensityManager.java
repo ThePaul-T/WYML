@@ -56,7 +56,7 @@ public class MixinEntityDensityManager
                 WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkPos, mob.getType().getCategory());
                 spawnManager.decreaseSpawningCount(mob.blockPosition());
                 WhyYouMakeLag.updateSpawnManager(spawnManager);
-                if(WymlConfig.DEBUG_PRINT.get())
+                if(WymlConfig.instance.DEBUG_PRINT.get())
                     System.out.println("Completed spawn for " + spawnManager.getClassification().getName() + " " + spawnManager.getChunk() + " - " + (100d - spawnManager.getFailRate()) + "% success rate (" + spawnManager.getFinishRate() + "/" + spawnManager.getStartRate() + ")");
             }
         }

@@ -1,12 +1,15 @@
 package net.creeperhost.wyml;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import me.shedaniel.architectury.platform.Platform;
+import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,30 +25,39 @@ public class WhyYouMakeLag
     public static int realMax = 0;
     public static int trueCount = 0;
     public static MinecraftServer minecraftServer;
-    public static int ticks = 0;
     public static Object2IntOpenHashMap<MobCategory> mobCategoryCounts;
     public static HashMap<MobCategory, Integer> spawnableChunkCount = new HashMap<>();
     private static AtomicReference<HashMap<String, WYMLSpawnManager>> spawnManager = new AtomicReference<>();
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
+    public static Path configFile = Platform.getConfigFolder().resolve(MOD_ID + ".json");
+
 
     public static void init()
     {
-//        IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
-        if(spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
-//
-//        MinecraftForge.EVENT_BUS.addListener(this::serverStarted);
-//        MinecraftForge.EVENT_BUS.addListener(this::serverStopping);
-//        MinecraftForge.EVENT_BUS.addListener(this::serverTick);
-//        MinecraftForge.EVENT_BUS.addListener(this::spawnEvent);
-//
-//
-//        WymlConfig.loadConfig(WymlConfig.COMMON_CONFIG, FMLPaths.CONFIGDIR.get().resolve(MOD_ID + "-common.toml"));
+        WymlConfig.init(configFile.toFile());
 
+        if(spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
     }
 
+    public static boolean isFtbChunksLoaded()
+    {
+        try
+        {
+            Class.forName("dev.ftb.mods.ftbchunks.FTBChunks");
+        } catch (Exception e)
+        {
+            return false;
+        }
+        return true;
+    }
 
-    private void serverStopping()
+    public static int getTicks()
+    {
+        return ((AccessorMinecraftServer) minecraftServer).getTickCount();
+    }
+
+    public static void serverStopping()
     {
         scheduledExecutorService.shutdown();
         scheduledExecutorService.shutdownNow();
@@ -82,12 +94,12 @@ public class WhyYouMakeLag
     }
     public static double getMagicNum()
     {
-        double magicNum = WymlConfig.MOJANG_MAGIC_NUM.get();
-        if(WymlConfig.DOWNSCALE_MAGIC_NUM.get())
+        double magicNum = WymlConfig.instance.MOJANG_MAGIC_NUM.get();
+        if(WymlConfig.instance.DOWNSCALE_MAGIC_NUM.get())
         {
             int players = WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount();
             magicNum = magicNum - players;
-            if(magicNum < WymlConfig.DOWNSCALE_MAGIC_NUM_MIN.get()) magicNum = WymlConfig.DOWNSCALE_MAGIC_NUM_MIN.get();
+            if(magicNum < WymlConfig.instance.DOWNSCALE_MAGIC_NUM_MIN.get()) magicNum = WymlConfig.instance.DOWNSCALE_MAGIC_NUM_MIN.get();
         }
         return magicNum;
     }
@@ -102,10 +114,10 @@ public class WhyYouMakeLag
         });
     }
 
-    public void serverStarted()
+    public static void serverStarted(MinecraftServer minecraftServer)
     {
         //TODO get server via mixin
-//        minecraftServer = event.getServer();
+        WhyYouMakeLag.minecraftServer = minecraftServer;
         Runnable cleanThread = () ->
         {
             try {
@@ -146,7 +158,7 @@ public class WhyYouMakeLag
                     {
                         t.printStackTrace();
                     }
-                    if(WymlConfig.CLEAN_PRINT.get()) LOGGER.info("Cleaned up caches, removed " + managersRemoved + "/" + managersTotal + " Chunk SpawnManagers and " + blockCacheRemoved + "/" + blockCacheTotal + " block spawn caches. ["+usage+"]");
+                    if(WymlConfig.instance.CLEAN_PRINT.get()) LOGGER.info("Cleaned up caches, removed " + managersRemoved + "/" + managersTotal + " Chunk SpawnManagers and " + blockCacheRemoved + "/" + blockCacheTotal + " block spawn caches. ["+usage+"]");
                     //}
                 }
             } catch (Exception whatthefuck) {
@@ -185,8 +197,8 @@ public class WhyYouMakeLag
         int curMobs = mobCategoryCounts.getInt(entityClassification);
         if(curMobs < i)
         {
-            int tries = WymlConfig.MOB_TRIES.get();
-            if(WymlConfig.MULTIPLY_BY_PLAYERS.get()) tries = (tries * onlineCount);
+            int tries = WymlConfig.instance.MOB_TRIES.get();
+            if(WymlConfig.instance.MULTIPLY_BY_PLAYERS.get()) tries = (tries * onlineCount);
             retVal = curMobs + tries;
         }
         if(retVal > WhyYouMakeLag.realMax) retVal = WhyYouMakeLag.realMax;

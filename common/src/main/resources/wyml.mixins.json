@@ -3,8 +3,10 @@
   "package": "net.creeperhost.wyml.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "AccessorMinecraftServer",
     "AccessorNaturalSpawner",
     "MixinEntityDensityManager",
+    "MixinMinecraftServer",
     "MixinWorldEntitySpawner"
   ],
   "injectors": {

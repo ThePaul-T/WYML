@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "examplemod",
+  "id": "wyml",
   "version": "${version}",
   "name": "Example Mod",
   "description": "This is an example description! Tell everyone what your mod is about!",
@@ -27,5 +27,8 @@
   },
   "suggests": {
     "flamingo": "*"
-  }
+  },
+  "mixins": [
+    "wyml.mixins.json"
+  ]
 }
