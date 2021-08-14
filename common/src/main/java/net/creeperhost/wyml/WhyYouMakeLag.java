@@ -5,12 +5,14 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.shedaniel.architectury.platform.Platform;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -120,6 +122,11 @@ public class WhyYouMakeLag
             existing.put(id, manager);
             return existing;
         });
+    }
+
+    public static void doForgeStuff(int j, Mob mobEntity)
+    {
+        if(Platform.isForge()) WhyYouMakeLag.doForgeStuff(j, mobEntity);
     }
 
     public static void serverStarted(MinecraftServer minecraftServer)
