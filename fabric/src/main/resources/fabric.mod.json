@@ -2,16 +2,16 @@
   "schemaVersion": 1,
   "id": "wyml",
   "version": "${version}",
-  "name": "Example Mod",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "WhyYouMakeLag",
+  "description": "Crab dance",
   "authors": [
-    "Me!"
+    "CreeperHost"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "",
+    "sources": ""
   },
-  "license": "Insert License Here",
+  "license": "MIT",
   "icon": "assets/examplemod/icon.png",
   "environment": "*",
   "entrypoints": {

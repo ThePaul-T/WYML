@@ -4,32 +4,25 @@ loaderVersion = "[35,)"
 license = "Insert License Here"
 
 [[mods]]
-modId = "examplemod"
+modId = "wyml"
 version = "${version}"
-displayName = "Example Mod"
-authors = "Me!"
+displayName = "WhyYouMakeLag"
+authors = "CreeperHost"
 description = '''
-This is an example description! Tell everyone what your mod is about!
+Crab dance
 '''
 #logoFile = ""
 
-[[dependencies.examplemod]]
+[[dependencies.wyml]]
 modId = "forge"
 mandatory = true
 versionRange = "[35,)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.examplemod]]
+[[dependencies.wyml]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[1.16.2,)"
+versionRange = "1.16.5"
 ordering = "NONE"
-side = "BOTH"
-
-[[dependencies.examplemod]]
-modId = "architectury"
-mandatory = true
-versionRange = "[1.1.55,)"
-ordering = "AFTER"
 side = "BOTH"
