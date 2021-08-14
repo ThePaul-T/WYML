@@ -3,6 +3,7 @@ package net.creeperhost.wyml;
 import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonElement;
 import blue.endless.jankson.JsonObject;
+import blue.endless.jankson.api.Marshaller;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
@@ -69,26 +70,32 @@ public class WymlConfig
 
     public static String saveConfig()
     {
-        JsonElement elem = gson.toJson(data.get());
-        return elem.toJson();
+        ConfigData conf = data.get();
+        JsonElement elem = gson.toJson(conf);
+        return elem.toJson(true, true);
     }
 
     public static void init(File file)
     {
+        if(lastFile == null) lastFile = file;
         try
         {
             //TODO make someone who understands java better make sure this is sane.
-            try(WatchService watcher = FileSystems.getDefault().newWatchService())
+            try
             {
-                lastFile.toPath().register(watcher, StandardWatchEventKinds.ENTRY_MODIFY);
+                AtomicReference<WatchService> watcher = new AtomicReference<>();
                 Runnable configWatcher = () -> {
                     try {
-                        WatchKey checker = watcher.take();
+                        if(watcher.get() == null)
+                        {
+                            watcher.set(FileSystems.getDefault().newWatchService());
+                            lastFile.toPath().getParent().register(watcher.get(), StandardWatchEventKinds.ENTRY_MODIFY);
+                        }
+                        WatchKey checker = watcher.get().take();
                         for (WatchEvent<?> event : checker.pollEvents()) {
                             Path changed = (Path) event.context();
-                            if (changed.equals(lastFile)) {
-                                WhyYouMakeLag.LOGGER.info("Config at "+lastFile.getAbsolutePath()+" has changed, reloading...");
-                                reload();
+                            if (changed.endsWith(lastFile.getName())) {
+                                if(reload()) WhyYouMakeLag.LOGGER.info("Config at "+lastFile.getAbsolutePath()+" has changed, reloaded!");
                             }
                         }
                         checker.reset();

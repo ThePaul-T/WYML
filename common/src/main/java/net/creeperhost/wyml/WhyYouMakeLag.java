@@ -72,6 +72,8 @@ public class WhyYouMakeLag
 
     public static void serverStopping()
     {
+        scheduledExecutorService2.shutdown();
+        scheduledExecutorService2.shutdownNow();
         scheduledExecutorService.shutdown();
         scheduledExecutorService.shutdownNow();
     }

@@ -12,7 +12,8 @@ public class CompatFTBChunks
 {
     public static Collection<ClaimedChunk> getClaimed()
     {
-        if(FTBChunksAPI.getManager() == null) return null;
+        if(!FTBChunksAPI.isManagerLoaded()) return null;
+        if (FTBChunksAPI.getManager() == null) return null;
         return FTBChunksAPI.getManager().getAllClaimedChunks();
     }
 
