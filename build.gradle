@@ -1,121 +1,72 @@
-buildscript {
-    repositories {
-        maven { url = 'https://files.minecraftforge.net/maven' }
-        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+plugins {
+    id "architectury-plugin" version "3.2-SNAPSHOT"
+    id "dev.architectury.loom" version "0.7.2-SNAPSHOT" apply false
+}
 
-        jcenter()
-        mavenCentral()
+architectury {
+    minecraft = rootProject.minecraft_version
+}
+
+subprojects {
+    apply plugin: "dev.architectury.loom"
+
+    loom {
+        silentMojangMappingsLicense()
     }
+
     dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '4.+', changing: true
-        classpath group: 'org.spongepowered', name: 'mixingradle', version: '0.7-SNAPSHOT'
+        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+        // The following line declares the mojmap mappings, you may use other mappings as well
+        mappings loom.officialMojangMappings()
+        // The following line declares the yarn mappings you may select this one as well.
+        // mappings "net.fabricmc:yarn:1.16.5+build.9:v2"
     }
 }
-apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'org.spongepowered.mixin'
-//Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 
-version = "${project.mc_version}-${project.mod_version}"
-group = "${project.maven_group}"
-archivesBaseName = "wyml"
+allprojects {
+    apply plugin: "java"
+    apply plugin: "architectury-plugin"
+    apply plugin: "maven-publish"
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+    archivesBaseName = rootProject.archives_base_name
+    version = rootProject.mod_version
+    group = rootProject.maven_group
 
-minecraft {
-    mappings channel: 'official', version: "${mc_version}"
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-    runs {
-        client {
-            workingDirectory project.file('run')
-            arg "-mixin.config=wyml.mixins.json"
+    repositories {
+        maven {
+            url "https://maven.architectury.dev/"
+        }
 
-            property 'forge.logging.markers', 'SCAN,REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            mods {
-                wyml {
-                    source sourceSets.main
-                }
+        maven {
+            url "https://www.cursemaven.com"
+            content {
+                includeGroup "curse.maven"
             }
         }
 
-        server {
-            workingDirectory project.file('run')
-            arg "-mixin.config=wyml.mixins.json"
-            property 'forge.logging.markers', 'SCAN,REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            mods {
-                wyml {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        data {
-            workingDirectory project.file('run')
-
-            // Recommended logging data for a userdev environment
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            property 'forge.logging.console.level', 'debug'
-
-            args '--mod', 'wyml', '--all', '--output', file('src/generated/resources/'), '--existing', sourceSets.main.resources.srcDirs[0]
-
-            mods {
-                wyml {
-                    source sourceSets.main
-                }
+        maven {
+            url "https://maven.saps.dev/minecraft"
+            content {
+                includeGroup "dev.latvian.mods"
+                includeGroup "dev.ftb.mods"
             }
         }
     }
-}
 
-mixin {
-    add sourceSets.main, "wyml.refmap.json"
-}
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-
-repositories {
-    maven {
-        name = "Curios"
-        url = "https://maven.theillusivec4.top/"
+        // The Minecraft launcher currently installs Java 8 for users, so your mod probably wants to target Java 8 too
+        // JDK 9 introduced a new way of specifying this that will make sure no newer classes or methods are used.
+        // We'll use that if it's available, but otherwise we'll use the older option.
+        def targetVersion = 8
+        if (JavaVersion.current().isJava9Compatible()) {
+            options.release = targetVersion
+        }
     }
-    maven {
-        name "JEI"
-        url "http://dvs1.progwml6.com/files/maven"
-    }
-}
 
-dependencies {
-    minecraft "net.minecraftforge:forge:${project.mc_version}-${project.forge_version}"
-//	runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:1.16.2-4.0.0.1")
-//    compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:1.16.2-4.0.0.1:api")
-//    runtimeOnly fg.deobf("mezz.jei:jei-${project.mc_version}:${project.jei_version}")
-    annotationProcessor 'org.spongepowered:mixin:0.8:processor'
-}
-
-
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-    options.compilerArgs = [
-            '-Xlint:deprecation', // deprecation, rawtypes, cast, unchecked, all
-            '-Xlint:unchecked',
-    ]
-}
-
-jar {
-    manifest {
-        attributes([
-                "Specification-Title": archivesBaseName,
-                    "Specification-Vendor": "gigabit101",
-                    "Specification-Version": "${project.mod_version}",
-                    "Implementation-Title": archivesBaseName,
-                    "Implementation-Version": "${project.mod_version}",
-                    "Implementation-Vendor" :"gigabit101",
-                    "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                    "MixinConfigs": "wyml.mixins.json"
-        ],)
+    java {
+        withSourcesJar()
     }
 }
