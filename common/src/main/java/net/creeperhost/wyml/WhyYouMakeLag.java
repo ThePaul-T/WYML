@@ -127,11 +127,6 @@ public class WhyYouMakeLag
         });
     }
 
-    public static void doForgeStuff(int j, Mob mobEntity)
-    {
-        if(Platform.isForge()) WhyYouMakeLag.doForgeStuff(j, mobEntity);
-    }
-
     public static void serverStarted(MinecraftServer minecraftServer)
     {
         WhyYouMakeLag.minecraftServer = minecraftServer;

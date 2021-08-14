@@ -11,7 +11,7 @@ dependencies {
 
     modImplementation "dev.latvian.mods:rhino:${rootProject.rhino_version}"
     modImplementation "dev.latvian.mods:kubejs-fabric:${rootProject.kubejs_version}"
-    
+    implementation "blue.endless:jankson:1.2.1"
 
 }
 

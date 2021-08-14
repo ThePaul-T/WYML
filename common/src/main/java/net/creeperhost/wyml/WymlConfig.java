@@ -1,12 +1,12 @@
 package net.creeperhost.wyml;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import blue.endless.jankson.Jankson;
+import blue.endless.jankson.JsonElement;
+import blue.endless.jankson.JsonObject;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.charset.Charset;
 import java.nio.file.*;
@@ -17,6 +17,10 @@ public class WymlConfig
 {
     private static AtomicReference<ConfigData> data = new AtomicReference<>();
     private static File lastFile;
+    private static
+    Jankson gson = Jankson
+            .builder()
+            .build();
 
 
 
@@ -24,12 +28,10 @@ public class WymlConfig
     public static void loadFromFile(File file)
     {
         lastFile = file;
-
-        Gson gson = new Gson();
         try
         {
-            FileReader fileReader = new FileReader(file);
-            data.set(gson.fromJson(fileReader, ConfigData.class));
+            JsonObject jObject = gson.load(file);
+            data.set(gson.fromJson(jObject, ConfigData.class));
         } catch (Exception ignored)
         {
             data.set(new ConfigData());
@@ -67,8 +69,8 @@ public class WymlConfig
 
     public static String saveConfig()
     {
-        Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-        return gson.toJson(data.get());
+        JsonElement elem = gson.toJson(data.get());
+        return elem.toJson();
     }
 
     public static void init(File file)
@@ -78,13 +80,14 @@ public class WymlConfig
             //TODO make someone who understands java better make sure this is sane.
             try(WatchService watcher = FileSystems.getDefault().newWatchService())
             {
-                WatchKey key = lastFile.toPath().register(watcher, StandardWatchEventKinds.ENTRY_MODIFY);
+                lastFile.toPath().register(watcher, StandardWatchEventKinds.ENTRY_MODIFY);
                 Runnable configWatcher = () -> {
                     try {
                         WatchKey checker = watcher.take();
                         for (WatchEvent<?> event : checker.pollEvents()) {
                             Path changed = (Path) event.context();
                             if (changed.equals(lastFile)) {
+                                WhyYouMakeLag.LOGGER.info("Config at "+lastFile.getAbsolutePath()+" has changed, reloading...");
                                 reload();
                             }
                         }

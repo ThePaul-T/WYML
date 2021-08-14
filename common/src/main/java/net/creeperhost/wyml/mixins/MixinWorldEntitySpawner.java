@@ -167,7 +167,6 @@ public abstract class MixinWorldEntitySpawner
                                         ++p;
                                         serverLevel.addFreshEntityWithPassengers(mob);
                                         afterSpawnCallback.run(mob, chunkAccess);
-                                        WhyYouMakeLag.doForgeStuff(j, mob);
                                         if (j >= WYMLReimplimentedHooks.getMaxGroupSize(mob)) {
                                             return;
                                         }
