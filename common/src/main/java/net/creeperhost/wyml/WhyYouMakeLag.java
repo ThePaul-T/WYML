@@ -1,19 +1,18 @@
 package net.creeperhost.wyml;
 
+import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.shedaniel.architectury.platform.Platform;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +26,8 @@ public class WhyYouMakeLag
     public static MinecraftServer minecraftServer;
     public static Object2IntOpenHashMap<MobCategory> mobCategoryCounts;
     public static HashMap<MobCategory, Integer> spawnableChunkCount = new HashMap<>();
+    public static AtomicReference<List<Long>> cachedClaimedChunks = new AtomicReference<>();
+    public static AtomicReference<List<Long>> cachedForceLoadedChunks = new AtomicReference<>();
     private static AtomicReference<HashMap<String, WYMLSpawnManager>> spawnManager = new AtomicReference<>();
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
@@ -38,6 +39,8 @@ public class WhyYouMakeLag
         WymlConfig.init(configFile.toFile());
 
         if(spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
+        if(cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
+        if(cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
     }
 
     public static boolean isFtbChunksLoaded()
@@ -50,6 +53,11 @@ public class WhyYouMakeLag
             return false;
         }
         return true;
+    }
+
+    public static LongSet getForceLoadedChunks()
+    {
+       return minecraftServer.getLevel(Level.OVERWORLD).getForcedChunks();
     }
 
     public static int getTicks()
@@ -94,12 +102,12 @@ public class WhyYouMakeLag
     }
     public static double getMagicNum()
     {
-        double magicNum = WymlConfig.instance.MOJANG_MAGIC_NUM.get();
-        if(WymlConfig.instance.DOWNSCALE_MAGIC_NUM.get())
+        double magicNum = WymlConfig.cached().MOJANG_MAGIC_NUM;
+        if(WymlConfig.cached().DOWNSCALE_MAGIC_NUM)
         {
             int players = WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount();
             magicNum = magicNum - players;
-            if(magicNum < WymlConfig.instance.DOWNSCALE_MAGIC_NUM_MIN.get()) magicNum = WymlConfig.instance.DOWNSCALE_MAGIC_NUM_MIN.get();
+            if(magicNum < WymlConfig.cached().DOWNSCALE_MAGIC_NUM_MIN) magicNum = WymlConfig.cached().DOWNSCALE_MAGIC_NUM_MIN;
         }
         return magicNum;
     }
@@ -116,11 +124,21 @@ public class WhyYouMakeLag
 
     public static void serverStarted(MinecraftServer minecraftServer)
     {
-        //TODO get server via mixin
         WhyYouMakeLag.minecraftServer = minecraftServer;
         Runnable cleanThread = () ->
         {
             try {
+                if(WhyYouMakeLag.isFtbChunksLoaded())
+                {
+                    List<Long> pos = CompatFTBChunks.getChunkPosList();
+                    cachedClaimedChunks.set(pos);
+                }
+                List<Long> forceLoaded = new ArrayList<>();
+                if(getForceLoadedChunks() != null)
+                {
+                    getForceLoadedChunks().stream().iterator().forEachRemaining(forceLoaded::add);
+                }
+                cachedForceLoadedChunks.set(forceLoaded);
                 int managersRemoved = 0;
                 int managersTotal = 0;
                 int blockCacheRemoved = 0;
@@ -158,7 +176,7 @@ public class WhyYouMakeLag
                     {
                         t.printStackTrace();
                     }
-                    if(WymlConfig.instance.CLEAN_PRINT.get()) LOGGER.info("Cleaned up caches, removed " + managersRemoved + "/" + managersTotal + " Chunk SpawnManagers and " + blockCacheRemoved + "/" + blockCacheTotal + " block spawn caches. ["+usage+"]");
+                    if(WymlConfig.cached().CLEAN_PRINT) LOGGER.info("Cleaned up caches, removed " + managersRemoved + "/" + managersTotal + " Chunk SpawnManagers and " + blockCacheRemoved + "/" + blockCacheTotal + " block spawn caches. ["+usage+"]");
                     //}
                 }
             } catch (Exception whatthefuck) {
@@ -167,20 +185,6 @@ public class WhyYouMakeLag
         };
         scheduledExecutorService.scheduleAtFixedRate(cleanThread, 0, 10, TimeUnit.SECONDS);
     }
-
-//    public void serverTick(TickEvent.ServerTickEvent tickEvent)
-//    {
-//        ticks++;
-//    }
-//
-//    public void spawnEvent(EntityJoinWorldEvent event)
-//    {
-//        if(WymlConfig.DEBUG_PRINT.get()) {
-//            if (event.getEntity() instanceof SlimeEntity) {
-//                event.setCanceled(true);
-//            }
-//        }
-//    }
 
     public static int calculateSpawnCount(MobCategory entityClassification, Object2IntOpenHashMap<MobCategory> mobCategoryCounts, int spawnableChunkCount)
     {
@@ -197,8 +201,8 @@ public class WhyYouMakeLag
         int curMobs = mobCategoryCounts.getInt(entityClassification);
         if(curMobs < i)
         {
-            int tries = WymlConfig.instance.MOB_TRIES.get();
-            if(WymlConfig.instance.MULTIPLY_BY_PLAYERS.get()) tries = (tries * onlineCount);
+            int tries = WymlConfig.cached().MOB_TRIES;
+            if(WymlConfig.cached().MULTIPLY_BY_PLAYERS) tries = (tries * onlineCount);
             retVal = curMobs + tries;
         }
         if(retVal > WhyYouMakeLag.realMax) retVal = WhyYouMakeLag.realMax;

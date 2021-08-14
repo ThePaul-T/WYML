@@ -15,13 +15,13 @@ public class CompatFTBChunks
         return FTBChunksAPI.getManager().getAllClaimedChunks();
     }
 
-    public static List<ChunkPos> getChunkPosList()
+    public static List<Long> getChunkPosList()
     {
         Collection<ClaimedChunk> claimedChunks = getClaimed();
-        List<ChunkPos> chunkPosList = new ArrayList<>();
+        List<Long> chunkPosList = new ArrayList<>();
         for(ClaimedChunk chunk : claimedChunks)
         {
-            chunkPosList.add(chunk.getPos().getChunkPos());
+            chunkPosList.add(chunk.getPos().getChunkPos().toLong());
         }
         return chunkPosList;
     }

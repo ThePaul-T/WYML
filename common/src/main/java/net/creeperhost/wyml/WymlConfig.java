@@ -12,41 +12,25 @@ import java.io.FileWriter;
 import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class WymlConfig
 {
-    public AtomicInteger MOB_TRIES = new AtomicInteger(1);
-    public AtomicBoolean MULTIPLY_BY_PLAYERS = new AtomicBoolean(true);
-    public AtomicInteger SLOW_TICKS = new AtomicInteger(600);
-    public AtomicInteger PAUSE_TICKS = new AtomicInteger(1800);
-    public AtomicInteger PAUSE_RATE = new AtomicInteger(65);
-    public AtomicInteger RESUME_RATE = new AtomicInteger(10);
-    public AtomicDouble MOJANG_MAGIC_NUM = new AtomicDouble(17D);
-    public AtomicInteger PAUSE_MIN = new AtomicInteger(256);
-    public AtomicInteger SAMPLE_TICKS = new AtomicInteger(5);
-    public AtomicInteger SPAWNLOC_CACHE_TICKS = new AtomicInteger(600);
-    public AtomicInteger MANAGER_CACHE_TICKS = new AtomicInteger(600);
-    public AtomicBoolean ALLOW_PAUSE = new AtomicBoolean(false);
-    public AtomicBoolean ALLOW_SLOW = new AtomicBoolean(true);
-    public AtomicBoolean DEBUG_PRINT = new AtomicBoolean(true);
-    public AtomicBoolean CLEAN_PRINT = new AtomicBoolean(true);
-    public AtomicBoolean DOWNSCALE_MAGIC_NUM = new AtomicBoolean(true);
-    public AtomicDouble  DOWNSCALE_MAGIC_NUM_MIN = new AtomicDouble(8D);
-    public AtomicInteger MAX_CHUNK_SPAWN_REQ_TICK = new AtomicInteger(12);
-
-    public static WymlConfig instance;
-
+    private static AtomicReference<ConfigData> data = new AtomicReference<>();
+    private static File lastFile;
 
     //TODO save and load
     public static void loadFromFile(File file)
     {
+        lastFile = file;
         Gson gson = new Gson();
         try
         {
             FileReader fileReader = new FileReader(file);
-            instance = gson.fromJson(fileReader, WymlConfig.class);
+            data.set(gson.fromJson(fileReader, ConfigData.class));
         } catch (Exception ignored)
         {
+            data.set(new ConfigData());
         }
     }
 
@@ -59,11 +43,30 @@ public class WymlConfig
         {
         }
     }
+    public static ConfigData cached()
+    {
+        return data.get();
+    }
+    public static ConfigData update(ConfigData _data)
+    {
+        data.set(_data);
+        return data.get();
+    }
+
+    public static boolean reload()
+    {
+        if(lastFile != null)
+        {
+            loadFromFile(lastFile);
+            return true;
+        }
+        return false;
+    }
 
     public static String saveConfig()
     {
         Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-        return gson.toJson(instance);
+        return gson.toJson(data.get());
     }
 
     public static void init(File file)
@@ -72,8 +75,8 @@ public class WymlConfig
         {
             if (!file.exists())
             {
-                WymlConfig.instance = new WymlConfig();
-
+                ConfigData configData = new ConfigData();
+                data.set(configData);
                 FileWriter tileWriter = new FileWriter(file);
                 tileWriter.write(WymlConfig.saveConfig());
                 tileWriter.close();
