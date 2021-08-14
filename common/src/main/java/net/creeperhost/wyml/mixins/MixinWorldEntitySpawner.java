@@ -1,5 +1,6 @@
 package net.creeperhost.wyml.mixins;
 
+import net.creeperhost.wyml.WYMLReimplimentedHooks;
 import net.creeperhost.wyml.WYMLSpawnManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.WymlConfig;
@@ -156,19 +157,24 @@ public abstract class MixinWorldEntitySpawner
                                 }
 
                                 mob.moveTo(d, (double)i, e, serverLevel.random.nextFloat() * 360.0F, 0.0F);
-                                if (isValidPositionForMob(serverLevel, mob, f)) {
-                                    spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.NATURAL, spawnGroupData, (CompoundTag)null);
-                                    ++j;
-                                    ++p;
-                                    serverLevel.addFreshEntityWithPassengers(mob);
-                                    afterSpawnCallback.run(mob, chunkAccess);
-                                    WhyYouMakeLag.doForgeStuff(j, mob);
-                                    if (j >= mob.getMaxSpawnClusterSize()) {
-                                        return;
-                                    }
 
-                                    if (mob.isMaxGroupSizeReached(p)) {
-                                        break;
+
+                                int canSpawn = WYMLReimplimentedHooks.canSpawn(mob, serverLevel, d, i, f, null, MobSpawnType.NATURAL);
+                                if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverLevel, mob, f))) {
+                                    if (!WYMLReimplimentedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) f, null, MobSpawnType.NATURAL)) {
+                                        spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.NATURAL, spawnGroupData, (CompoundTag) null);
+                                        ++j;
+                                        ++p;
+                                        serverLevel.addFreshEntityWithPassengers(mob);
+                                        afterSpawnCallback.run(mob, chunkAccess);
+                                        WhyYouMakeLag.doForgeStuff(j, mob);
+                                        if (j >= WYMLReimplimentedHooks.getMaxGroupSize(mob)) {
+                                            return;
+                                        }
+
+                                        if (mob.isMaxGroupSizeReached(p)) {
+                                            break;
+                                        }
                                     }
                                 }
                             }
@@ -179,143 +185,4 @@ public abstract class MixinWorldEntitySpawner
 
         }
     }
-//    @Overwrite
-//    public static void spawnCategoryForPosition(MobCategory entityClassification, ServerLevel serverWorld, ChunkAccess chunk, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback) {
-//        StructureFeatureManager structuremanager = serverWorld.structureFeatureManager();
-//        ChunkGenerator chunkgenerator = serverWorld.getChunkSource().getGenerator();
-//        int slowTicks = WymlConfig.instance.SLOW_TICKS.get();
-//        int i = blockPos.getY();
-//        int MAGIC_NUMBER_2_ELECTRIC_BOOGALOO = ((int) (WhyYouMakeLag.getMagicNum() * WhyYouMakeLag.getMagicNum()));
-//        //TODO
-////        if(NaturalSpawner.MAGIC_NUMBER != MAGIC_NUMBER_2_ELECTRIC_BOOGALOO)
-////        {
-////            //Keep this up to date if scaling is enabled.
-////            WorldEntitySpawner.MAGIC_NUMBER = MAGIC_NUMBER_2_ELECTRIC_BOOGALOO;
-////        }
-//        WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunk.getPos(), entityClassification);
-//        if(spawnManager.isPaused())
-//        {
-//            if(!spawnManager.isSaved()) WhyYouMakeLag.updateSpawnManager(spawnManager);
-//            return;
-//        }
-//        if(spawnManager.isSlowMode())
-//        {
-//            int tries = WymlConfig.instance.MOB_TRIES.get();
-//            if (WymlConfig.instance.MULTIPLY_BY_PLAYERS.get()) tries = (tries * WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount());
-//            if(spawnManager.getSpawnsInSample() > tries)
-//            {
-//                return;
-//            }
-//            if(spawnManager.getSpawnsInSample() < tries && spawnManager.ticksSinceSlow() > slowTicks)
-//            {
-//                spawnManager.fastMode();
-//                if(WymlConfig.instance.DEBUG_PRINT.get()) System.out.println("Entering fast spawn mode for class "+spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "["+spawnManager.getFailRate()+"%]");
-//                WhyYouMakeLag.updateSpawnManager(spawnManager);
-//            }
-//        } else {
-//            int maxSpawnRate = WhyYouMakeLag.calculateSpawnCount(spawnManager.getClassification(), WhyYouMakeLag.mobCategoryCounts, WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()));
-//            if(spawnManager.getSpawnsInSample() > maxSpawnRate && WymlConfig.instance.ALLOW_SLOW.get())
-//            {
-//                spawnManager.slowMode();
-//                if(WymlConfig.instance.DEBUG_PRINT.get()) System.out.println("Entering slow spawn mode for class "+spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "["+spawnManager.getFailRate()+"%]");
-//                WhyYouMakeLag.updateSpawnManager(spawnManager);
-//                return;
-//            }
-//        }
-//        if(spawnManager.getFailRate() > WymlConfig.instance.PAUSE_RATE.get() && spawnManager.getStartRate() > WymlConfig.instance.PAUSE_MIN.get() && spawnManager.ticksSinceSlow() > slowTicks && WymlConfig.instance.ALLOW_PAUSE.get())
-//        {
-//            int pauseTicks = WymlConfig.instance.PAUSE_TICKS.get();
-//            spawnManager.pauseSpawns(pauseTicks);
-//            if(WymlConfig.instance.DEBUG_PRINT.get()) System.out.println("Pausing spawns for "+pauseTicks+" ticks or until "+WymlConfig.instance.RESUME_RATE.get()+"% success rate for class "+spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + " due to high failure rate ["+spawnManager.getFailRate()+"%].");
-//            WhyYouMakeLag.updateSpawnManager(spawnManager);
-//            return;
-//        }
-//        BlockState blockstate = chunk.getBlockState(blockPos);
-//        if (!blockstate.isRedstoneConductor(chunk, blockPos)) {
-//            BlockPos.MutableBlockPos blockpos$mutable = new BlockPos.MutableBlockPos();
-//            if(spawnManager.isKnownBadLocation(blockpos$mutable))
-//            {
-//                return;
-//            }
-//            int j = 0;
-//            int sampleSpawns = spawnManager.getSpawnsInSample();
-//            int maxAttempts = WymlConfig.instance.MAX_CHUNK_SPAWN_REQ_TICK.get();
-//            for (int k = 0; k < 3; ++k) {
-//                if(sampleSpawns > maxAttempts)
-//                {
-//                    if(WymlConfig.instance.DEBUG_PRINT.get()) LOGGER.debug("Skipping spawn as beyond limits.");
-//                    continue;
-//                }
-//                sampleSpawns = spawnManager.getSpawnsInSample();
-//                int l = blockPos.getX();
-//                int i1 = blockPos.getZ();
-//                int j1 = 6;
-//                MobSpawnSettings.SpawnerData mobspawninfo$spawners = null;
-//                SpawnGroupData ilivingentitydata = null;
-//                int k1 = Mth.ceil(serverWorld.random.nextFloat() * 4.0F);
-//                int l1 = 0;
-//
-//                for (int i2 = 0; i2 < k1; ++i2) {
-//                    if(sampleSpawns > maxAttempts)
-//                    {
-//                        if(WymlConfig.instance.DEBUG_PRINT.get()) LOGGER.debug("Skipping spawn as beyond limits..");
-//                        continue;
-//                    }
-//                    sampleSpawns = spawnManager.getSpawnsInSample();
-//                    l += serverWorld.random.nextInt(6) - serverWorld.random.nextInt(6);
-//                    i1 += serverWorld.random.nextInt(6) - serverWorld.random.nextInt(6);
-//                    blockpos$mutable.set(l, i, i1);
-//                    if(spawnManager.isKnownBadLocation(blockpos$mutable))
-//                    {
-//                        //System.out.println("Known bad block position "+blockpos$mutable+" for "+spawnManager.getClassification().getName()+" in "+spawnManager.getChunk()+" skipped.");
-//                        continue;
-//                    }
-//                    double d0 = (double) l + 0.5D;
-//                    double d1 = (double) i1 + 0.5D;
-//                    spawnManager.increaseSpawningCount(blockpos$mutable);
-//                    WhyYouMakeLag.updateSpawnManager(spawnManager);
-//                    Player playerentity = serverWorld.getNearestPlayer(d0, (double) i, d1, -1.0D, false);
-//                    if (playerentity != null) {
-//                        double d2 = playerentity.distanceToSqr(d0, (double) i, d1);
-//                        if (isRightDistanceToPlayerAndSpawnPoint(serverWorld, chunk, blockpos$mutable, d2)) {
-//                            if (mobspawninfo$spawners == null) {
-//                                mobspawninfo$spawners = getRandomSpawnMobAt(serverWorld, structuremanager, chunkgenerator, entityClassification, serverWorld.random, blockpos$mutable);
-//                                if (mobspawninfo$spawners == null) {
-//                                    break;
-//                                }
-//
-//                                k1 = mobspawninfo$spawners.minCount + serverWorld.random.nextInt(1 + mobspawninfo$spawners.maxCount - mobspawninfo$spawners.minCount);
-//                            }
-//
-//                            if (isValidSpawnPostitionForType(serverWorld, entityClassification, structuremanager, chunkgenerator, mobspawninfo$spawners, blockpos$mutable, d2) && spawnPredicate.test(mobspawninfo$spawners.type, blockpos$mutable, chunk)) {
-//                                Mob mobentity = getMobForSpawn(serverWorld, mobspawninfo$spawners.type);
-//                                if (mobentity == null) {
-//                                    return;
-//                                }
-//
-//                                mobentity.moveTo(d0, (double) i, d1, serverWorld.random.nextFloat() * 360.0F, 0.0F);
-//                                //TODO this is now a forge problem :P
-////                                int canSpawn = net.minecraftforge.common.ForgeHooks.canEntitySpawn(mobentity, serverWorld, d0, i, d1, null, SpawnReason.NATURAL);
-////                                if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverWorld, mobentity, d2))) {
-////                                    if (!net.minecraftforge.event.ForgeEventFactory.doSpecialSpawn(mobentity, serverWorld, (float) d0, (float) i, (float) d1, null, SpawnReason.NATURAL))
-////                                        ilivingentitydata = mobentity.finalizeSpawn(serverWorld, serverWorld.getCurrentDifficultyAt(mobentity.blockPosition()), SpawnReason.NATURAL, ilivingentitydata, (CompoundNBT) null);
-////                                    ++j;
-////                                    ++l1;
-////                                    serverWorld.addFreshEntityWithPassengers(mobentity);
-////                                    iOnSpawnDensityAdder.run(mobentity, chunk);
-////                                    if (j >= net.minecraftforge.event.ForgeEventFactory.getMaxSpawnPackSize(mobentity)) {
-////                                        return;
-////                                    }
-////
-////                                    if (mobentity.isMaxGroupSizeReached(l1)) {
-////                                        break;
-////                                    }
-////                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
 }

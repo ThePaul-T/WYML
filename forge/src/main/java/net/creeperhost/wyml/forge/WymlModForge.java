@@ -14,11 +14,4 @@ public class WymlModForge
         EventBuses.registerModEventBus(WhyYouMakeLag.MOD_ID, FMLJavaModLoadingContext.get().getModEventBus());
         WhyYouMakeLag.init();
     }
-
-    public static void doStuff(int j, Mob mobentity)
-    {
-        if (j >= net.minecraftforge.event.ForgeEventFactory.getMaxSpawnPackSize(mobentity)) {
-            return;
-        }
-    }
 }

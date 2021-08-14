@@ -32,6 +32,7 @@ public class WhyYouMakeLag
     public static AtomicReference<List<Long>> cachedForceLoadedChunks = new AtomicReference<>();
     private static AtomicReference<HashMap<String, WYMLSpawnManager>> spawnManager = new AtomicReference<>();
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    public static ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
     public static Path configFile = Platform.getConfigFolder().resolve(MOD_ID + ".json");
 
