@@ -1,12 +1,30 @@
 package net.creeperhost.wyml.mixins;
 
+import net.creeperhost.wyml.WYMLSpawnManager;
+import net.creeperhost.wyml.WhyYouMakeLag;
+import net.creeperhost.wyml.WymlConfig;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.NaturalSpawner;
+import net.minecraft.world.level.StructureFeatureManager;
+import net.minecraft.world.level.biome.MobSpawnSettings;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.Random;
@@ -14,33 +32,55 @@ import java.util.Random;
 import static net.creeperhost.wyml.WymlConfig.MAX_CHUNK_SPAWN_REQ_TICK;
 
 
-@Mixin(WorldEntitySpawner.class)
+@Mixin(NaturalSpawner.class)
 public abstract class MixinWorldEntitySpawner
 {
-    @Shadow protected static BlockPos getRandomPosWithin(World p_222262_0_, Chunk p_222262_1_) { return null; }
-    @Invoker("getRandomSpawnMobAt") private static MobSpawnInfo.Spawners getRandomSpawnMobAt(ServerWorld p_234977_0_, StructureManager p_234977_1_, ChunkGenerator p_234977_2_, EntityClassification p_234977_3_, Random p_234977_4_, BlockPos p_234977_5_) { return null; }
-    @Invoker("isValidSpawnPostitionForType") private static boolean isValidSpawnPostitionForType(ServerWorld p_234966_1_, EntityClassification p_234966_0_, StructureManager structuremanager, ChunkGenerator chunkgenerator, MobSpawnInfo.Spawners mobspawninfo$spawners, BlockPos.Mutable blockpos$mutable, double d2) { return false; }
-    @Invoker("getMobForSpawn") private static MobEntity getMobForSpawn(ServerWorld p_234966_1_, EntityType<?> type) { return null; }
-    @Invoker("isValidPositionForMob") private static boolean isValidPositionForMob(ServerWorld p_234966_1_, MobEntity mobentity, double d2) { return false; }
-    @Invoker("isRightDistanceToPlayerAndSpawnPoint") private static boolean isRightDistanceToPlayerAndSpawnPoint(ServerWorld p_234978_0_, IChunk p_234978_1_, BlockPos.Mutable p_234978_2_, double p_234978_3_) { return false; }
     @Shadow @Final private static Logger LOGGER;
+
+    @Shadow
+    protected static boolean isValidSpawnPostitionForType(ServerLevel serverLevel, MobCategory mobCategory, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobSpawnSettings.SpawnerData spawnerData, BlockPos.MutableBlockPos mutableBlockPos, double d)
+    {
+        return false;
+    }
+
+    @Shadow
+    @Nullable
+    protected static Mob getMobForSpawn(ServerLevel serverLevel, EntityType<?> entityType)
+    {
+        return null;
+    }
+
+    @Shadow
+    @Nullable
+    protected static MobSpawnSettings.SpawnerData getRandomSpawnMobAt(ServerLevel serverLevel, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobCategory mobCategory, Random random, BlockPos blockPos)
+    {
+        return null;
+    }
+
+    @Shadow
+    protected static boolean isRightDistanceToPlayerAndSpawnPoint(ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos.MutableBlockPos mutableBlockPos, double d)
+    {
+        return false;
+    }
 
     /**
      * @author ThePaul_T - 2021
      * @reason Cause Mojang code is questionable, would've injected but 100% sure I am rewriting this whole function soon(tm) - Sorry not sorry.
      */
+
     @Overwrite
-    public static void spawnCategoryForPosition(EntityClassification entityClassification, ServerWorld serverWorld, IChunk chunk, BlockPos blockPos, WorldEntitySpawner.IDensityCheck iDensityCheck, WorldEntitySpawner.IOnSpawnDensityAdder iOnSpawnDensityAdder) {
-        StructureManager structuremanager = serverWorld.structureFeatureManager();
+    public static void spawnCategoryForPosition(MobCategory entityClassification, ServerLevel serverWorld, ChunkAccess chunk, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback) {
+        StructureFeatureManager structuremanager = serverWorld.structureFeatureManager();
         ChunkGenerator chunkgenerator = serverWorld.getChunkSource().getGenerator();
         int slowTicks = WymlConfig.SLOW_TICKS.get();
         int i = blockPos.getY();
         int MAGIC_NUMBER_2_ELECTRIC_BOOGALOO = ((int) (WhyYouMakeLag.getMagicNum() * WhyYouMakeLag.getMagicNum()));
-        if(WorldEntitySpawner.MAGIC_NUMBER != MAGIC_NUMBER_2_ELECTRIC_BOOGALOO)
-        {
-            //Keep this up to date if scaling is enabled.
-            WorldEntitySpawner.MAGIC_NUMBER = MAGIC_NUMBER_2_ELECTRIC_BOOGALOO;
-        }
+        //TODO
+//        if(NaturalSpawner.MAGIC_NUMBER != MAGIC_NUMBER_2_ELECTRIC_BOOGALOO)
+//        {
+//            //Keep this up to date if scaling is enabled.
+//            WorldEntitySpawner.MAGIC_NUMBER = MAGIC_NUMBER_2_ELECTRIC_BOOGALOO;
+//        }
         WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunk.getPos(), entityClassification);
         if(spawnManager.isPaused())
         {
@@ -81,7 +121,7 @@ public abstract class MixinWorldEntitySpawner
         }
         BlockState blockstate = chunk.getBlockState(blockPos);
         if (!blockstate.isRedstoneConductor(chunk, blockPos)) {
-            BlockPos.Mutable blockpos$mutable = new BlockPos.Mutable();
+            BlockPos.MutableBlockPos blockpos$mutable = new BlockPos.MutableBlockPos();
             if(spawnManager.isKnownBadLocation(blockpos$mutable))
             {
                 return;
@@ -99,9 +139,9 @@ public abstract class MixinWorldEntitySpawner
                 int l = blockPos.getX();
                 int i1 = blockPos.getZ();
                 int j1 = 6;
-                MobSpawnInfo.Spawners mobspawninfo$spawners = null;
-                ILivingEntityData ilivingentitydata = null;
-                int k1 = MathHelper.ceil(serverWorld.random.nextFloat() * 4.0F);
+                MobSpawnSettings.SpawnerData mobspawninfo$spawners = null;
+                SpawnGroupData ilivingentitydata = null;
+                int k1 = Mth.ceil(serverWorld.random.nextFloat() * 4.0F);
                 int l1 = 0;
 
                 for (int i2 = 0; i2 < k1; ++i2) {
@@ -123,7 +163,7 @@ public abstract class MixinWorldEntitySpawner
                     double d1 = (double) i1 + 0.5D;
                     spawnManager.increaseSpawningCount(blockpos$mutable);
                     WhyYouMakeLag.updateSpawnManager(spawnManager);
-                    PlayerEntity playerentity = serverWorld.getNearestPlayer(d0, (double) i, d1, -1.0D, false);
+                    Player playerentity = serverWorld.getNearestPlayer(d0, (double) i, d1, -1.0D, false);
                     if (playerentity != null) {
                         double d2 = playerentity.distanceToSqr(d0, (double) i, d1);
                         if (isRightDistanceToPlayerAndSpawnPoint(serverWorld, chunk, blockpos$mutable, d2)) {
@@ -136,29 +176,30 @@ public abstract class MixinWorldEntitySpawner
                                 k1 = mobspawninfo$spawners.minCount + serverWorld.random.nextInt(1 + mobspawninfo$spawners.maxCount - mobspawninfo$spawners.minCount);
                             }
 
-                            if (isValidSpawnPostitionForType(serverWorld, entityClassification, structuremanager, chunkgenerator, mobspawninfo$spawners, blockpos$mutable, d2) && iDensityCheck.test(mobspawninfo$spawners.type, blockpos$mutable, chunk)) {
-                                MobEntity mobentity = getMobForSpawn(serverWorld, mobspawninfo$spawners.type);
+                            if (isValidSpawnPostitionForType(serverWorld, entityClassification, structuremanager, chunkgenerator, mobspawninfo$spawners, blockpos$mutable, d2) && spawnPredicate.test(mobspawninfo$spawners.type, blockpos$mutable, chunk)) {
+                                Mob mobentity = getMobForSpawn(serverWorld, mobspawninfo$spawners.type);
                                 if (mobentity == null) {
                                     return;
                                 }
 
                                 mobentity.moveTo(d0, (double) i, d1, serverWorld.random.nextFloat() * 360.0F, 0.0F);
-                                int canSpawn = net.minecraftforge.common.ForgeHooks.canEntitySpawn(mobentity, serverWorld, d0, i, d1, null, SpawnReason.NATURAL);
-                                if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverWorld, mobentity, d2))) {
-                                    if (!net.minecraftforge.event.ForgeEventFactory.doSpecialSpawn(mobentity, serverWorld, (float) d0, (float) i, (float) d1, null, SpawnReason.NATURAL))
-                                        ilivingentitydata = mobentity.finalizeSpawn(serverWorld, serverWorld.getCurrentDifficultyAt(mobentity.blockPosition()), SpawnReason.NATURAL, ilivingentitydata, (CompoundNBT) null);
-                                    ++j;
-                                    ++l1;
-                                    serverWorld.addFreshEntityWithPassengers(mobentity);
-                                    iOnSpawnDensityAdder.run(mobentity, chunk);
-                                    if (j >= net.minecraftforge.event.ForgeEventFactory.getMaxSpawnPackSize(mobentity)) {
-                                        return;
-                                    }
-
-                                    if (mobentity.isMaxGroupSizeReached(l1)) {
-                                        break;
-                                    }
-                                }
+                                //TODO this is now a forge problem :P
+//                                int canSpawn = net.minecraftforge.common.ForgeHooks.canEntitySpawn(mobentity, serverWorld, d0, i, d1, null, SpawnReason.NATURAL);
+//                                if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverWorld, mobentity, d2))) {
+//                                    if (!net.minecraftforge.event.ForgeEventFactory.doSpecialSpawn(mobentity, serverWorld, (float) d0, (float) i, (float) d1, null, SpawnReason.NATURAL))
+//                                        ilivingentitydata = mobentity.finalizeSpawn(serverWorld, serverWorld.getCurrentDifficultyAt(mobentity.blockPosition()), SpawnReason.NATURAL, ilivingentitydata, (CompoundNBT) null);
+//                                    ++j;
+//                                    ++l1;
+//                                    serverWorld.addFreshEntityWithPassengers(mobentity);
+//                                    iOnSpawnDensityAdder.run(mobentity, chunk);
+//                                    if (j >= net.minecraftforge.event.ForgeEventFactory.getMaxSpawnPackSize(mobentity)) {
+//                                        return;
+//                                    }
+//
+//                                    if (mobentity.isMaxGroupSizeReached(l1)) {
+//                                        break;
+//                                    }
+//                                }
                             }
                         }
                     }

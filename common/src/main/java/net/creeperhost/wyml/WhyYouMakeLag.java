@@ -1,11 +1,20 @@
 package net.creeperhost.wyml;
 
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.ChunkPos;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class WhyYouMakeLag
 {
@@ -14,16 +23,16 @@ public class WhyYouMakeLag
     public static int trueCount = 0;
     public static MinecraftServer minecraftServer;
     public static int ticks = 0;
-//    public static Object2IntOpenHashMap<EntityClassification> mobCategoryCounts;
-//    public static HashMap<EntityClassification, Integer> spawnableChunkCount = new HashMap<>();
-//    private static AtomicReference<HashMap<String, WYMLSpawnManager>> spawnManager = new AtomicReference<>();
+    public static Object2IntOpenHashMap<MobCategory> mobCategoryCounts;
+    public static HashMap<MobCategory, Integer> spawnableChunkCount = new HashMap<>();
+    private static AtomicReference<HashMap<String, WYMLSpawnManager>> spawnManager = new AtomicReference<>();
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
 
     public static void init()
     {
 //        IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
-//        if(spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
+        if(spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
 //
 //        MinecraftForge.EVENT_BUS.addListener(this::serverStarted);
 //        MinecraftForge.EVENT_BUS.addListener(this::serverStopping);
@@ -36,12 +45,13 @@ public class WhyYouMakeLag
     }
 
 
-    private void serverStopping(FMLServerStoppingEvent event) {
+    private void serverStopping()
+    {
         scheduledExecutorService.shutdown();
         scheduledExecutorService.shutdownNow();
     }
 
-    public synchronized static boolean hasSpawnManager(ChunkPos pos, EntityClassification classification)
+    public synchronized static boolean hasSpawnManager(ChunkPos pos, MobCategory classification)
     {
         String id = pos + classification.getName();
         return spawnManager.get().containsKey(id);
@@ -61,7 +71,7 @@ public class WhyYouMakeLag
             return existing;
         });
     }
-    public synchronized static WYMLSpawnManager getSpawnManager(ChunkPos pos, EntityClassification classification)
+    public synchronized static WYMLSpawnManager getSpawnManager(ChunkPos pos, MobCategory classification)
     {
         String id = pos + classification.getName();
         if(spawnManager.get().containsKey(id))
@@ -92,9 +102,10 @@ public class WhyYouMakeLag
         });
     }
 
-    public void serverStarted(FMLServerStartedEvent event)
+    public void serverStarted()
     {
-        minecraftServer = event.getServer();
+        //TODO get server via mixin
+//        minecraftServer = event.getServer();
         Runnable cleanThread = () ->
         {
             try {
@@ -145,21 +156,21 @@ public class WhyYouMakeLag
         scheduledExecutorService.scheduleAtFixedRate(cleanThread, 0, 10, TimeUnit.SECONDS);
     }
 
-    public void serverTick(TickEvent.ServerTickEvent tickEvent)
-    {
-        ticks++;
-    }
+//    public void serverTick(TickEvent.ServerTickEvent tickEvent)
+//    {
+//        ticks++;
+//    }
+//
+//    public void spawnEvent(EntityJoinWorldEvent event)
+//    {
+//        if(WymlConfig.DEBUG_PRINT.get()) {
+//            if (event.getEntity() instanceof SlimeEntity) {
+//                event.setCanceled(true);
+//            }
+//        }
+//    }
 
-    public void spawnEvent(EntityJoinWorldEvent event)
-    {
-        if(WymlConfig.DEBUG_PRINT.get()) {
-            if (event.getEntity() instanceof SlimeEntity) {
-                event.setCanceled(true);
-            }
-        }
-    }
-
-    public static int calculateSpawnCount(EntityClassification entityClassification, Object2IntOpenHashMap<EntityClassification> mobCategoryCounts, int spawnableChunkCount)
+    public static int calculateSpawnCount(MobCategory entityClassification, Object2IntOpenHashMap<MobCategory> mobCategoryCounts, int spawnableChunkCount)
     {
         if(WhyYouMakeLag.minecraftServer == null) return 0;
         WhyYouMakeLag.mobCategoryCounts = mobCategoryCounts;
@@ -182,7 +193,7 @@ public class WhyYouMakeLag
         return retVal;
     }
 
-    public static boolean shouldSpawn(EntityClassification entityClassification, Object2IntOpenHashMap<EntityClassification> mobCategoryCounts, int spawnableChunkCount)
+    public static boolean shouldSpawn(MobCategory entityClassification, Object2IntOpenHashMap<MobCategory> mobCategoryCounts, int spawnableChunkCount)
     {
         int retVal = calculateSpawnCount(entityClassification, mobCategoryCounts, spawnableChunkCount);
         int curMobs = mobCategoryCounts.getInt(entityClassification);

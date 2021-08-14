@@ -4,13 +4,13 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.creeperhost.wyml.WYMLSpawnManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.WymlConfig;
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.spawner.WorldEntitySpawner;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.NaturalSpawner;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -20,25 +20,25 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(WorldEntitySpawner.EntityDensityManager.class)
+@Mixin(NaturalSpawner.SpawnState.class)
 public class MixinEntityDensityManager
 {
     @Shadow @Final private int spawnableChunkCount;
-    @Shadow @Final private Object2IntOpenHashMap<EntityClassification> mobCategoryCounts;
+    @Shadow @Final private Object2IntOpenHashMap<MobCategory> mobCategoryCounts;
 
     /**
      * @author
      * @reason
      */
     @Overwrite
-    private boolean canSpawnForCategory(EntityClassification p_234991_1_)
+    private boolean canSpawnForCategory(MobCategory mobCategory)
     {
-        return WhyYouMakeLag.shouldSpawn(p_234991_1_, mobCategoryCounts, spawnableChunkCount);
+        return WhyYouMakeLag.shouldSpawn(mobCategory, mobCategoryCounts, spawnableChunkCount);
     }
     @Inject(at = @At("HEAD"), method = "canSpawn", cancellable = true)
-    private void canSpawn(EntityType<?> p_234989_1_, BlockPos p_234989_2_, IChunk p_234989_3_, CallbackInfoReturnable<Boolean> cir)
+    private void canSpawn(EntityType<?> entityType, BlockPos blockPos, ChunkAccess chunkAccess, CallbackInfoReturnable<Boolean> cir)
     {
-        WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(p_234989_3_.getPos(), p_234989_1_.getCategory());
+        WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkAccess.getPos(), entityType.getCategory());
         if(spawnManager.isPaused())
         {
             cir.setReturnValue(false);
@@ -47,16 +47,17 @@ public class MixinEntityDensityManager
         }
     }
     @Inject(at = @At("HEAD"), method = "afterSpawn", cancellable = true)
-    private void afterSpawn(MobEntity mobEntity, IChunk chunk, CallbackInfo ci)
+    private void afterSpawn(Mob mob, ChunkAccess chunkAccess, CallbackInfo ci)
     {
-        ChunkPos chunkPos = chunk.getPos();
-        if (mobEntity != null && mobEntity.isAlive() && mobEntity.level != null)
+        ChunkPos chunkPos = chunkAccess.getPos();
+        if (mob != null && mob.isAlive() && mob.level != null)
         {
-            if(WhyYouMakeLag.hasSpawnManager(chunkPos, mobEntity.getClassification(true))) {
-                WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkPos, mobEntity.getClassification(true));
-                spawnManager.decreaseSpawningCount(mobEntity.blockPosition());
+            if(WhyYouMakeLag.hasSpawnManager(chunkPos, mob.getType().getCategory())) {
+                WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkPos, mob.getType().getCategory());
+                spawnManager.decreaseSpawningCount(mob.blockPosition());
                 WhyYouMakeLag.updateSpawnManager(spawnManager);
-                if(WymlConfig.DEBUG_PRINT.get()) System.out.println("Completed spawn for " + spawnManager.getClassification().getName() + " " + spawnManager.getChunk() + " - " + (100d - spawnManager.getFailRate()) + "% success rate (" + spawnManager.getFinishRate() + "/" + spawnManager.getStartRate() + ")");
+                if(WymlConfig.DEBUG_PRINT.get())
+                    System.out.println("Completed spawn for " + spawnManager.getClassification().getName() + " " + spawnManager.getChunk() + " - " + (100d - spawnManager.getFailRate()) + "% success rate (" + spawnManager.getFinishRate() + "/" + spawnManager.getStartRate() + ")");
             }
         }
     }

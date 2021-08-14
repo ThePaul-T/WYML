@@ -1,6 +1,7 @@
 package net.creeperhost.wyml;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 
 import java.util.ArrayList;
@@ -10,7 +11,7 @@ import java.util.Set;
 
 public class WYMLSpawnManager
 {
-    EntityClassification classification;
+    MobCategory classification;
     ChunkPos chunk;
     int spawningCount;
     private long startRate;
@@ -26,7 +27,7 @@ public class WYMLSpawnManager
     private boolean isPaused;
     private HashMap<Long, spawnLocation> prevSpawns = new HashMap<Long, spawnLocation>();
     boolean slowMode;
-    public WYMLSpawnManager(ChunkPos pos, EntityClassification classification)
+    public WYMLSpawnManager(ChunkPos pos, MobCategory classification)
     {
         this.classification = classification;
         this.chunk = pos;
@@ -35,7 +36,7 @@ public class WYMLSpawnManager
     public ChunkPos getChunk() {
         return chunk;
     }
-    public EntityClassification getClassification() {
+    public MobCategory getClassification() {
         return classification;
     }
     public boolean isSlowMode() {
