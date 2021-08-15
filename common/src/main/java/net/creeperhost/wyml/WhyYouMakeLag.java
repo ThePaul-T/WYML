@@ -5,14 +5,12 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.shedaniel.architectury.platform.Platform;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -150,11 +148,12 @@ public class WhyYouMakeLag
                 int managersTotal = 0;
                 int blockCacheRemoved = 0;
                 int blockCacheTotal = 0;
+                HashMap<String, WYMLSpawnManager> spawnManagers = spawnManager.get();
                 List<String> toRemove = new ArrayList<String>();
-                Set<String> ids = spawnManager.get().keySet();
+                Set<String> ids = spawnManagers.keySet();
                 for (String id : ids) {
                     managersTotal++;
-                    WYMLSpawnManager sm = spawnManager.get().get(id);
+                    WYMLSpawnManager sm = spawnManagers.get(id);
                     if (sm.hasExpired()) {
                         toRemove.add(id);
                     } else {
@@ -166,6 +165,7 @@ public class WhyYouMakeLag
                         blockCacheRemoved += amRemoved;
                     }
                 }
+                spawnManagers.clear();
                 for(String id : toRemove)
                 {
                     removeSpawnManager(id);
@@ -186,9 +186,7 @@ public class WhyYouMakeLag
                     if(WymlConfig.cached().CLEAN_PRINT) LOGGER.info("Cleaned up caches, removed " + managersRemoved + "/" + managersTotal + " Chunk SpawnManagers and " + blockCacheRemoved + "/" + blockCacheTotal + " block spawn caches. ["+usage+"]");
                     //}
                 }
-            } catch (Exception whatthefuck) {
-                whatthefuck.printStackTrace();
-            }
+            } catch (Exception ignored) {}
         };
         scheduledExecutorService.scheduleAtFixedRate(cleanThread, 0, 10, TimeUnit.SECONDS);
     }
