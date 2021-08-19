@@ -2,7 +2,6 @@ package net.creeperhost.wyml;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import me.shedaniel.architectury.platform.Platform;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.MobCategory;
@@ -32,7 +31,7 @@ public class WhyYouMakeLag
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
-    public static Path configFile = Platform.getConfigFolder().resolve(MOD_ID + ".json");
+    public static Path configFile = WymlExpectPlatform.getConfigDirectory().resolve(MOD_ID + ".json" );//Platform.getConfigFolder().resolve(MOD_ID + ".json");
 
 
     public static void init()
@@ -129,6 +128,9 @@ public class WhyYouMakeLag
 
     public static void serverStarted(MinecraftServer minecraftServer)
     {
+        if(scheduledExecutorService.isShutdown()) scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        if(scheduledExecutorService2.isShutdown()) scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
+
         WhyYouMakeLag.minecraftServer = minecraftServer;
         Runnable cleanThread = () ->
         {
