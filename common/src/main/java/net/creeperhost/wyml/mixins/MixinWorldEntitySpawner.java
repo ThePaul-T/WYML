@@ -10,6 +10,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.StructureFeatureManager;
 import net.minecraft.world.level.biome.MobSpawnSettings;
@@ -25,6 +27,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Random;
 
@@ -54,7 +57,20 @@ public abstract class MixinWorldEntitySpawner
         ci.cancel();
     }
 
-//    @Overwrite
+    @Inject(at = @At("HEAD"), method = "isSpawnPositionOk", cancellable = true)
+    private static void isSpawnPosition(SpawnPlacements.Type type, LevelReader levelReader, BlockPos blockPos, EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir)
+    {
+        ChunkPos chuck = new ChunkPos(blockPos);
+        WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chuck, entityType.getCategory());
+        if(spawnManager.isKnownBadLocation(blockPos))
+        {
+            cir.setReturnValue(false);
+            cir.cancel();
+            return;
+        }
+    }
+
+    //    @Overwrite
     private static void spawnCategoryForPosition1(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback) {
         StructureFeatureManager structureFeatureManager = serverLevel.structureFeatureManager();
         ChunkGenerator chunkGenerator = serverLevel.getChunkSource().getGenerator();
@@ -158,7 +174,6 @@ public abstract class MixinWorldEntitySpawner
 
                                 mob.moveTo(d, (double)i, e, serverLevel.random.nextFloat() * 360.0F, 0.0F);
 
-
                                 int canSpawn = WYMLReimplimentedHooks.canSpawn(mob, serverLevel, d, i, f, null, MobSpawnType.NATURAL);
                                 if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverLevel, mob, f))) {
                                     if (!WYMLReimplimentedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) f, null, MobSpawnType.NATURAL)) {
@@ -181,7 +196,6 @@ public abstract class MixinWorldEntitySpawner
                     }
                 }
             }
-
         }
     }
 }
