@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(NaturalSpawner.SpawnState.class)
-public class MixinEntityDensityManager
+public class MixinSpawnState
 {
     @Shadow @Final private int spawnableChunkCount;
     @Shadow @Final private Object2IntOpenHashMap<MobCategory> mobCategoryCounts;

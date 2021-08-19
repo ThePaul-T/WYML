@@ -4,10 +4,9 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "AccessorMinecraftServer",
-    "AccessorNaturalSpawner",
-    "MixinEntityDensityManager",
+    "MixinSpawnState",
     "MixinMinecraftServer",
-    "MixinWorldEntitySpawner"
+    "MixinNaturalSpawner"
   ],
   "injectors": {
     "defaultRequire": 1

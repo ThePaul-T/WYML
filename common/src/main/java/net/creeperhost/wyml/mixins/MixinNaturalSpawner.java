@@ -33,12 +33,10 @@ import java.util.Random;
 
 
 @Mixin(NaturalSpawner.class)
-public abstract class MixinWorldEntitySpawner
+public abstract class MixinNaturalSpawner
 {
     @Shadow @Final private static Logger LOGGER;
-
     @Mutable @Shadow private static int MAGIC_NUMBER;
-
     @Invoker("isValidPositionForMob") private static boolean isValidPositionForMob(ServerLevel serverLevel, Mob mob, double d) {return false;}
     @Invoker("getMobForSpawn") @Nullable private static Mob getMobForSpawn(ServerLevel serverLevel, EntityType<?> entityType) {return null;}
     @Invoker("isValidSpawnPostitionForType") private static boolean isValidSpawnPostitionForType(ServerLevel serverLevel, MobCategory mobCategory, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobSpawnSettings.SpawnerData spawnerData, BlockPos.MutableBlockPos mutableBlockPos, double d) {return false;}
@@ -70,14 +68,13 @@ public abstract class MixinWorldEntitySpawner
         }
     }
 
-    //    @Overwrite
-    private static void spawnCategoryForPosition1(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback) {
+    private static void spawnCategoryForPosition1(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback)
+    {
         StructureFeatureManager structureFeatureManager = serverLevel.structureFeatureManager();
         ChunkGenerator chunkGenerator = serverLevel.getChunkSource().getGenerator();
         int slowTicks = WymlConfig.cached().SLOW_TICKS;
         int i = blockPos.getY();
         int MAGIC_NUMBER_2_ELECTRIC_BOOGALOO = ((int) (WhyYouMakeLag.getMagicNum() * WhyYouMakeLag.getMagicNum()));
-        //TODO
         if(MAGIC_NUMBER != MAGIC_NUMBER_2_ELECTRIC_BOOGALOO)
         {
             //Keep this up to date if scaling is enabled.
