@@ -87,6 +87,7 @@ public class WhyYouMakeLag
             return existing;
         });
     }
+    @SuppressWarnings("unused")
     public synchronized static void removeSpawnManager(WYMLSpawnManager manager)
     {
         String id = manager.chunk + manager.classification.getName();

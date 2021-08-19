@@ -23,8 +23,6 @@ public class WymlConfig
             .builder()
             .build();
 
-
-
     //TODO switch from gson to jankson (JSON5 with comments, ideally)
     public static void loadFromFile(File file)
     {

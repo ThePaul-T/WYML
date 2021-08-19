@@ -57,8 +57,7 @@ public class WYMLSpawnManager
     }
     public boolean isClaimed()
     {
-        boolean boop =  WhyYouMakeLag.cachedClaimedChunks.get().contains(getChunk().toLong());
-        return boop;
+        return WhyYouMakeLag.cachedClaimedChunks.get().contains(getChunk().toLong());
     }
     public boolean isForceLoaded()
     {
@@ -94,7 +93,8 @@ public class WYMLSpawnManager
         {
             sl = prevSpawns.get(pos.asLong());
         }
-        if(!sl.success){
+        if(!sl.success)
+        {
             sl.position = pos;
             sl.success = false;
             sl.lastUpdated = WhyYouMakeLag.getTicks();
@@ -121,7 +121,8 @@ public class WYMLSpawnManager
     public synchronized int cleanBlockCache()
     {
         int removedCache = 0;
-        try {
+        try
+        {
             List<Long> toRemove = new ArrayList<Long>();
             Set<Long> ids = prevSpawns.keySet();
             for (long id : ids) {
@@ -130,7 +131,8 @@ public class WYMLSpawnManager
                     toRemove.add(id);
                 }
             }
-            for (long id : toRemove) {
+            for (long id : toRemove)
+            {
                 prevSpawns.remove(id);
                 removedCache++;
             }
@@ -138,17 +140,13 @@ public class WYMLSpawnManager
             {
                 requiresSave = true;
             }
-        } catch (Exception err) {
-            err.printStackTrace();
-            //            System.out.println(err.getStackTrace());
-        }
+        } catch (Exception ignored) {}
         return removedCache;
     }
     public synchronized void decreaseSpawningCount(BlockPos pos)
     {
         if(prevSpawns.containsKey(pos.asLong()))
         {
-            //TODO: Just remove from prevSpawns maybe if it's success? Only remember failures as we do nothing special with the success cache
             spawnLocation sl = prevSpawns.get(pos.asLong());
             sl.success = true;
             sl.lastUpdated = WhyYouMakeLag.getTicks();
@@ -161,10 +159,10 @@ public class WYMLSpawnManager
     }
     public int getSpawnsInSample()
     {
-        if(WhyYouMakeLag.getTicks() < startSpawnSampleTick+WymlConfig.cached().SAMPLE_TICKS)
+        if(WhyYouMakeLag.getTicks() < (startSpawnSampleTick + WymlConfig.cached().SAMPLE_TICKS))
         {
             int retVal = spawnsInTick;
-            int sampleLength = (WhyYouMakeLag.getTicks()-startSpawnSampleTick);
+            int sampleLength = (WhyYouMakeLag.getTicks() - startSpawnSampleTick);
             if(sampleLength > 0) retVal = spawnsInTick/sampleLength;
             return retVal;
         }
