@@ -31,7 +31,7 @@ public class WhyYouMakeLag
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
-    public static Path configFile = WymlExpectPlatform.getConfigDirectory().resolve(MOD_ID + ".json" );//Platform.getConfigFolder().resolve(MOD_ID + ".json");
+    public static Path configFile = WymlExpectPlatform.getConfigDirectory().resolve(MOD_ID + ".json" );
 
 
     public static void init()
