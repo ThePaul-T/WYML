@@ -57,7 +57,7 @@ public class WhyYouMakeLag
         {
             try
             {
-                int random = wymlRandom.get();
+                int random = wymlRandom.get();//ThreadLocalRandom.current().nextInt(0, copy.size());
 
                 copy.set(random, copy.get(i));
                 copy.set(i, input.get(random));
@@ -174,7 +174,7 @@ public class WhyYouMakeLag
                 int managersTotal = 0;
                 int blockCacheRemoved = 0;
                 int blockCacheTotal = 0;
-                HashMap<String, WYMLSpawnManager> spawnManagers = spawnManager.get();
+                HashMap<String, WYMLSpawnManager> spawnManagers = new HashMap<>(spawnManager.get());
                 List<String> toRemove = new ArrayList<String>();
                 Set<String> ids = spawnManagers.keySet();
                 for (String id : ids) {
