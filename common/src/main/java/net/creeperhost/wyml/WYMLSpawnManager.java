@@ -226,7 +226,8 @@ public class WYMLSpawnManager
     }
     public boolean isPaused()
     {
-        if((isPaused && (pauseTick + pausedFor) > WhyYouMakeLag.getTicks())||(isPaused && getFailRate() < (100d - WymlConfig.cached().RESUME_RATE)))
+        int resumeRate = isClaimed() ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
+        if((isPaused && (pauseTick + pausedFor) > WhyYouMakeLag.getTicks())||(isPaused && getFailRate() < (100d - resumeRate)))
         {
             return true;
         } else {
@@ -245,6 +246,8 @@ public class WYMLSpawnManager
     }
     public synchronized boolean isKnownBadLocation(BlockPos pos)
     {
+        if(prevSpawns == null) return false;
+        if(pos == null) return false;
         if(prevSpawns.containsKey(pos.asLong()))
         {
             spawnLocation sl = prevSpawns.get(pos.asLong());
