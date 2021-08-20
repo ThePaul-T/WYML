@@ -58,13 +58,18 @@ public abstract class MixinNaturalSpawner
     @Inject(at = @At("HEAD"), method = "isSpawnPositionOk", cancellable = true)
     private static void isSpawnPosition(SpawnPlacements.Type type, LevelReader levelReader, BlockPos blockPos, EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir)
     {
-        ChunkPos chuck = new ChunkPos(blockPos);
-        WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chuck, entityType.getCategory());
-        if(spawnManager.isKnownBadLocation(blockPos))
-        {
-            cir.setReturnValue(false);
-            cir.cancel();
-            return;
+        if(blockPos != null) {
+            if(entityType.getCategory() != null) {
+                ChunkPos chuck = new ChunkPos(blockPos);
+                WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chuck, entityType.getCategory());
+                if (spawnManager != null) {
+                    if (spawnManager.isKnownBadLocation(blockPos)) {
+                        cir.setReturnValue(false);
+                        cir.cancel();
+                        return;
+                    }
+                }
+            }
         }
     }
 
@@ -110,11 +115,24 @@ public abstract class MixinNaturalSpawner
                 return;
             }
         }
-        if(spawnManager.getFailRate() > WymlConfig.cached().PAUSE_RATE && spawnManager.getStartRate() > WymlConfig.cached().PAUSE_MIN && spawnManager.ticksSinceSlow() > slowTicks && spawnManager.canPause())
+        if(
+                (spawnManager.getFailRate() > WymlConfig.cached().PAUSE_RATE &&
+                spawnManager.getStartRate() > WymlConfig.cached().PAUSE_MIN &&
+                spawnManager.ticksSinceSlow() > slowTicks &&
+                spawnManager.canPause() &&
+                !spawnManager.isClaimed())
+                ||
+                (spawnManager.getFailRate() > WymlConfig.cached().PAUSE_CLAIMED_RATE &&
+                spawnManager.getStartRate() > WymlConfig.cached().PAUSE_MIN &&
+                spawnManager.ticksSinceSlow() > slowTicks &&
+                spawnManager.canPause() &&
+                spawnManager.isClaimed())
+        )
         {
-            int pauseTicks = WymlConfig.cached().PAUSE_TICKS;
+            int pauseTicks = (spawnManager.isClaimed()) ? WymlConfig.cached().PAUSE_CLAIMED_TICKS : WymlConfig.cached().PAUSE_TICKS;
             spawnManager.pauseSpawns(pauseTicks);
-            if(WymlConfig.cached().DEBUG_PRINT) System.out.println("Pausing spawns for "+pauseTicks+" ticks or until "+WymlConfig.cached().RESUME_RATE+"% success rate for class "+spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + " due to high failure rate ["+spawnManager.getFailRate()+"%].");
+            int resumeRate = spawnManager.isClaimed() ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
+            if(WymlConfig.cached().DEBUG_PRINT) System.out.println("Pausing spawns for "+pauseTicks+" ticks or until "+resumeRate+"% success rate for class "+spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + " due to high failure rate ["+spawnManager.getFailRate()+"%].");
             WhyYouMakeLag.updateSpawnManager(spawnManager);
             return;
         }

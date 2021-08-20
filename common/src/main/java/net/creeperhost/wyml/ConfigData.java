@@ -47,6 +47,15 @@ public class ConfigData
     @Comment("At what what percentage of successful spawns, after we pause spawning, should we resume spawning")
     public int RESUME_RATE = 10;
 
+    @Comment("At what what percentage of failed spawns should we then pause spawning in a chunk in claimed chunks")
+    public int PAUSE_CLAIMED_RATE = 65;
+
+    @Comment("How long to pause spawning if pause spawn failure rate reached in claimed chunks")
+    public int PAUSE_CLAIMED_TICKS = 1800;
+
+    @Comment("At what what percentage of successful spawns, after we pause spawning, should we resume spawning in claimed chunks")
+    public int RESUME_CLAIMED_RATE = 10;
+
     @Comment("The minimum amount of attempted spawns of a type in a chunk before we allow pausing")
     public int PAUSE_MIN = 256;
 
