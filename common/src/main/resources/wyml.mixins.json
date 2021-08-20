@@ -3,10 +3,12 @@
   "package": "net.creeperhost.wyml.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "AccessorChunkMap",
     "AccessorMinecraftServer",
-    "MixinSpawnState",
     "MixinMinecraftServer",
-    "MixinNaturalSpawner"
+    "MixinNaturalSpawner",
+    "MixinServerChunkCache",
+    "MixinSpawnState"
   ],
   "injectors": {
     "defaultRequire": 1

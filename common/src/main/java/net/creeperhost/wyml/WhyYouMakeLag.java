@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -14,8 +15,10 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 public class WhyYouMakeLag
 {
@@ -32,6 +35,7 @@ public class WhyYouMakeLag
     public static ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
     public static Path configFile = WymlExpectPlatform.getConfigDirectory().resolve(MOD_ID + ".json" );
+    public static IntStream streamWithThreadLocalRandom = ThreadLocalRandom.current().ints(0, 50);
 
 
     public static void init()
@@ -41,6 +45,24 @@ public class WhyYouMakeLag
         if(spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
         if(cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
         if(cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
+    }
+
+
+    public static List<ChunkHolder> shuffle(final List<ChunkHolder> input)
+    {
+        IntStream streamWithThreadLocalRandom = ThreadLocalRandom.current().ints(input.size(), 0, (input.size() -1));
+
+        final List<ChunkHolder> copy = new ArrayList<>(input);
+
+        for(int i = 0; i < copy.size(); i++)
+        {
+            int random = ThreadLocalRandom.current().nextInt(0, copy.size());
+
+            copy.set(random, copy.get(i));
+            copy.set(i, input.get(random));
+        }
+
+        return copy;
     }
 
     public static boolean isFtbChunksLoaded()
