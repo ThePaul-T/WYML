@@ -35,8 +35,6 @@ public class WhyYouMakeLag
     public static ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
     public static Path configFile = WymlExpectPlatform.getConfigDirectory().resolve(MOD_ID + ".json" );
-    public static IntStream streamWithThreadLocalRandom = ThreadLocalRandom.current().ints(0, 50);
-
 
     public static void init()
     {
@@ -50,18 +48,21 @@ public class WhyYouMakeLag
 
     public static List<ChunkHolder> shuffle(final List<ChunkHolder> input)
     {
-        IntStream streamWithThreadLocalRandom = ThreadLocalRandom.current().ints(input.size(), 0, (input.size() -1));
+        if(input.isEmpty()) return input;
 
+        WYMLRandom wymlRandom = new WYMLRandom(0, input.size() -1, input.size());
         final List<ChunkHolder> copy = new ArrayList<>(input);
 
         for(int i = 0; i < copy.size(); i++)
         {
-            int random = ThreadLocalRandom.current().nextInt(0, copy.size());
+            try
+            {
+                int random = wymlRandom.get();
 
-            copy.set(random, copy.get(i));
-            copy.set(i, input.get(random));
+                copy.set(random, copy.get(i));
+                copy.set(i, input.get(random));
+            } catch (Exception ignored){}
         }
-
         return copy;
     }
 
