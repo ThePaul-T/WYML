@@ -25,11 +25,11 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName)
     {
-        if(stringList.contains(targetClassName) || stringList.contains(mixinClassName))
+        /*if(stringList.contains(targetClassName) || stringList.contains(mixinClassName))
         {
             System.out.println("[WYML] Removing " + mixinClassName + " due to conflicting mixin target");
             return false;
-        }
+        }*/
         return true;
     }
 

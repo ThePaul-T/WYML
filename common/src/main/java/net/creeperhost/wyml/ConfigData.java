@@ -25,14 +25,17 @@ public class ConfigData
     @Comment("If downscaling enabled, do not allow below this value")
     public double DOWNSCALE_MAGIC_NUM_MIN = 8D;
 
-    @Comment("Amount of nano seconds to wait for a task (Mojang default 100000)")
+    @Comment("Amount of nano seconds to wait for a task (Mojang default 100000), increased by default to fix an issue with virtualization platforms or HPET-capable operating systems")
     public long TASK_WAIT_NANOS = 1000000L;
 
-    @Comment("Enable Minecraft's dataFixerUpper (enables you to upgrade worlds between Minecraft versions)")
+    @Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), stops big ram spike at server start when loading existing worlds")
     public boolean ENABLE_DFU = false;
 
-    @Comment("Allow Javas garbage collector to run once the worlds have been generated (Frees up memory after the server is initially started)")
+    @Comment("Force Java garbage collector to run once the levels have been generated (Frees up memory after the server is initially started)")
     public boolean ENABLE_GARBAGE_COLLECTION_LOAD = true;
+
+    @Comment("Ensure the tick loop does not run repeatedly, waits until the next tick is due (reduce cpu usage on hardware)")
+    public boolean NORMALIZE_TICKS = true;
 
     // ******************************************
     // * Pausing
@@ -86,9 +89,6 @@ public class ConfigData
     // ******************************************
     @Comment("How many ticks to sample (and average) spawn rates over")
     public int SAMPLE_TICKS = 5;
-
-    @Comment("Normalize tick times (reduce cpu usage on hardware)")
-    public boolean NORMALIZE_TICKS = true;
 
 
     // ******************************************
