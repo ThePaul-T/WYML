@@ -45,7 +45,7 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
             if(otherTargets.contains(ourTarget))
             {
                 stringList.add(ourTarget);
-                myTargets.remove(ourTarget);
+                //myTargets.remove(ourTarget);
             }
         }
     }
