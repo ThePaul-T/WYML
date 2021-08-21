@@ -13,47 +13,6 @@ import java.util.function.BooleanSupplier;
 @Mixin(BlockableEventLoop.class)
 public abstract class MixinBlockableEventLoop
 {
-    @Shadow
-    private int blockingCount;
-
-    @Shadow
-    protected abstract boolean pollTask();
-
-    /**
-     * @author CreeperHost
-     * @reason because you need to sleep
-     */
-    @Overwrite
-    public void managedBlock(BooleanSupplier booleanSupplier)
-    {
-        ++this.blockingCount;
-
-        try
-        {
-            while (!booleanSupplier.getAsBoolean())
-            {
-                if (!this.pollTask())
-                {
-                    this.waitForTasks();
-                }
-                else
-                {
-                    try
-                    {
-                        long value = WymlConfig.cached().TASK_WAIT_NANOS / 100;
-                        if(value > 0)
-                        {
-                            TimeUnit.NANOSECONDS.sleep(value);
-                        }
-                    } catch (InterruptedException e) {e.printStackTrace();}
-                }
-            }
-        } finally
-        {
-            --this.blockingCount;
-        }
-    }
-
     /**
      * @author CreeperHost
      * @reason Increase the sleep to help reduce cpu load

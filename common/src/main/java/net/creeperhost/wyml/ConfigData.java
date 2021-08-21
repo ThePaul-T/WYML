@@ -25,11 +25,11 @@ public class ConfigData
     @Comment("If downscaling enabled, do not allow below this value")
     public double DOWNSCALE_MAGIC_NUM_MIN = 8D;
 
-    @Comment("Amount of nano seconds to wait for a task (Mojang default 100000), increased by default to fix an issue with virtualization platforms or HPET-capable operating systems")
-    public long TASK_WAIT_NANOS = 1000000L;
+    @Comment("Amount of nano seconds to wait for a task (Mojang default is 100000), thread locking uses the futex[https://man7.org/linux/man-pages/man2/futex.2.html] syscall on linux, causing a lot of syscalls when the value is too low")
+    public long TASK_WAIT_NANOS = 5000000L;
 
     @Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), stops big ram spike at server start when loading existing worlds [ENABLE THIS IF YOU HAVE ANOTHER DFU CHANGING MOD!]")
-    public boolean ENABLE_DFU = false;
+    public boolean ENABLE_DFU = true;
 
     @Comment("Force Java garbage collector to run once the levels have been generated (Frees up memory after the server is initially started)")
     public boolean ENABLE_GARBAGE_COLLECTION_LOAD = true;

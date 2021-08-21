@@ -30,6 +30,7 @@ public abstract class MixinDataFixers
     @Overwrite
     private static DataFixer createFixerUpper()
     {
+        WhyYouMakeLag.LOGGER.info("Disabled DFU!");
         int version = SharedConstants.getCurrentVersion().getWorldVersion();
         DataFixerBuilder dataFixerBuilder = new BlankDataFixer(version);
 

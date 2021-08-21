@@ -16,7 +16,7 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
     @Override
     public void onLoad(String mixinPackage)
     {
-        WymlConfig.init(WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
+        if(!WymlConfig.isLoaded()) WymlConfig.init(WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
     }
 
     @Override
@@ -28,7 +28,13 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName)
     {
-        if(targetClassName.contains("DataFixer") && WymlConfig.cached().ENABLE_DFU) return false;
+        if(!WymlConfig.isLoaded()) WymlConfig.init(WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
+        if(targetClassName.equalsIgnoreCase("net.minecraft.util.datafix.DataFixers"))
+        {
+            if(WymlConfig.cached().ENABLE_DFU) {
+                return false;
+            }
+        }
         return true;
     }
 

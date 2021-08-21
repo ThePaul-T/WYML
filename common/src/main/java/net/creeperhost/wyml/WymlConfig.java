@@ -18,6 +18,7 @@ public class WymlConfig
 {
     private static AtomicReference<ConfigData> data = new AtomicReference<>();
     private static File lastFile;
+    private static boolean loaded;
     private static
     Jankson gson = Jankson
             .builder()
@@ -30,13 +31,26 @@ public class WymlConfig
         try
         {
             JsonObject jObject = gson.load(file);
-            data.set(gson.fromJson(jObject, ConfigData.class));
+            ConfigData newData = gson.fromJson(jObject, ConfigData.class);
+            if(newData != data.get()) {
+                data.set(newData);
+                if (!isLoaded()) {
+                    //Save again immediately, as this makes sure that any missing config values get added with their defaults to the config file, and the comments are restored.
+                    FileWriter tileWriter = new FileWriter(file);
+                    tileWriter.write(WymlConfig.saveConfig());
+                    tileWriter.close();
+                }
+                loaded = true;
+            }
         } catch (Exception ignored)
         {
             data.set(new ConfigData());
         }
     }
-
+    public static boolean isLoaded()
+    {
+        return loaded;
+    }
     public static void saveConfigToFile(File file)
     {
         try (FileOutputStream configOut = new FileOutputStream(file))
@@ -78,7 +92,6 @@ public class WymlConfig
         if(lastFile == null) lastFile = file;
         try
         {
-            //TODO make someone who understands java better make sure this is sane.
             try
             {
                 AtomicReference<WatchService> watcher = new AtomicReference<>();
@@ -92,7 +105,7 @@ public class WymlConfig
                         WatchKey checker = watcher.get().take();
                         for (WatchEvent<?> event : checker.pollEvents()) {
                             Path changed = (Path) event.context();
-                            if (changed.endsWith(lastFile.getName())) {
+                            if (changed.endsWith(lastFile.getName()) && isLoaded()) {
                                 if(reload()) WhyYouMakeLag.LOGGER.info("Config at "+lastFile.getAbsolutePath()+" has changed, reloaded!");
                             }
                         }
