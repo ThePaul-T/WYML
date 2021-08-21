@@ -79,6 +79,9 @@ public class ConfigData
     @Comment("How many ticks to sample (and average) spawn rates over")
     public int SAMPLE_TICKS = 5;
 
+    @Comment("Normalize tick times (reduce cpu usage on hardware)")
+    public boolean NORMALIZE_TICKS = true;
+
 
     // ******************************************
     // * Caching

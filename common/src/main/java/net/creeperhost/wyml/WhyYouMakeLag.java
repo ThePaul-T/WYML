@@ -36,6 +36,9 @@ public class WhyYouMakeLag
     public static Logger LOGGER = LogManager.getLogger();
     public static Path configFile = WymlExpectPlatform.getConfigDirectory().resolve(MOD_ID + ".json" );
 
+    public static long tickStartNano;
+    public static long tickStopNano;
+
     public static void init()
     {
         WymlConfig.init(configFile.toFile());
