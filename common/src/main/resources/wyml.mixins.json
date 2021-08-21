@@ -1,5 +1,6 @@
 {
   "required": true,
+  "plugin": "net.creeperhost.wyml.mixins.MixinDataFixersPlugin",
   "package": "net.creeperhost.wyml.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [

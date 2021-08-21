@@ -31,6 +31,9 @@ public class ConfigData
     @Comment("Enable Minecraft's dataFixerUpper (enables you to upgrade worlds between Minecraft versions)")
     public boolean ENABLE_DFU = false;
 
+    @Comment("Allow Javas garbage collector to run once the worlds have been generated (Frees up memory after the server is initially started)")
+    public boolean ENABLE_GARBAGE_COLLECTION_LOAD = true;
+
     // ******************************************
     // * Pausing
     // ******************************************
