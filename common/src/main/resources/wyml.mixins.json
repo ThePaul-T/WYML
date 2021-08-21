@@ -5,6 +5,8 @@
   "mixins": [
     "AccessorChunkMap",
     "AccessorMinecraftServer",
+    "MixinBlockableEventLoop",
+    "MixinDataFixers",
     "MixinMinecraftServer",
     "MixinNaturalSpawner",
     "MixinServerChunkCache",

@@ -25,6 +25,11 @@ public class ConfigData
     @Comment("If downscaling enabled, do not allow below this value")
     public double DOWNSCALE_MAGIC_NUM_MIN = 8D;
 
+    @Comment("Amount of nano seconds to wait for a task (Mojang default 100000)")
+    public long TASK_WAIT_NANOS = 1000000L;
+
+    @Comment("Enable Minecraft's dataFixerUpper (enables you to upgrade worlds between Minecraft versions)")
+    public boolean ENABLE_DFU = false;
 
     // ******************************************
     // * Pausing
