@@ -30,11 +30,8 @@ public abstract class MixinDataFixers
     @Overwrite
     private static DataFixer createFixerUpper()
     {
-        WymlConfig.init(WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
         int version = SharedConstants.getCurrentVersion().getWorldVersion();
-
-        DataFixerBuilder dataFixerBuilder = WymlConfig.cached().ENABLE_DFU
-                ? new DataFixerBuilder(version) : new BlankDataFixer(version);
+        DataFixerBuilder dataFixerBuilder = new BlankDataFixer(version);
 
         addFixers(dataFixerBuilder);
         return dataFixerBuilder.build(Util.bootstrapExecutor());

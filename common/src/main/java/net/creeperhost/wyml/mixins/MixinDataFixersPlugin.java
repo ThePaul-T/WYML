@@ -1,5 +1,8 @@
 package net.creeperhost.wyml.mixins;
 
+import net.creeperhost.wyml.WhyYouMakeLag;
+import net.creeperhost.wyml.WymlConfig;
+import net.creeperhost.wyml.WymlExpectPlatform;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -13,7 +16,7 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
     @Override
     public void onLoad(String mixinPackage)
     {
-
+        WymlConfig.init(WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
     }
 
     @Override
@@ -25,11 +28,7 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName)
     {
-        /*if(stringList.contains(targetClassName) || stringList.contains(mixinClassName))
-        {
-            System.out.println("[WYML] Removing " + mixinClassName + " due to conflicting mixin target");
-            return false;
-        }*/
+        if(targetClassName.contains("DataFixer") && WymlConfig.cached().ENABLE_DFU) return false;
         return true;
     }
 
@@ -38,16 +37,7 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
     @Override
     public void acceptTargets(Set<String> myTargets, Set<String> otherTargets)
     {
-        List<String> copy = new ArrayList<>(myTargets);
 
-        for(String ourTarget : copy)
-        {
-            if(otherTargets.contains(ourTarget))
-            {
-                stringList.add(ourTarget);
-                //myTargets.remove(ourTarget);
-            }
-        }
     }
 
     @Override
@@ -59,7 +49,6 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
     @Override
     public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo)
     {
-
 
     }
 

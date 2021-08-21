@@ -28,7 +28,7 @@ public class ConfigData
     @Comment("Amount of nano seconds to wait for a task (Mojang default 100000), increased by default to fix an issue with virtualization platforms or HPET-capable operating systems")
     public long TASK_WAIT_NANOS = 1000000L;
 
-    @Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), stops big ram spike at server start when loading existing worlds")
+    @Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), stops big ram spike at server start when loading existing worlds [ENABLE THIS IF YOU HAVE ANOTHER DFU CHANGING MOD!]")
     public boolean ENABLE_DFU = false;
 
     @Comment("Force Java garbage collector to run once the levels have been generated (Frees up memory after the server is initially started)")
@@ -36,6 +36,7 @@ public class ConfigData
 
     @Comment("Ensure the tick loop does not run repeatedly, waits until the next tick is due (reduce cpu usage on hardware)")
     public boolean NORMALIZE_TICKS = true;
+
 
     // ******************************************
     // * Pausing
