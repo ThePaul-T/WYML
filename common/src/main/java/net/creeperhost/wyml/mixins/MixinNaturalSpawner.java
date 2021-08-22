@@ -1,6 +1,6 @@
 package net.creeperhost.wyml.mixins;
 
-import net.creeperhost.wyml.WYMLReimplimentedHooks;
+import net.creeperhost.wyml.WYMLReimplementedHooks;
 import net.creeperhost.wyml.WYMLSpawnManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.WymlConfig;
@@ -18,11 +18,9 @@ import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
-import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -189,15 +187,15 @@ public abstract class MixinNaturalSpawner
 
                                 mob.moveTo(d, (double)i, e, serverLevel.random.nextFloat() * 360.0F, 0.0F);
 
-                                int canSpawn = WYMLReimplimentedHooks.canSpawn(mob, serverLevel, d, i, f, null, MobSpawnType.NATURAL);
+                                int canSpawn = WYMLReimplementedHooks.canSpawn(mob, serverLevel, d, i, f, null, MobSpawnType.NATURAL);
                                 if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverLevel, mob, f))) {
-                                    if (!WYMLReimplimentedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) f, null, MobSpawnType.NATURAL)) {
+                                    if (!WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) f, null, MobSpawnType.NATURAL)) {
                                         spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.NATURAL, spawnGroupData, (CompoundTag) null);
                                         ++j;
                                         ++p;
                                         serverLevel.addFreshEntityWithPassengers(mob);
                                         afterSpawnCallback.run(mob, chunkAccess);
-                                        if (j >= WYMLReimplimentedHooks.getMaxGroupSize(mob)) {
+                                        if (j >= WYMLReimplementedHooks.getMaxGroupSize(mob)) {
                                             return;
                                         }
 

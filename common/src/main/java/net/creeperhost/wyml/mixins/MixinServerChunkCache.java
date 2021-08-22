@@ -1,11 +1,9 @@
 package net.creeperhost.wyml.mixins;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Either;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.minecraft.server.level.*;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.NaturalSpawner;
@@ -16,13 +14,6 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.gen.Invoker;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -41,7 +32,7 @@ public abstract class MixinServerChunkCache
 
     /**
      * @author CreeperHost
-     * @reason Because streams are slow
+     * @reason Because streams are memory hogs
      */
     @Overwrite
     private void tickChunks()
@@ -64,9 +55,6 @@ public abstract class MixinServerChunkCache
             List<ChunkHolder> list = Lists.newArrayList(((AccessorChunkMap)chunkMap).getChunks1());
             WhyYouMakeLag.shuffle(list);
 
-            //                        Collections.shuffle(list);
-            //Replaced with for loop
-            //            list.forEach((chunkHolder) ->
             for(ChunkHolder chunkHolder : list)
             {
                 Optional<LevelChunk> optional = ((Either)chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK)).left();
