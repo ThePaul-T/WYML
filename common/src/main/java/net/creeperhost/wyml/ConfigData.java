@@ -28,8 +28,8 @@ public class ConfigData
     @Comment("Amount of nano seconds to wait for a task (Mojang default is 100000), thread locking uses the futex[https://man7.org/linux/man-pages/man2/futex.2.html] syscall on linux, causing a lot of syscalls when the value is too low")
     public long TASK_WAIT_NANOS = 5000000L;
 
-    @Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), stops big ram spike at server start when loading existing worlds [ENABLE THIS IF YOU HAVE ANOTHER DFU CHANGING MOD!]")
-    public boolean ENABLE_DFU = true;
+    //@Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), stops big ram spike at server start when loading existing worlds [ENABLE THIS IF YOU HAVE ANOTHER DFU CHANGING MOD!]")
+    //public boolean ENABLE_DFU = true;
 
     @Comment("Force Java garbage collector to run once the levels have been generated (Frees up memory after the server is initially started)")
     public boolean ENABLE_GARBAGE_COLLECTION_LOAD = true;
@@ -101,7 +101,7 @@ public class ConfigData
     @Comment("How many ticks to store a SpawnManager for a chunk after it's last update")
     public int MANAGER_CACHE_TICKS = 600;
 
-    @Comment("Disable this once you're happy with the configs you have and their impact on memory. This will print how many SpawnManagers and SpawnCaches we have at once, every 10 seconds.")
+    @Comment("Disable this once you are happy with the configs you have and their impact on memory. This will print how many SpawnManagers and SpawnCaches we have at once, every 10 seconds.")
     public boolean CLEAN_PRINT = true;
 
 }
