@@ -29,12 +29,12 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName)
     {
         if(!WymlConfig.isLoaded()) WymlConfig.init(WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
-        /*if(targetClassName.equalsIgnoreCase("net.minecraft.util.datafix.DataFixers"))
+        if(targetClassName.contains("net.minecraft.util.datafix"))
         {
             if(WymlConfig.cached().ENABLE_DFU) {
                 return false;
             }
-        }*/
+        }
         return true;
     }
 
