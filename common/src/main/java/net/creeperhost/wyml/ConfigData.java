@@ -28,10 +28,10 @@ public class ConfigData
     @Comment("Amount of nano seconds to wait for a task (Mojang default is 100000), thread locking uses the futex[https://man7.org/linux/man-pages/man2/futex.2.html] syscall on linux, causing a lot of syscalls when the value is too low")
     public long TASK_WAIT_NANOS = 5000000L;
 
-    @Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), stops big ram spike at server start when loading existing worlds [ENABLE THIS IF YOU HAVE ANOTHER DFU CHANGING MOD!]")
+    @Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), disabling this stops the big ram spike at server start when loading existing worlds [ENABLE THIS IF YOU HAVE ANOTHER DFU CHANGING MOD!]")
     public boolean ENABLE_DFU = true;
 
-    @Comment("Force Java garbage collector to run once the levels have been generated (Frees up memory after the server is initially started)")
+    @Comment("Force Java garbage collector to run once the levels have been generated or loaded the first time (Frees up memory after the server is initially started)")
     public boolean ENABLE_GARBAGE_COLLECTION_LOAD = true;
 
     @Comment("Ensure the tick loop does not run repeatedly, waits until the next tick is due (reduce cpu usage on hardware)")
