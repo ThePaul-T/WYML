@@ -4,6 +4,7 @@ import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.WymlConfig;
 import net.creeperhost.wyml.WymlExpectPlatform;
 import org.objectweb.asm.tree.ClassNode;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
@@ -31,7 +32,9 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
         if(!WymlConfig.isLoaded()) WymlConfig.init(WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
         if(targetClassName.contains("net.minecraft.util.datafix"))
         {
-            if(WymlConfig.cached().ENABLE_DFU) {
+            if(WymlConfig.cached().ENABLE_DFU)
+            {
+                System.out.println("Not loading " + mixinClassName);
                 return false;
             }
         }
