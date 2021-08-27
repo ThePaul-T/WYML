@@ -14,11 +14,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 
 @Mixin(MinecraftServer.class)
 public abstract class MixinMinecraftServer
 {
+
+    @Shadow public abstract Thread getRunningThread();
 
     @Inject(at = @At("HEAD"), method = "stopServer", cancellable = true)
     private void serverStopped(CallbackInfo ci)
