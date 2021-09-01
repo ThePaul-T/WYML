@@ -6,12 +6,17 @@
   "mixins": [
     "AccessorChunkMap",
     "AccessorMinecraftServer",
-    "MixinBlockableEventLoop",
     "MixinDataFixers",
     "MixinMinecraftServer",
     "MixinNaturalSpawner",
     "MixinServerChunkCache",
     "MixinSpawnState"
+  ],
+  "client": [
+
+  ],
+  "server": [
+    "MixinBlockableEventLoop"
   ],
   "injectors": {
     "defaultRequire": 1
