@@ -45,7 +45,7 @@ public abstract class MixinMinecraftServer
         {
             WhyYouMakeLag.tickStopNano = Util.getNanos();
             long dif = WhyYouMakeLag.tickStopNano - WhyYouMakeLag.tickStartNano;
-            long l = 18000000 - dif;
+            long l = 48000000 - dif;
             if (l > 0)
             {
                 try

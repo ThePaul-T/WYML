@@ -34,7 +34,7 @@ public class MixinDataFixersPlugin implements IMixinConfigPlugin
         {
             if(WymlConfig.cached().ENABLE_DFU)
             {
-                System.out.println("Not loading " + mixinClassName);
+                WhyYouMakeLag.LOGGER.info("Not loading " + mixinClassName);
                 return false;
             }
         }
