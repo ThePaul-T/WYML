@@ -2,6 +2,7 @@ package net.creeperhost.wyml;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import me.shedaniel.architectury.platform.Platform;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
@@ -67,14 +68,7 @@ public class WhyYouMakeLag
 
     public static boolean isFtbChunksLoaded()
     {
-        try
-        {
-            Class.forName("dev.ftb.mods.ftbchunks.FTBChunks");
-        } catch (Exception e)
-        {
-            return false;
-        }
-        return true;
+        return Platform.isModLoaded("ftbchunks");
     }
 
     public static LongSet getForceLoadedChunks()
