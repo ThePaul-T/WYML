@@ -68,7 +68,7 @@ public class WhyYouMakeLag
 
     public static boolean isFtbChunksLoaded()
     {
-        return Platform.isModLoaded("ftbchunks");
+        return WymlExpectPlatform.isModLoaded("ftbchunks");
     }
 
     public static LongSet getForceLoadedChunks()
