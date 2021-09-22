@@ -1,28 +1,28 @@
 package net.creeperhost.wyml;
 
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class WYMLRandom
 {
-    private final int min, max, total;
+    private static final Random random = new Random();
+
+    private final int total;
     private int current;
     private int curRandom;
     private int[] randoms;
 
     public WYMLRandom(int min, int max, int total)
     {
-        this.min = min;
-        this.max = max;
         this.total = total;
-        curRandom = ThreadLocalRandom.current().nextInt(min, max);
+        curRandom = min + random.nextInt(max - min + 1);
         randoms = new int[total];
-        CompletableFuture.runAsync(() -> {
-            for(int i=0; i < (total-1); i++)
-            {
-                randoms[i] = ThreadLocalRandom.current().nextInt(min, max);
-            }
-        });
+
+        for(int i=0; i < (total-1); i++)
+        {
+            randoms[i] = min + random.nextInt(max - min + 1);
+        }
     }
 
     public int get() throws Exception

@@ -23,4 +23,9 @@ public class WymlExpectPlatform
         // Just throw an error, the content should get replaced at runtime.
         throw new AssertionError();
     }
+
+    @ExpectPlatform
+    public static boolean isModLoaded(String modid) {
+        throw new AssertionError();
+    }
 }

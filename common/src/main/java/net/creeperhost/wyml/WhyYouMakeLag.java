@@ -2,6 +2,7 @@ package net.creeperhost.wyml;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import me.shedaniel.architectury.platform.Platform;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
@@ -49,14 +50,15 @@ public class WhyYouMakeLag
     {
         if(input.isEmpty()) return input;
 
-        WYMLRandom wymlRandom = new WYMLRandom(0, input.size() -1, input.size());
+        //WYMLRandom wymlRandom = new WYMLRandom(0, input.size() -1, input.size());
         final List<ChunkHolder> copy = new ArrayList<>(input);
 
         for(int i = 0; i < copy.size(); i++)
         {
             try
             {
-                int random = wymlRandom.get();//ThreadLocalRandom.current().nextInt(0, copy.size());
+                //int random = wymlRandom.get();
+                int random = ThreadLocalRandom.current().nextInt(0, copy.size());
 
                 copy.set(random, copy.get(i));
                 copy.set(i, input.get(random));
@@ -65,16 +67,10 @@ public class WhyYouMakeLag
         return copy;
     }
 
+
     public static boolean isFtbChunksLoaded()
     {
-        try
-        {
-            Class.forName("dev.ftb.mods.ftbchunks.FTBChunks");
-        } catch (Exception e)
-        {
-            return false;
-        }
-        return true;
+        return WymlExpectPlatform.isModLoaded("ftbchunks");
     }
 
     public static LongSet getForceLoadedChunks()
