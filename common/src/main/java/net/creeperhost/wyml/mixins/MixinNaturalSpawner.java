@@ -3,7 +3,7 @@ package net.creeperhost.wyml.mixins;
 import net.creeperhost.wyml.WYMLReimplementedHooks;
 import net.creeperhost.wyml.WYMLSpawnManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
-import net.creeperhost.wyml.WymlConfig;
+import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;

@@ -1,19 +1,9 @@
 package net.creeperhost.wyml.mixins;
 
-import com.mojang.datafixers.DataFixer;
 import com.mojang.datafixers.DataFixerBuilder;
-import net.creeperhost.wyml.WhyYouMakeLag;
-import net.creeperhost.wyml.WymlConfig;
-import net.creeperhost.wyml.WymlExpectPlatform;
-import net.creeperhost.wyml.data.BlankDataFixer;
-import net.minecraft.SharedConstants;
-import net.minecraft.Util;
 import net.minecraft.util.datafix.DataFixers;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(DataFixers.class)
 public abstract class MixinDataFixers

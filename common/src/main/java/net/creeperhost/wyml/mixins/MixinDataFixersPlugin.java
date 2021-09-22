@@ -1,10 +1,9 @@
 package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.WhyYouMakeLag;
-import net.creeperhost.wyml.WymlConfig;
+import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.WymlExpectPlatform;
 import org.objectweb.asm.tree.ClassNode;
-import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 

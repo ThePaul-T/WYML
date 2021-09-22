@@ -1,7 +1,7 @@
 package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.WhyYouMakeLag;
-import net.creeperhost.wyml.WymlConfig;
+import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
 import org.lwjgl.system.CallbackI;
@@ -12,9 +12,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 
 @Mixin(MinecraftServer.class)

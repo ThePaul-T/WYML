@@ -1,4 +1,4 @@
-package net.creeperhost.wyml;
+package net.creeperhost.wyml.compat;
 
 import dev.ftb.mods.ftbchunks.data.ClaimedChunk;
 import dev.ftb.mods.ftbchunks.data.FTBChunksAPI;

@@ -3,7 +3,7 @@ package net.creeperhost.wyml.mixins;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.creeperhost.wyml.WYMLSpawnManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
-import net.creeperhost.wyml.WymlConfig;
+import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;

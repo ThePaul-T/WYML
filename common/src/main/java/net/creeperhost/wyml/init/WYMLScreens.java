@@ -1,7 +1,7 @@
 package net.creeperhost.wyml.init;
 
 import me.shedaniel.architectury.registry.MenuRegistry;
-import net.creeperhost.wyml.blocks.ScreenPaperBag;
+import net.creeperhost.wyml.client.ScreenPaperBag;
 
 public class WYMLScreens
 {

@@ -1,4 +1,4 @@
-package net.creeperhost.wyml;
+package net.creeperhost.wyml.config;
 
 import blue.endless.jankson.Comment;
 

@@ -1,9 +1,9 @@
-package net.creeperhost.wyml;
+package net.creeperhost.wyml.config;
 
 import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonElement;
 import blue.endless.jankson.JsonObject;
-import blue.endless.jankson.api.Marshaller;
+import net.creeperhost.wyml.WhyYouMakeLag;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;

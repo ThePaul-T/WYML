@@ -1,5 +1,6 @@
 package net.creeperhost.wyml;
 
+import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
