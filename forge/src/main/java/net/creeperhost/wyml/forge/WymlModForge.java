@@ -1,6 +1,8 @@
 package net.creeperhost.wyml.forge;
 
+import me.shedaniel.architectury.platform.forge.EventBuses;
 import net.creeperhost.wyml.WhyYouMakeLag;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.commons.lang3.tuple.Pair;
 import net.minecraftforge.fml.ExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -12,7 +14,8 @@ public class WymlModForge
 {
     public WymlModForge()
     {
+        EventBuses.registerModEventBus(WhyYouMakeLag.MOD_ID, FMLJavaModLoadingContext.get().getModEventBus());
+
         WhyYouMakeLag.init();
-        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.DISPLAYTEST, ()-> Pair.of(()-> FMLNetworkConstants.IGNORESERVERONLY, (net, save)->true));
     }
 }

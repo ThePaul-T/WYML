@@ -6,13 +6,14 @@
   "mixins": [
     "AccessorChunkMap",
     "AccessorMinecraftServer",
+    "MixinItemEntity",
     "MixinMinecraftServer",
     "MixinNaturalSpawner",
+    "MixinPlayerTabOverlay",
     "MixinServerChunkCache",
     "MixinSpawnState"
   ],
   "client": [
-
   ],
   "server": [
     "MixinBlockableEventLoop"

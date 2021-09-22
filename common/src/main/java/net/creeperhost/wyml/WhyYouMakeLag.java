@@ -2,8 +2,16 @@ package net.creeperhost.wyml;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import me.shedaniel.architectury.event.events.client.ClientLifecycleEvent;
 import me.shedaniel.architectury.platform.Platform;
+import me.shedaniel.architectury.utils.Env;
+import net.creeperhost.wyml.init.WYMLBlocks;
+import net.creeperhost.wyml.init.WYMLContainers;
+import net.creeperhost.wyml.init.WYMLScreens;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.world.entity.MobCategory;
@@ -39,26 +47,39 @@ public class WhyYouMakeLag
     public static void init()
     {
         WymlConfig.init(configFile.toFile());
+        WYMLBlocks.init();
+        WYMLContainers.MENUS.register();
+
+        if(Platform.getEnvironment() == Env.CLIENT)
+        {
+            ClientLifecycleEvent.CLIENT_SETUP.register(WhyYouMakeLag::onClientSetup);
+        }
 
         if(spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
         if(cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
         if(cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
     }
 
+    @Environment(EnvType.CLIENT)
+    private static void onClientSetup(Minecraft minecraft)
+    {
+        WYMLScreens.init();
+    }
 
     public static List<ChunkHolder> shuffle(final List<ChunkHolder> input)
     {
         if(input.isEmpty()) return input;
 
-        //WYMLRandom wymlRandom = new WYMLRandom(0, input.size() -1, input.size());
-        final List<ChunkHolder> copy = new ArrayList<>(input);
 
+        WYMLRandom.generate(0, input.size() -1, input.size());
+        final List<ChunkHolder> copy = new ArrayList<>(input);
         for(int i = 0; i < copy.size(); i++)
         {
             try
             {
-                //int random = wymlRandom.get();
-                int random = ThreadLocalRandom.current().nextInt(0, copy.size());
+                //TODO: If this performs worse, just switch back to a normal random
+               int random = WYMLRandom.get();
+                //int random = ThreadLocalRandom.current().nextInt(0, copy.size());
 
                 copy.set(random, copy.get(i));
                 copy.set(i, input.get(random));
