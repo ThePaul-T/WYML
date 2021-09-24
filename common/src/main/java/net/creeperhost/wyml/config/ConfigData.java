@@ -37,6 +37,9 @@ public class ConfigData
     @Comment("Ensure the tick loop does not run repeatedly, waits until the next tick is due (reduce cpu usage on hardware)")
     public boolean NORMALIZE_TICKS = true;
 
+    @Comment("Set the amount of time it takes for an item to despawn in ticks, This can only be reduced (default 6000)")
+    public int ITEM_DESPAWN_TIME = 6000;
+
 
     // ******************************************
     // * Pausing
