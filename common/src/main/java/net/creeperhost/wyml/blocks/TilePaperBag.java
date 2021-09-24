@@ -15,16 +15,21 @@ import net.minecraft.world.level.block.entity.TickableBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
+import java.time.Instant;
 import java.util.List;
 
 public class TilePaperBag extends BaseContainerBlockEntity implements TickableBlockEntity
 {
-    private InventoryPaperBag inventory;
+    private final InventoryPaperBag inventory;
+    private long CREATED_TIME_STAMP;
+    private long DESPAWN_TIME_STAMP;
 
     public TilePaperBag()
     {
         super(WYMLBlocks.PAPER_BAG_TILE.get());
-        this.inventory = new InventoryPaperBag(27);
+        this.inventory = new InventoryPaperBag(60);
+        CREATED_TIME_STAMP = Instant.now().getEpochSecond();
+        DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + 300);
     }
 
     @Override
@@ -92,6 +97,8 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     {
         super.load(blockState, compoundTag);
         inventory.deserializeNBT(compoundTag);
+        CREATED_TIME_STAMP = compoundTag.getLong("created");
+        DESPAWN_TIME_STAMP = compoundTag.getLong("despawn");
     }
 
     @Override
@@ -99,6 +106,8 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     {
         CompoundTag compoundTag1 = super.save(compoundTag);
         compoundTag1.merge(inventory.serializeNBT());
+        compoundTag1.putLong("created", CREATED_TIME_STAMP);
+        compoundTag1.putLong("despawn", DESPAWN_TIME_STAMP);
         return compoundTag1;
     }
 
@@ -110,20 +119,53 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     @Override
     public void tick()
     {
+        collectItems();
+
+        if(Instant.now().getEpochSecond() >= DESPAWN_TIME_STAMP)
+        {
+            WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + getBlockPos() + " Reason: Age");
+            inventory.clearContent();
+            level.removeBlockEntity(getBlockPos());
+            level.removeBlock(getBlockPos(), false);
+        }
+    }
+
+    public long getCreatedTime()
+    {
+        return CREATED_TIME_STAMP;
+    }
+
+    public long getDespawnTime()
+    {
+        return DESPAWN_TIME_STAMP;
+    }
+
+    public void resetDespawnTime()
+    {
+        DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + 300);
+    }
+
+    public void collectItems()
+    {
         if(level.isClientSide()) return;
         //4.0D == 4 Blocks around the paper bag
         AABB searchArea = new AABB(getBlockPos()).inflate(4.0D, 4.0D, 4.0D);
-        List<ItemEntity> itemEntities = level.getLoadedEntitiesOfClass(ItemEntity.class, searchArea);
-        if(!itemEntities.isEmpty())
+        if(!level.getLoadedEntitiesOfClass(ItemEntity.class, searchArea).isEmpty())
         {
-            for (ItemEntity itemEntity : itemEntities)
+            for (ItemEntity itemEntity : level.getLoadedEntitiesOfClass(ItemEntity.class, searchArea))
             {
-                if(itemEntity.getAge() > 20)
+                ItemStack itemStack = itemEntity.getItem();
+                if(itemEntity.isAlive())
                 {
-                    ItemStack itemStack = itemEntity.getItem();
                     ItemStack inserted = inventory.addItem(itemStack);
-                    if(inserted.isEmpty()) itemEntity.remove();
-                    else itemEntity.setItem(inserted);
+                    if (inserted.isEmpty())
+                    {
+                        itemEntity.kill();
+                    }
+                    else
+                    {
+                        itemEntity.setItem(inserted);
+                    }
                 }
             }
         }

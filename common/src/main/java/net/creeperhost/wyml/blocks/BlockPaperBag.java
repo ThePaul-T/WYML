@@ -14,6 +14,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 public class BlockPaperBag extends BaseEntityBlock
@@ -36,9 +38,14 @@ public class BlockPaperBag extends BaseEntityBlock
 
         if(!level.isClientSide() && !player.isCrouching())
         {
-            BlockEntity blockEntity = level.getBlockEntity(blockPos);
-            MenuRegistry.openExtendedMenu((ServerPlayer) player, (MenuProvider) blockEntity, packetBuffer -> packetBuffer.writeBlockPos(blockEntity.getBlockPos()));
-            return InteractionResult.SUCCESS;
+            if(!player.isCrouching())
+            {
+                TilePaperBag tilePaperBag = (TilePaperBag) level.getBlockEntity(blockPos);
+                tilePaperBag.resetDespawnTime();
+                BlockEntity blockEntity = level.getBlockEntity(blockPos);
+                MenuRegistry.openExtendedMenu((ServerPlayer) player, (MenuProvider) blockEntity, packetBuffer -> packetBuffer.writeBlockPos(blockEntity.getBlockPos()));
+                return InteractionResult.SUCCESS;
+            }
         }
         return super.use(blockState, level, blockPos, player, interactionHand, blockHitResult);
     }
@@ -54,6 +61,12 @@ public class BlockPaperBag extends BaseEntityBlock
 
             super.onRemove(blockState, level, blockPos, blockState2, bl);
         }
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos, CollisionContext collisionContext)
+    {
+        return Block.box(2.0D, 0.0D, 5.0D, 14.0D, 15.0D, 11.0D);
     }
 
     @Nullable

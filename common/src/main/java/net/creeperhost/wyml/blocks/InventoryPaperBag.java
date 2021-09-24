@@ -29,12 +29,6 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
         this.items = NonNullList.withSize(i, ItemStack.EMPTY);
     }
 
-    public InventoryPaperBag(ItemStack... itemStacks)
-    {
-        this.size = itemStacks.length;
-        this.items = NonNullList.of(ItemStack.EMPTY, itemStacks);
-    }
-
     public void addListener(ContainerListener containerListener)
     {
         if (this.listeners == null) this.listeners = Lists.newArrayList();
@@ -90,6 +84,7 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
         if (!itemStack.isEmpty()) this.setChanged();
         return itemStack;
     }
+
 
     public ItemStack addItem(ItemStack itemStack)
     {

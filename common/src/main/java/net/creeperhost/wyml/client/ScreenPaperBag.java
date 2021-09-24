@@ -3,10 +3,13 @@ package net.creeperhost.wyml.client;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.creeperhost.wyml.blocks.ContainerPaperBag;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+
+import java.time.Instant;
 
 public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
 {
@@ -27,6 +30,15 @@ public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
         this.renderBackground(poseStack);
         super.render(poseStack, i, j, f);
         this.renderTooltip(poseStack, i, j);
+    }
+
+    @Override
+    protected void renderLabels(PoseStack poseStack, int i, int j)
+    {
+        this.font.draw(poseStack, this.inventory.getDisplayName(), (float)this.inventoryLabelX, (float)this.inventoryLabelY, 4210752);
+        long despawn = containerPaperBag.getTilePaperBag().getDespawnTime();
+        long time = (despawn - Instant.now().getEpochSecond());
+        this.font.draw(poseStack, ChatFormatting.RED + "Despawns in " + time + " Seconds", this.titleLabelX, (float)this.titleLabelY, 4210752);
     }
 
     @Override

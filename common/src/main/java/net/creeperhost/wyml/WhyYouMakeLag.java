@@ -22,8 +22,10 @@ import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.awt.*;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -174,6 +176,9 @@ public class WhyYouMakeLag
         if(scheduledExecutorService2.isShutdown()) scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
 
         WhyYouMakeLag.minecraftServer = minecraftServer;
+        //TODO make this work with other dims
+        BagHandler.create();
+
         Runnable cleanThread = () ->
         {
             try {

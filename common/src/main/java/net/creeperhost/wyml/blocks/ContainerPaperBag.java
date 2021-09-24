@@ -1,6 +1,7 @@
 package net.creeperhost.wyml.blocks;
 
 import net.creeperhost.wyml.init.WYMLContainers;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -22,7 +23,8 @@ public class ContainerPaperBag extends AbstractContainerMenu
         //Paper bags Inventory
         for(i = 0; i < 3; ++i) {
             for(j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(tilePaperBag.getInventory(), j + i * 9, 8 + j * 18, 18 + i * 18));
+                int slotID = j + i * 9;
+                this.addSlot(new Slot(tilePaperBag.getInventory(), slotID, 8 + j * 18, 18 + i * 18));
             }
         }
 
@@ -37,6 +39,17 @@ public class ContainerPaperBag extends AbstractContainerMenu
         for(i = 0; i < 9; ++i) {
             this.addSlot(new Slot(playerInventory, i, 8 + i * 18, 142));
         }
+    }
+
+    public TilePaperBag getTilePaperBag()
+    {
+        return tilePaperBag;
+    }
+
+    @Override
+    public void slotsChanged(Container container)
+    {
+        super.slotsChanged(container);
     }
 
     //Shift-Clicking....
@@ -161,6 +174,7 @@ public class ContainerPaperBag extends AbstractContainerMenu
     @Override
     public boolean stillValid(Player player)
     {
+        if(player.level.getBlockEntity(tilePaperBag.getBlockPos()) == null) return false;
         return tilePaperBag.getInventory().stillValid(player);
     }
 }

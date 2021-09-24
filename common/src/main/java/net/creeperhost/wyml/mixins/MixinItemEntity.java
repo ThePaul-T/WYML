@@ -36,30 +36,30 @@ public abstract class MixinItemEntity extends Entity
     @Inject(at = @At("TAIL"), method = "tick", cancellable = true)
     private void tick(CallbackInfo ci)
     {
-        boolean bl = Mth.floor(this.xo) != Mth.floor(this.getX()) || Mth.floor(this.yo) != Mth.floor(this.getY()) || Mth.floor(this.zo) != Mth.floor(this.getZ());
-        int i = bl ? 2 : 40;
-        if (this.tickCount % i == 0)
-        {
-            if (getAge() > 60 && isOnGround())
-            {
-                List<ItemEntity> itemEntities = level.getLoadedEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(4.0D, 4.0D, 4.0D));
-                if (!itemEntities.isEmpty() && itemEntities.size() > 10)
-                {
-                    if (canCreateBag(blockPosition()))
-                    {
-                        try
-                        {
-                            //Create the paper bag
-                            BlockPos paperBagPos = blockPosition();
-                            level.setBlock(paperBagPos, WYMLBlocks.PAPER_BAG.get().defaultBlockState(), 4);
-                            if (level.getBlockEntity(paperBagPos) == null) level.setBlockEntity(paperBagPos, new TilePaperBag());
-                        } catch (Exception ignored)
-                        {
-                        }
-                    }
-                }
-            }
-        }
+//        boolean bl = Mth.floor(this.xo) != Mth.floor(this.getX()) || Mth.floor(this.yo) != Mth.floor(this.getY()) || Mth.floor(this.zo) != Mth.floor(this.getZ());
+//        int i = bl ? 2 : 40;
+//        if (this.tickCount % i == 0)
+//        {
+//            if (getAge() > 60 && isOnGround())
+//            {
+//                List<ItemEntity> itemEntities = level.getLoadedEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(4.0D, 4.0D, 4.0D));
+//                if (!itemEntities.isEmpty() && itemEntities.size() > 10)
+//                {
+//                    if (canCreateBag(blockPosition()))
+//                    {
+//                        try
+//                        {
+//                            //Create the paper bag
+//                            BlockPos paperBagPos = blockPosition();
+//                            level.setBlock(paperBagPos, WYMLBlocks.PAPER_BAG.get().defaultBlockState(), 4);
+//                            if (level.getBlockEntity(paperBagPos) == null) level.setBlockEntity(paperBagPos, new TilePaperBag());
+//                        } catch (Exception ignored)
+//                        {
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 
     private boolean canCreateBag(BlockPos blockPos)

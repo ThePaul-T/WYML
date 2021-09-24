@@ -11,6 +11,7 @@
     "MixinNaturalSpawner",
     "MixinPlayerTabOverlay",
     "MixinServerChunkCache",
+    "MixinServerWorld",
     "MixinSpawnState"
   ],
   "client": [
