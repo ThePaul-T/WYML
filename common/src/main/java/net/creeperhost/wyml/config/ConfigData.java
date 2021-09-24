@@ -113,13 +113,13 @@ public class ConfigData
     @Comment("Allow Paperbags to pickup item spills")
     public boolean ALLOW_PAPER_BAGS = true;
 
-    @Comment("The minimum age an item will need to be in a spill before a paperbag will be spawned")
+    @Comment("The minimum age an item will need to be in a spill before a Paperbag will be spawned (default 60)")
     public int MIN_ITEM_AGE = 60;
 
-    @Comment("The minimum amount of items in a spill needed for a paperbag to spawn")
+    @Comment("The minimum amount of items in a spill needed for a Paperbag to spawn (default 20)")
     public int MIN_ITEM_COUNT = 20;
 
-    @Comment("The amount of time in seconds before a paperbag will despawn")
+    @Comment("The amount of time in seconds before a Paperbag will despawn (default 300)")
     public int PAPER_BAG_DESPAWN_TIME = 300;
 
 }
