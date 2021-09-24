@@ -16,6 +16,8 @@ public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
     private static final ResourceLocation CONTAINER_TEXTURE = new ResourceLocation("textures/gui/container/shulker_box.png");
 
     private final ContainerPaperBag containerPaperBag;
+    private long lastTimeRender = 0;
+    private String renderString = "";
 
     public ScreenPaperBag(ContainerPaperBag containerPaperBag, Inventory inventory, Component component)
     {
@@ -37,8 +39,33 @@ public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
     {
         this.font.draw(poseStack, this.inventory.getDisplayName(), (float)this.inventoryLabelX, (float)this.inventoryLabelY, 4210752);
         long despawn = containerPaperBag.getTilePaperBag().getDespawnTime();
-        long time = (despawn - Instant.now().getEpochSecond());
-        this.font.draw(poseStack, ChatFormatting.RED + "Despawns in " + time + " Seconds", this.titleLabelX, (float)this.titleLabelY, 4210752);
+        long timeSeconds = (despawn - Instant.now().getEpochSecond());
+        this.font.draw(poseStack, ChatFormatting.RED + format(timeSeconds), this.titleLabelX, (float)this.titleLabelY, 4210752);
+    }
+
+    public String format(long timeSeconds)
+    {
+        if(lastTimeRender != timeSeconds)
+        {
+            long minutes = (timeSeconds % 3600) / 60;
+            long seconds = timeSeconds % 60;
+            lastTimeRender = timeSeconds;
+            renderString = "Despawns in " + padLeftZeros("" + minutes, 2) + ":" + padLeftZeros("" + seconds, 2);
+        }
+        return renderString;
+    }
+
+    public String padLeftZeros(String inputString, int length) {
+        if (inputString.length() >= length) {
+            return inputString;
+        }
+        StringBuilder sb = new StringBuilder();
+        while (sb.length() < length - inputString.length()) {
+            sb.append('0');
+        }
+        sb.append(inputString);
+
+        return sb.toString();
     }
 
     @Override
