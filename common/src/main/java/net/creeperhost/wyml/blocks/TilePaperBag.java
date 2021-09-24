@@ -1,6 +1,7 @@
 package net.creeperhost.wyml.blocks;
 
 import net.creeperhost.wyml.WhyYouMakeLag;
+import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -23,13 +24,14 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     private final InventoryPaperBag inventory;
     private long CREATED_TIME_STAMP;
     private long DESPAWN_TIME_STAMP;
+    private int DESPAWN_TIME = WymlConfig.cached().PAPER_BAG_DESPAWN_TIME;
 
     public TilePaperBag()
     {
         super(WYMLBlocks.PAPER_BAG_TILE.get());
         this.inventory = new InventoryPaperBag(60);
         CREATED_TIME_STAMP = Instant.now().getEpochSecond();
-        DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + 300);
+        DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + DESPAWN_TIME);
     }
 
     @Override

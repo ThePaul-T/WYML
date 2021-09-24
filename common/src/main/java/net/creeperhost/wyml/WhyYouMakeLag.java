@@ -6,6 +6,7 @@ import me.shedaniel.architectury.event.events.client.ClientLifecycleEvent;
 import me.shedaniel.architectury.platform.Platform;
 import me.shedaniel.architectury.utils.Env;
 import net.creeperhost.wyml.compat.CompatFTBChunks;
+import net.creeperhost.wyml.config.ConfigData;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.creeperhost.wyml.init.WYMLContainers;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.spongepowered.asm.mixin.transformer.Config;
 
 import java.awt.*;
 import java.nio.file.Path;
@@ -176,8 +178,7 @@ public class WhyYouMakeLag
         if(scheduledExecutorService2.isShutdown()) scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
 
         WhyYouMakeLag.minecraftServer = minecraftServer;
-        //TODO make this work with other dims
-        BagHandler.create();
+        if(WymlConfig.cached().ALLOW_PAPER_BAGS) BagHandler.create();
 
         Runnable cleanThread = () ->
         {

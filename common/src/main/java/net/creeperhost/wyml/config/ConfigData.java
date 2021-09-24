@@ -104,4 +104,19 @@ public class ConfigData
     @Comment("Disable this once you are happy with the configs you have and their impact on memory. This will print how many SpawnManagers and SpawnCaches we have at once, every 10 seconds.")
     public boolean CLEAN_PRINT = true;
 
+    // ******************************************
+    // * Paper Bags
+    // ******************************************
+    @Comment("Allow Paperbags to pickup item spills")
+    public boolean ALLOW_PAPER_BAGS = true;
+
+    @Comment("The minimum age an item will need to be in a spill before a paperbag will be spawned")
+    public int MIN_ITEM_AGE = 60;
+
+    @Comment("The minimum amount of items in a spill needed for a paperbag to spawn")
+    public int MIN_ITEM_COUNT = 20;
+
+    @Comment("The amount of time in seconds before a paperbag will despawn")
+    public int PAPER_BAG_DESPAWN_TIME = 300;
+
 }

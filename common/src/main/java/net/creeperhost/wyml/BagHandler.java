@@ -1,13 +1,11 @@
 package net.creeperhost.wyml;
 
 import net.creeperhost.wyml.blocks.TilePaperBag;
+import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 
 import java.util.ArrayList;
@@ -23,8 +21,8 @@ public class BagHandler
     public static List<Long> LIST_TO_REMOVE = new ArrayList<>();
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static boolean updating = false;
-    public static int MIN_AGE = 40;
-    public static int MIN_ITEMS = 20;
+    public static int MIN_AGE = WymlConfig.cached().MIN_ITEM_AGE;
+    public static int MIN_ITEMS = WymlConfig.cached().MIN_ITEM_COUNT;
 
     public static void create()
     {
