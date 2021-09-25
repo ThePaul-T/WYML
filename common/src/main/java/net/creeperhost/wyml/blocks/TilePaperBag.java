@@ -3,9 +3,11 @@ package net.creeperhost.wyml.blocks;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -16,10 +18,11 @@ import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.TickableBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 
-public class TilePaperBag extends BaseContainerBlockEntity implements TickableBlockEntity
+public class TilePaperBag extends BaseContainerBlockEntity implements TickableBlockEntity, WorldlyContainer
 {
     private final InventoryPaperBag inventory;
     private long CREATED_TIME_STAMP;
@@ -218,5 +221,23 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
                 }
             }
         }
+    }
+
+    @Override
+    public int[] getSlotsForFace(Direction direction)
+    {
+        return new int[0];
+    }
+
+    @Override
+    public boolean canPlaceItemThroughFace(int i, ItemStack itemStack, @Nullable Direction direction)
+    {
+        return false;
+    }
+
+    @Override
+    public boolean canTakeItemThroughFace(int i, ItemStack itemStack, Direction direction)
+    {
+        return false;
     }
 }
