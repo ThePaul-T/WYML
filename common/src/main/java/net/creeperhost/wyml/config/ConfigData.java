@@ -111,7 +111,7 @@ public class ConfigData
     // * Paper Bags
     // ******************************************
     @Comment("Allow Paperbags to pickup item spills")
-    public boolean ALLOW_PAPER_BAGS = true;
+    public boolean ALLOW_PAPER_BAGS = false;
 
     @Comment("The minimum age an item will need to be in a spill before a Paperbag will be spawned (default 60)")
     public int MIN_ITEM_AGE = 60;

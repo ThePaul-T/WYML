@@ -289,4 +289,9 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
             }
         }
     }
+
+    public NonNullList<ItemStack> getItems()
+    {
+        return items;
+    }
 }

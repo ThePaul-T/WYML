@@ -5,17 +5,26 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class ContainerPaperBag extends AbstractContainerMenu
 {
     private final TilePaperBag tilePaperBag;
+    private final ContainerData containerData;
 
-    public ContainerPaperBag(int id, Inventory playerInventory, TilePaperBag tilePaperBag)
+    public ContainerPaperBag(int id, Inventory playerInventory, TilePaperBag tilePaperBag, ContainerData containerData)
     {
         super(WYMLContainers.PAPER_BAG.get(), id);
         this.tilePaperBag = tilePaperBag;
+        this.containerData = containerData;
 
         int i;
         int j;
@@ -24,7 +33,7 @@ public class ContainerPaperBag extends AbstractContainerMenu
         for(i = 0; i < 3; ++i) {
             for(j = 0; j < 9; ++j) {
                 int slotID = j + i * 9;
-                this.addSlot(new Slot(tilePaperBag.getInventory(), slotID, 8 + j * 18, 18 + i * 18));
+                this.addSlot(new SlotOutput(tilePaperBag.getInventory(), slotID, 8 + j * 18, 18 + i * 18));
             }
         }
 
@@ -46,10 +55,41 @@ public class ContainerPaperBag extends AbstractContainerMenu
         return tilePaperBag;
     }
 
+    public int getUsedSlots()
+    {
+        return this.containerData.get(0);
+    }
+
     @Override
     public void slotsChanged(Container container)
     {
         super.slotsChanged(container);
+    }
+
+    public void sortInv(InventoryPaperBag inv)
+    {
+        for (int i = 0; i < tilePaperBag.getInventory().getContainerSize(); i++)
+        {
+            if(!inv.getItem(i).isEmpty())
+            {
+                if(getFirstFreeSlot(inv) != -1)
+                {
+                    ItemStack stack = inv.getItem(i);
+                    inv.setItem(i, ItemStack.EMPTY);
+                    inv.setItem(getFirstFreeSlot(inv), stack);
+                }
+            }
+        }
+    }
+
+    public int getFirstFreeSlot(InventoryPaperBag inventoryPaperBag)
+    {
+        for(int i = 0; i < 27; i++)
+        {
+            if(inventoryPaperBag.getItem(i).isEmpty()) return i;
+        }
+
+        return -1;
     }
 
     //Shift-Clicking....
@@ -98,6 +138,7 @@ public class ContainerPaperBag extends AbstractContainerMenu
             }
             slot.onTake(player, stackInSlot);
         }
+//        sortInv(tilePaperBag.getInventory());
         return originalStack;
     }
 
@@ -174,6 +215,8 @@ public class ContainerPaperBag extends AbstractContainerMenu
     @Override
     public boolean stillValid(Player player)
     {
+        sortInv(tilePaperBag.getInventory());
+
         if(player.level.getBlockEntity(tilePaperBag.getBlockPos()) == null) return false;
         return tilePaperBag.getInventory().stillValid(player);
     }
