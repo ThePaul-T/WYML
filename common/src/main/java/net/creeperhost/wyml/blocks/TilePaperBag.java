@@ -143,7 +143,6 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     {
         if(!level.isClientSide())
         {
-            collectItems();
             updateUsedCount();
 
             if (Instant.now().getEpochSecond() >= getDespawnTime())

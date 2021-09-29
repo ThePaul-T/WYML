@@ -138,6 +138,8 @@ public class BagHandler
             if(serverLevel.getBlockState(paperBagPos) != WYMLBlocks.PAPER_BAG.get().defaultBlockState())
             {
                 serverLevel.setBlock(paperBagPos, WYMLBlocks.PAPER_BAG.get().defaultBlockState(), 3);
+                TilePaperBag tilePaperBag = (TilePaperBag) serverLevel.getBlockEntity(paperBagPos);
+                if(tilePaperBag != null) tilePaperBag.collectItems();
             }
         }
         return true;

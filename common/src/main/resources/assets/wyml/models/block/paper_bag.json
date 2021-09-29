@@ -3,9 +3,9 @@
 	"parent": "block/block",
 	"textures": {
 		"0": "wyml:blocks/paper_bag",
-		"1": "block/block1",
-		"2": "block/block2",
-		"3": "block/block3",
+		"1": "minecraft:block/diamond_block",
+		"2": "minecraft:block/iron_block",
+		"3": "minecraft:block/gold_block",
 		"4": "wyml:blocks/paper_bag_front",
 		"particle": "wyml:blocks/paper_bag_front"
 	},
