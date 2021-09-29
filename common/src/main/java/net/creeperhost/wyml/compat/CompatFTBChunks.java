@@ -11,7 +11,7 @@ public class CompatFTBChunks
 {
     public static Collection<ClaimedChunk> getClaimed()
     {
-        if(!FTBChunksAPI.isManagerLoaded()) return null;
+        if (!FTBChunksAPI.isManagerLoaded()) return null;
         if (FTBChunksAPI.getManager() == null) return null;
         return FTBChunksAPI.getManager().getAllClaimedChunks();
     }
@@ -20,8 +20,8 @@ public class CompatFTBChunks
     {
         Collection<ClaimedChunk> claimedChunks = getClaimed();
         List<Long> chunkPosList = new ArrayList<>();
-        if(claimedChunks == null) return chunkPosList;
-        for(ClaimedChunk chunk : claimedChunks)
+        if (claimedChunks == null) return chunkPosList;
+        for (ClaimedChunk chunk : claimedChunks)
         {
             chunkPosList.add(chunk.getPos().getChunkPos().toLong());
         }

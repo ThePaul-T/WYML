@@ -15,8 +15,9 @@ public class WYMLRandom
         WYMLRandom.total = total;
         curRandom = ThreadLocalRandom.current().nextInt(min, max);
         randoms = new int[total];
-        CompletableFuture.runAsync(() -> {
-            for(int i=0; i < (total-1); i++)
+        CompletableFuture.runAsync(() ->
+        {
+            for (int i = 0; i < (total - 1); i++)
             {
                 randoms[i] = ThreadLocalRandom.current().nextInt(min, max);
             }
@@ -26,7 +27,7 @@ public class WYMLRandom
 
     public static int get() throws Exception
     {
-        if(current >= total) throw new Exception("Too many randoms!");
+        if (current >= total) throw new Exception("Too many randoms!");
         int rand = curRandom;
         curRandom = randoms[current];
         current++;

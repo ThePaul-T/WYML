@@ -13,18 +13,18 @@ public abstract class MixinDataFixers
     {
     }
 
-//    /**
-//     * @author CreeperHost
-//     * @reason Because I can...
-//     */
-//    @Overwrite
-//    private static DataFixer createFixerUpper()
-//    {
-//        WhyYouMakeLag.LOGGER.info("Disabled DFU!");
-//        int version = SharedConstants.getCurrentVersion().getWorldVersion();
-//        DataFixerBuilder dataFixerBuilder = new BlankDataFixer(version);
-//
-//        addFixers(dataFixerBuilder);
-//        return dataFixerBuilder.build(Util.bootstrapExecutor());
-//    }
+    //    /**
+    //     * @author CreeperHost
+    //     * @reason Because I can...
+    //     */
+    //    @Overwrite
+    //    private static DataFixer createFixerUpper()
+    //    {
+    //        WhyYouMakeLag.LOGGER.info("Disabled DFU!");
+    //        int version = SharedConstants.getCurrentVersion().getWorldVersion();
+    //        DataFixerBuilder dataFixerBuilder = new BlankDataFixer(version);
+    //
+    //        addFixers(dataFixerBuilder);
+    //        return dataFixerBuilder.build(Util.bootstrapExecutor());
+    //    }
 }

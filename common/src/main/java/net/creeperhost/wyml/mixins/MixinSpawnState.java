@@ -23,8 +23,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(NaturalSpawner.SpawnState.class)
 public class MixinSpawnState
 {
-    @Shadow @Final private int spawnableChunkCount;
-    @Shadow @Final private Object2IntOpenHashMap<MobCategory> mobCategoryCounts;
+    @Shadow
+    @Final
+    private int spawnableChunkCount;
+    @Shadow
+    @Final
+    private Object2IntOpenHashMap<MobCategory> mobCategoryCounts;
 
     /**
      * @author
@@ -35,28 +39,31 @@ public class MixinSpawnState
     {
         return WhyYouMakeLag.shouldSpawn(mobCategory, mobCategoryCounts, spawnableChunkCount);
     }
+
     @Inject(at = @At("HEAD"), method = "canSpawn", cancellable = true)
     private void canSpawn(EntityType<?> entityType, BlockPos blockPos, ChunkAccess chunkAccess, CallbackInfoReturnable<Boolean> cir)
     {
         WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkAccess.getPos(), entityType.getCategory());
-        if(spawnManager.isPaused())
+        if (spawnManager.isPaused())
         {
             cir.setReturnValue(false);
             cir.cancel();
             return;
         }
     }
+
     @Inject(at = @At("HEAD"), method = "afterSpawn", cancellable = true)
     private void afterSpawn(Mob mob, ChunkAccess chunkAccess, CallbackInfo ci)
     {
         ChunkPos chunkPos = chunkAccess.getPos();
         if (mob != null && mob.isAlive() && mob.level != null)
         {
-            if(WhyYouMakeLag.hasSpawnManager(chunkPos, mob.getType().getCategory())) {
+            if (WhyYouMakeLag.hasSpawnManager(chunkPos, mob.getType().getCategory()))
+            {
                 WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkPos, mob.getType().getCategory());
                 spawnManager.decreaseSpawningCount(mob.blockPosition());
                 WhyYouMakeLag.updateSpawnManager(spawnManager);
-                if(WymlConfig.cached().DEBUG_PRINT)
+                if (WymlConfig.cached().DEBUG_PRINT)
                     System.out.println("Completed spawn for " + spawnManager.getClassification().getName() + " " + spawnManager.getChunk() + " - " + (100d - spawnManager.getFailRate()) + "% success rate (" + spawnManager.getFinishRate() + "/" + spawnManager.getStartRate() + ")");
             }
         }

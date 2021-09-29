@@ -43,11 +43,13 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
     @Override
     public ItemStack getItem(int i)
     {
-        return i >= 0 && i < this.items.size() ? (ItemStack)this.items.get(i) : ItemStack.EMPTY;
+        return i >= 0 && i < this.items.size() ? (ItemStack) this.items.get(i) : ItemStack.EMPTY;
     }
 
-    public List<ItemStack> removeAllItems() {
-        List<ItemStack> list = (List)this.items.stream().filter((itemStack) -> {
+    public List<ItemStack> removeAllItems()
+    {
+        List<ItemStack> list = (List) this.items.stream().filter((itemStack) ->
+        {
             return !itemStack.isEmpty();
         }).collect(Collectors.toList());
         this.clearContent();
@@ -66,7 +68,7 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
     {
         ItemStack itemStack = new ItemStack(item, 0);
 
-        for(int j = this.size - 1; j >= 0; --j)
+        for (int j = this.size - 1; j >= 0; --j)
         {
             ItemStack itemStack2 = this.getItem(j);
             if (itemStack2.getItem().equals(item))
@@ -106,9 +108,9 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
         boolean bl = false;
         Iterator var3 = this.items.iterator();
 
-        while(var3.hasNext())
+        while (var3.hasNext())
         {
-            ItemStack itemStack2 = (ItemStack)var3.next();
+            ItemStack itemStack2 = (ItemStack) var3.next();
             if (itemStack2.isEmpty() || ItemStack.isSame(itemStack2, itemStack) && itemStack2.getCount() < itemStack2.getMaxStackSize())
             {
                 bl = true;
@@ -121,7 +123,7 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
     @Override
     public ItemStack removeItemNoUpdate(int i)
     {
-        ItemStack itemStack = (ItemStack)this.items.get(i);
+        ItemStack itemStack = (ItemStack) this.items.get(i);
         if (itemStack.isEmpty())
         {
             return ItemStack.EMPTY;
@@ -158,8 +160,8 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
             {
                 return true;
             }
-            itemStack = (ItemStack)var1.next();
-        } while(itemStack.isEmpty());
+            itemStack = (ItemStack) var1.next();
+        } while (itemStack.isEmpty());
 
         return false;
     }
@@ -171,9 +173,9 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
         {
             Iterator var1 = this.listeners.iterator();
 
-            while(var1.hasNext())
+            while (var1.hasNext())
             {
-                ContainerListener containerListener = (ContainerListener)var1.next();
+                ContainerListener containerListener = (ContainerListener) var1.next();
                 containerListener.containerChanged(this);
             }
         }
@@ -196,9 +198,9 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
     public void fillStackedContents(StackedContents stackedContents)
     {
         Iterator var2 = this.items.iterator();
-        while(var2.hasNext())
+        while (var2.hasNext())
         {
-            ItemStack itemStack = (ItemStack)var2.next();
+            ItemStack itemStack = (ItemStack) var2.next();
             stackedContents.accountStack(itemStack);
         }
     }
@@ -206,7 +208,7 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
     @Override
     public String toString()
     {
-        return ((List)this.items.stream().filter((itemStack) ->
+        return ((List) this.items.stream().filter((itemStack) ->
         {
             return !itemStack.isEmpty();
         }).collect(Collectors.toList())).toString();
@@ -214,7 +216,7 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
 
     private void moveItemToEmptySlots(ItemStack itemStack)
     {
-        for(int i = 0; i < this.size; ++i)
+        for (int i = 0; i < this.size; ++i)
         {
             ItemStack itemStack2 = this.getItem(i);
             if (itemStack2.isEmpty())
@@ -228,7 +230,7 @@ public class InventoryPaperBag implements Container, StackedContentsCompatible
 
     private void moveItemToOccupiedSlotsWithSameType(ItemStack itemStack)
     {
-        for(int i = 0; i < this.size; ++i)
+        for (int i = 0; i < this.size; ++i)
         {
             ItemStack itemStack2 = this.getItem(i);
             if (ItemStack.isSame(itemStack2, itemStack))

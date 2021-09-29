@@ -14,7 +14,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(PlayerTabOverlay.class)
 public class MixinPlayerTabOverlay
 {
-    @Shadow @Final private Minecraft minecraft;
+    @Shadow
+    @Final
+    private Minecraft minecraft;
 
     @Inject(at = @At("TAIL"), method = "renderPingIcon", cancellable = true)
     private void render(PoseStack poseStack, int i, int j, int k, PlayerInfo playerInfo, CallbackInfo ci)

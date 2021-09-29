@@ -19,7 +19,8 @@ import java.util.function.Function;
 public abstract class MixinMinecraftServer
 {
 
-    @Shadow public abstract Thread getRunningThread();
+    @Shadow
+    public abstract Thread getRunningThread();
 
     @Inject(at = @At("HEAD"), method = "stopServer", cancellable = true)
     private void serverStopped(CallbackInfo ci)
@@ -30,7 +31,7 @@ public abstract class MixinMinecraftServer
     @Inject(at = @At("HEAD"), method = "tickServer", cancellable = true)
     private void tickServerPre(CallbackInfo ci)
     {
-        if(WymlConfig.cached().NORMALIZE_TICKS)
+        if (WymlConfig.cached().NORMALIZE_TICKS)
         {
             WhyYouMakeLag.tickStartNano = Util.getNanos();
         }
@@ -39,7 +40,7 @@ public abstract class MixinMinecraftServer
     @Inject(at = @At("TAIL"), method = "tickServer", cancellable = true)
     private void tickServerPost(CallbackInfo ci)
     {
-        if(WymlConfig.cached().NORMALIZE_TICKS)
+        if (WymlConfig.cached().NORMALIZE_TICKS)
         {
             WhyYouMakeLag.tickStopNano = Util.getNanos();
             long dif = WhyYouMakeLag.tickStopNano - WhyYouMakeLag.tickStartNano;
@@ -60,7 +61,7 @@ public abstract class MixinMinecraftServer
     @Inject(at = @At("TAIL"), method = "loadLevel")
     private void loadLevel(CallbackInfo ci)
     {
-        if(WymlConfig.cached().ENABLE_GARBAGE_COLLECTION_LOAD) System.gc();
+        if (WymlConfig.cached().ENABLE_GARBAGE_COLLECTION_LOAD) System.gc();
     }
 
     @Inject(at = @At("RETURN"), method = "spin")

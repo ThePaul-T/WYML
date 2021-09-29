@@ -124,16 +124,16 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     @Override
     public void tick()
     {
-        if(!level.isClientSide())
+        if (!level.isClientSide())
         {
             updateUsedCount();
 
-            if(Instant.now().getEpochSecond() >= getDespawnTime())
+            if (Instant.now().getEpochSecond() >= getDespawnTime())
             {
                 WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + getBlockPos() + " Reason: Age");
                 remove();
             }
-            if(inventory.isEmpty())
+            if (inventory.isEmpty())
             {
                 WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + getBlockPos() + " Reason: Empty");
                 remove();

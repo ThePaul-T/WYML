@@ -15,15 +15,15 @@ public class WYMLContainers
 {
     public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(WhyYouMakeLag.MOD_ID, Registry.MENU_REGISTRY);
 
-    public static final RegistrySupplier<MenuType<ContainerPaperBag>> PAPER_BAG = MENUS.register("paper_bag",
-            () -> MenuRegistry.ofExtended((id, inventory, data) -> {
-                BlockPos pos = data.readBlockPos();
-                BlockEntity tileEntity = inventory.player.getCommandSenderWorld().getBlockEntity(pos);
-                TilePaperBag tileQuantumStorageUnit = (TilePaperBag) tileEntity;
-                if (!(tileEntity instanceof TilePaperBag))
-                {
-                    return null;
-                }
-                return new ContainerPaperBag(id, inventory, tileQuantumStorageUnit);
-            }));
+    public static final RegistrySupplier<MenuType<ContainerPaperBag>> PAPER_BAG = MENUS.register("paper_bag", () -> MenuRegistry.ofExtended((id, inventory, data) ->
+    {
+        BlockPos pos = data.readBlockPos();
+        BlockEntity tileEntity = inventory.player.getCommandSenderWorld().getBlockEntity(pos);
+        TilePaperBag tileQuantumStorageUnit = (TilePaperBag) tileEntity;
+        if (!(tileEntity instanceof TilePaperBag))
+        {
+            return null;
+        }
+        return new ContainerPaperBag(id, inventory, tileQuantumStorageUnit);
+    }));
 }

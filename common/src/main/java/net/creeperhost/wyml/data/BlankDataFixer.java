@@ -15,6 +15,8 @@ public class BlankDataFixer extends DataFixerBuilder
     @Override
     public DataFixer build(Executor executor)
     {
-        return super.build(command -> {});
+        return super.build(command ->
+        {
+        });
     }
 }

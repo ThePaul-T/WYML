@@ -15,7 +15,7 @@ public class MixinServerWorld
     @Inject(at = @At("HEAD"), method = "addFreshEntity", cancellable = true)
     public void addEntity(Entity entity, CallbackInfoReturnable<Boolean> cir)
     {
-        if(entity instanceof ItemEntity)
+        if (entity instanceof ItemEntity)
         {
             BagHandler.itemEntityAdded((ItemEntity) entity);
         }

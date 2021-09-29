@@ -47,7 +47,7 @@ public class WhyYouMakeLag
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
-    public static Path configFile = WymlExpectPlatform.getConfigDirectory().resolve(MOD_ID + ".json" );
+    public static Path configFile = WymlExpectPlatform.getConfigDirectory().resolve(MOD_ID + ".json");
 
     public static long tickStartNano;
     public static long tickStopNano;
@@ -59,14 +59,14 @@ public class WhyYouMakeLag
         WYMLContainers.MENUS.register();
         PacketHandler.init();
 
-        if(Platform.getEnvironment() == Env.CLIENT)
+        if (Platform.getEnvironment() == Env.CLIENT)
         {
             ClientLifecycleEvent.CLIENT_SETUP.register(WhyYouMakeLag::onClientSetup);
         }
 
-        if(spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
-        if(cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
-        if(cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
+        if (spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
+        if (cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
+        if (cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
     }
 
     @Environment(EnvType.CLIENT)
@@ -77,22 +77,24 @@ public class WhyYouMakeLag
 
     public static List<ChunkHolder> shuffle(final List<ChunkHolder> input)
     {
-        if(input.isEmpty()) return input;
+        if (input.isEmpty()) return input;
 
 
-        WYMLRandom.generate(0, input.size() -1, input.size());
+        WYMLRandom.generate(0, input.size() - 1, input.size());
         final List<ChunkHolder> copy = new ArrayList<>(input);
-        for(int i = 0; i < copy.size(); i++)
+        for (int i = 0; i < copy.size(); i++)
         {
             try
             {
                 //TODO: If this performs worse, just switch back to a normal random
-               int random = WYMLRandom.get();
+                int random = WYMLRandom.get();
                 //int random = ThreadLocalRandom.current().nextInt(0, copy.size());
 
                 copy.set(random, copy.get(i));
                 copy.set(i, input.get(random));
-            } catch (Exception ignored){}
+            } catch (Exception ignored)
+            {
+            }
         }
         return copy;
     }
@@ -105,8 +107,8 @@ public class WhyYouMakeLag
 
     public static LongSet getForceLoadedChunks()
     {
-        if(minecraftServer == null) return null;
-        if(minecraftServer.getLevel(Level.OVERWORLD) == null) return null;
+        if (minecraftServer == null) return null;
+        if (minecraftServer.getLevel(Level.OVERWORLD) == null) return null;
         return minecraftServer.getLevel(Level.OVERWORLD).getForcedChunks();
     }
 
@@ -128,47 +130,56 @@ public class WhyYouMakeLag
         String id = pos + classification.getName();
         return spawnManager.get().containsKey(id);
     }
+
     public synchronized static void removeSpawnManager(String id)
     {
-        spawnManager.getAndUpdate((existing) -> {
+        spawnManager.getAndUpdate((existing) ->
+        {
             existing.remove(id);
             return existing;
         });
     }
+
     @SuppressWarnings("unused")
     public synchronized static void removeSpawnManager(WYMLSpawnManager manager)
     {
         String id = manager.chunk + manager.classification.getName();
-        spawnManager.getAndUpdate((existing) -> {
+        spawnManager.getAndUpdate((existing) ->
+        {
             existing.remove(id);
             return existing;
         });
     }
+
     public synchronized static WYMLSpawnManager getSpawnManager(ChunkPos pos, MobCategory classification)
     {
         String id = pos + classification.getName();
-        if(spawnManager.get().containsKey(id))
+        if (spawnManager.get().containsKey(id))
         {
             return spawnManager.get().get(id);
         }
         return new WYMLSpawnManager(pos, classification);
     }
+
     public static double getMagicNum()
     {
         double magicNum = WymlConfig.cached().MOJANG_MAGIC_NUM;
-        if(WymlConfig.cached().DOWNSCALE_MAGIC_NUM)
+        if (WymlConfig.cached().DOWNSCALE_MAGIC_NUM)
         {
             int players = WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount();
             magicNum = magicNum - players;
-            if(magicNum < WymlConfig.cached().DOWNSCALE_MAGIC_NUM_MIN) magicNum = WymlConfig.cached().DOWNSCALE_MAGIC_NUM_MIN;
+            if (magicNum < WymlConfig.cached().DOWNSCALE_MAGIC_NUM_MIN)
+                magicNum = WymlConfig.cached().DOWNSCALE_MAGIC_NUM_MIN;
         }
         return magicNum;
     }
+
     public synchronized static void updateSpawnManager(WYMLSpawnManager manager)
     {
-        if(manager.isSaved()) return;
+        if (manager.isSaved()) return;
         String id = manager.chunk + manager.classification.getName();
-        spawnManager.getAndUpdate((existing) -> {
+        spawnManager.getAndUpdate((existing) ->
+        {
             manager.isSaving();
             existing.put(id, manager);
             return existing;
@@ -177,22 +188,23 @@ public class WhyYouMakeLag
 
     public static void serverStarted(MinecraftServer minecraftServer)
     {
-        if(scheduledExecutorService.isShutdown()) scheduledExecutorService = Executors.newScheduledThreadPool(1);
-        if(scheduledExecutorService2.isShutdown()) scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
+        if (scheduledExecutorService.isShutdown()) scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        if (scheduledExecutorService2.isShutdown()) scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
 
         WhyYouMakeLag.minecraftServer = minecraftServer;
-        if(WymlConfig.cached().ALLOW_PAPER_BAGS) BagHandler.create();
+        if (WymlConfig.cached().ALLOW_PAPER_BAGS) BagHandler.create();
 
         Runnable cleanThread = () ->
         {
-            try {
-                if(WhyYouMakeLag.isFtbChunksLoaded())
+            try
+            {
+                if (WhyYouMakeLag.isFtbChunksLoaded())
                 {
                     List<Long> pos = CompatFTBChunks.getChunkPosList();
                     cachedClaimedChunks.set(pos);
                 }
                 List<Long> forceLoaded = new ArrayList<>();
-                if(getForceLoadedChunks() != null)
+                if (getForceLoadedChunks() != null)
                 {
                     getForceLoadedChunks().stream().iterator().forEachRemaining(forceLoaded::add);
                 }
@@ -204,22 +216,27 @@ public class WhyYouMakeLag
                 HashMap<String, WYMLSpawnManager> spawnManagers = new HashMap<>(spawnManager.get());
                 List<String> toRemove = new ArrayList<String>();
                 Set<String> ids = spawnManagers.keySet();
-                for (String id : ids) {
+                for (String id : ids)
+                {
                     managersTotal++;
                     WYMLSpawnManager sm = spawnManagers.get(id);
-                    if (sm.hasExpired()) {
+                    if (sm.hasExpired())
+                    {
                         toRemove.add(id);
-                    } else {
+                    }
+                    else
+                    {
                         blockCacheTotal += sm.countBlockCache();
                         int amRemoved = sm.cleanBlockCache();
-                        if (amRemoved > 0 || !sm.isSaved()) {
+                        if (amRemoved > 0 || !sm.isSaved())
+                        {
                             updateSpawnManager(sm);
                         }
                         blockCacheRemoved += amRemoved;
                     }
                 }
                 spawnManagers.clear();
-                for(String id : toRemove)
+                for (String id : toRemove)
                 {
                     removeSpawnManager(id);
                     managersRemoved = managersRemoved + 1;
@@ -230,40 +247,44 @@ public class WhyYouMakeLag
                     //{
                     //HashMap<String, WYMLSpawnManager> penis = spawnManager.get();
                     long usage = 0;
-                    try {
+                    try
+                    {
                         //usage = MemoryMeasurer.measureBytes(penis);
-                    } catch(Throwable t)
+                    } catch (Throwable t)
                     {
                         t.printStackTrace();
                     }
-                    if(WymlConfig.cached().CLEAN_PRINT) LOGGER.info("Cleaned up caches, removed " + managersRemoved + "/" + managersTotal + " Chunk SpawnManagers and " + blockCacheRemoved + "/" + blockCacheTotal + " block spawn caches. ["+usage+"]");
+                    if (WymlConfig.cached().CLEAN_PRINT)
+                        LOGGER.info("Cleaned up caches, removed " + managersRemoved + "/" + managersTotal + " Chunk SpawnManagers and " + blockCacheRemoved + "/" + blockCacheTotal + " block spawn caches. [" + usage + "]");
                     //}
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored)
+            {
+            }
         };
         scheduledExecutorService.scheduleAtFixedRate(cleanThread, 0, 10, TimeUnit.SECONDS);
     }
 
     public static int calculateSpawnCount(MobCategory entityClassification, Object2IntOpenHashMap<MobCategory> mobCategoryCounts, int spawnableChunkCount)
     {
-        if(WhyYouMakeLag.minecraftServer == null) return 0;
+        if (WhyYouMakeLag.minecraftServer == null) return 0;
         WhyYouMakeLag.mobCategoryCounts = mobCategoryCounts;
         WhyYouMakeLag.spawnableChunkCount.put(entityClassification, spawnableChunkCount);
 
         MinecraftServer minecraftServer = WhyYouMakeLag.minecraftServer;
         int onlineCount = minecraftServer.getPlayerList().getPlayerCount();
 
-        int i = entityClassification.getMaxInstancesPerChunk() * spawnableChunkCount / (int)Math.pow(17.0D, 2.0D);
+        int i = entityClassification.getMaxInstancesPerChunk() * spawnableChunkCount / (int) Math.pow(17.0D, 2.0D);
         WhyYouMakeLag.realMax = i;
         int retVal = 0;
         int curMobs = mobCategoryCounts.getInt(entityClassification);
-        if(curMobs < i)
+        if (curMobs < i)
         {
             int tries = WymlConfig.cached().MOB_TRIES;
-            if(WymlConfig.cached().MULTIPLY_BY_PLAYERS) tries = (tries * onlineCount);
+            if (WymlConfig.cached().MULTIPLY_BY_PLAYERS) tries = (tries * onlineCount);
             retVal = curMobs + tries;
         }
-        if(retVal > WhyYouMakeLag.realMax) retVal = WhyYouMakeLag.realMax;
+        if (retVal > WhyYouMakeLag.realMax) retVal = WhyYouMakeLag.realMax;
         return retVal;
     }
 
@@ -274,7 +295,7 @@ public class WhyYouMakeLag
 
         boolean value = curMobs < retVal;
 
-        if(value) WhyYouMakeLag.trueCount++;
+        if (value) WhyYouMakeLag.trueCount++;
 
         return value;
     }

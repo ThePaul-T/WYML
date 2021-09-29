@@ -15,11 +15,15 @@ import java.util.concurrent.locks.LockSupport;
 @Mixin(BlockableEventLoop.class)
 public abstract class MixinBlockableEventLoop
 {
-    @Shadow @Final private String name;
+    @Shadow
+    @Final
+    private String name;
 
-    @Shadow public abstract int getPendingTasksCount();
+    @Shadow
+    public abstract int getPendingTasksCount();
 
-    @Shadow protected abstract Thread getRunningThread();
+    @Shadow
+    protected abstract Thread getRunningThread();
 
     @Inject(at = @At("TAIL"), method = "<init>")
     protected void init(String string, CallbackInfo ci)
@@ -30,13 +34,15 @@ public abstract class MixinBlockableEventLoop
             {
                 try
                 {
-                    if(getPendingTasksCount() == 0)
+                    if (getPendingTasksCount() == 0)
                     {
                         LockSupport.unpark(getRunningThread());
                         Thread.sleep(1000);
                     }
                     Thread.sleep(50);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored)
+                {
+                }
             }
         });
     }

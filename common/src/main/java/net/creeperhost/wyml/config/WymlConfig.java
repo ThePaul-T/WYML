@@ -19,10 +19,7 @@ public class WymlConfig
     private static AtomicReference<ConfigData> data = new AtomicReference<>();
     private static File lastFile;
     private static boolean loaded;
-    private static
-    Jankson gson = Jankson
-            .builder()
-            .build();
+    private static Jankson gson = Jankson.builder().build();
 
     //TODO switch from gson to jankson (JSON5 with comments, ideally)
     public static void loadFromFile(File file)
@@ -32,9 +29,11 @@ public class WymlConfig
         {
             JsonObject jObject = gson.load(file);
             ConfigData newData = gson.fromJson(jObject, ConfigData.class);
-            if(newData != data.get()) {
+            if (newData != data.get())
+            {
                 data.set(newData);
-                if (!isLoaded()) {
+                if (!isLoaded())
+                {
                     //Save again immediately, as this makes sure that any missing config values get added with their defaults to the config file, and the comments are restored.
                     FileWriter tileWriter = new FileWriter(file);
                     tileWriter.write(WymlConfig.saveConfig());
@@ -47,10 +46,12 @@ public class WymlConfig
             data.set(new ConfigData());
         }
     }
+
     public static boolean isLoaded()
     {
         return loaded;
     }
+
     public static void saveConfigToFile(File file)
     {
         try (FileOutputStream configOut = new FileOutputStream(file))
@@ -60,10 +61,12 @@ public class WymlConfig
         {
         }
     }
+
     public static ConfigData cached()
     {
         return data.get();
     }
+
     public static synchronized ConfigData update(ConfigData _data)
     {
         data.set(_data);
@@ -72,7 +75,7 @@ public class WymlConfig
 
     public static synchronized boolean reload()
     {
-        if(lastFile != null)
+        if (lastFile != null)
         {
             loadFromFile(lastFile);
             return true;
@@ -89,32 +92,41 @@ public class WymlConfig
 
     public static void init(File file)
     {
-        if(lastFile == null) lastFile = file;
+        if (lastFile == null) lastFile = file;
         try
         {
             try
             {
                 AtomicReference<WatchService> watcher = new AtomicReference<>();
-                Runnable configWatcher = () -> {
-                    try {
-                        if(watcher.get() == null)
+                Runnable configWatcher = () ->
+                {
+                    try
+                    {
+                        if (watcher.get() == null)
                         {
                             watcher.set(FileSystems.getDefault().newWatchService());
                             lastFile.toPath().getParent().register(watcher.get(), StandardWatchEventKinds.ENTRY_MODIFY);
                         }
                         WatchKey checker = watcher.get().take();
-                        for (WatchEvent<?> event : checker.pollEvents()) {
+                        for (WatchEvent<?> event : checker.pollEvents())
+                        {
                             Path changed = (Path) event.context();
-                            if (changed.endsWith(lastFile.getName()) && isLoaded()) {
-                                if(reload()) WhyYouMakeLag.LOGGER.info("Config at "+lastFile.getAbsolutePath()+" has changed, reloaded!");
+                            if (changed.endsWith(lastFile.getName()) && isLoaded())
+                            {
+                                if (reload())
+                                    WhyYouMakeLag.LOGGER.info("Config at " + lastFile.getAbsolutePath() + " has changed, reloaded!");
                             }
                         }
                         checker.reset();
-                    } catch(Exception ignored) {}
+                    } catch (Exception ignored)
+                    {
+                    }
                 };
                 WhyYouMakeLag.scheduledExecutorService2.scheduleAtFixedRate(configWatcher, 0, 10, TimeUnit.SECONDS);
 
-            } catch(Exception ignored) {}
+            } catch (Exception ignored)
+            {
+            }
 
             if (!file.exists())
             {

@@ -26,22 +26,27 @@ public class ContainerPaperBag extends AbstractContainerMenu
         int j;
 
         //Paper bags Inventory
-        for(i = 0; i < 3; ++i) {
-            for(j = 0; j < 9; ++j) {
+        for (i = 0; i < 3; ++i)
+        {
+            for (j = 0; j < 9; ++j)
+            {
                 int slotID = j + i * 9;
                 this.addSlot(new SlotOutput(tilePaperBag.getInventory(), slotID, 8 + j * 18, 18 + i * 18));
             }
         }
 
         //Player Inventory
-        for(i = 0; i < 3; ++i) {
-            for(j = 0; j < 9; ++j) {
+        for (i = 0; i < 3; ++i)
+        {
+            for (j = 0; j < 9; ++j)
+            {
                 this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
             }
         }
 
         //Hotbar
-        for(i = 0; i < 9; ++i) {
+        for (i = 0; i < 9; ++i)
+        {
             this.addSlot(new Slot(playerInventory, i, 8 + i * 18, 142));
         }
     }
@@ -62,9 +67,9 @@ public class ContainerPaperBag extends AbstractContainerMenu
     {
         for (int i = 0; i < tilePaperBag.getInventory().getContainerSize(); i++)
         {
-            if(!inv.getItem(i).isEmpty())
+            if (!inv.getItem(i).isEmpty())
             {
-                if(getFirstFreeSlot(inv) != -1)
+                if (getFirstFreeSlot(inv) != -1)
                 {
                     ItemStack stack = inv.getItem(i);
                     inv.setItem(i, ItemStack.EMPTY);
@@ -77,9 +82,9 @@ public class ContainerPaperBag extends AbstractContainerMenu
 
     public int getFirstFreeSlot(InventoryPaperBag inventoryPaperBag)
     {
-        for(int i = 0; i < 27; i++)
+        for (int i = 0; i < 27; i++)
         {
-            if(inventoryPaperBag.getItem(i).isEmpty()) return i;
+            if (inventoryPaperBag.getItem(i).isEmpty()) return i;
         }
 
         return -1;
@@ -99,13 +104,15 @@ public class ContainerPaperBag extends AbstractContainerMenu
             if (slotIndex >= numSlots - 9 * 4 && tryShiftItem(stackInSlot, numSlots))
             {
                 // NOOP
-            } else if (slotIndex >= numSlots - 9 * 4 && slotIndex < numSlots - 9)
+            }
+            else if (slotIndex >= numSlots - 9 * 4 && slotIndex < numSlots - 9)
             {
                 if (!shiftItemStack(stackInSlot, numSlots - 9, numSlots))
                 {
                     return ItemStack.EMPTY;
                 }
-            } else if (slotIndex >= numSlots - 9 && slotIndex < numSlots)
+            }
+            else if (slotIndex >= numSlots - 9 && slotIndex < numSlots)
             {
                 if (!shiftItemStack(stackInSlot, numSlots - 9 * 4, numSlots - 9))
                 {
@@ -153,9 +160,10 @@ public class ContainerPaperBag extends AbstractContainerMenu
                         stackInSlot.setCount(resultingStackSize);
                         slot.setChanged();
                         changed = true;
-                    } else if (stackInSlot.getCount() < max)
+                    }
+                    else if (stackInSlot.getCount() < max)
                     {
-                        stackToShift.setCount(stackToShift.getCount()-(max-stackInSlot.getCount()));
+                        stackToShift.setCount(stackToShift.getCount() - (max - stackInSlot.getCount()));
                         stackInSlot.setCount(max);
                         slot.setChanged();
                         changed = true;
@@ -174,7 +182,7 @@ public class ContainerPaperBag extends AbstractContainerMenu
                     int max = Math.min(stackToShift.getMaxStackSize(), slot.getMaxStackSize());
                     stackInSlot = stackToShift.copy();
                     stackInSlot.setCount(Math.min(stackToShift.getCount(), max));
-                    stackToShift.setCount(stackToShift.getCount()-stackInSlot.getCount());
+                    stackToShift.setCount(stackToShift.getCount() - stackInSlot.getCount());
                     slot.set(stackInSlot);
                     slot.setChanged();
                     changed = true;
@@ -208,7 +216,7 @@ public class ContainerPaperBag extends AbstractContainerMenu
     {
         sortInv(tilePaperBag.getInventory());
 
-        if(player.level.getBlockEntity(tilePaperBag.getBlockPos()) == null) return false;
+        if (player.level.getBlockEntity(tilePaperBag.getBlockPos()) == null) return false;
         return tilePaperBag.getInventory().stillValid(player);
     }
 }

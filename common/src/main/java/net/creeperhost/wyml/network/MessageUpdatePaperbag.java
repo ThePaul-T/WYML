@@ -38,14 +38,15 @@ public class MessageUpdatePaperbag
 
     public void handle(Supplier<NetworkManager.PacketContext> context)
     {
-        context.get().queue(() -> {
+        context.get().queue(() ->
+        {
             Level level = Minecraft.getInstance().level;
-            if(level == null) return;
+            if (level == null) return;
 
-            if(level.getBlockEntity(blockPos) instanceof TilePaperBag)
+            if (level.getBlockEntity(blockPos) instanceof TilePaperBag)
             {
                 TilePaperBag tilePaperBag = (TilePaperBag) level.getBlockEntity(blockPos);
-                if(tilePaperBag == null) return;
+                if (tilePaperBag == null) return;
 
                 tilePaperBag.setDespawnTime(timeStamp);
                 tilePaperBag.setUsedCount(usedSlots);

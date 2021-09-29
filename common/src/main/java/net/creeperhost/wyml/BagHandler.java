@@ -26,8 +26,8 @@ public class BagHandler
 
     public static void create()
     {
-        if(MAP == null) MAP = new HashMap<>();
-        if(scheduledExecutorService.isShutdown()) scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        if (MAP == null) MAP = new HashMap<>();
+        if (scheduledExecutorService.isShutdown()) scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
         Runnable runnable = BagHandler::clean;
 
@@ -36,27 +36,27 @@ public class BagHandler
 
     public static void itemEntityAdded(ItemEntity itemEntity)
     {
-        if(itemEntity == null) return;
-        if(itemEntity.level.isClientSide) return;
+        if (itemEntity == null) return;
+        if (itemEntity.level.isClientSide) return;
         ChunkPos chunk = itemEntity.level.getChunkAt(itemEntity.blockPosition()).getPos();
-        if(chunk == null) return;
-        if(MAP.containsKey(chunk.toLong()))
+        if (chunk == null) return;
+        if (MAP.containsKey(chunk.toLong()))
         {
-            if(!updating) update(chunk.toLong());
+            if (!updating) update(chunk.toLong());
             return;
         }
 
-        if(!MAP.containsKey(chunk.toLong()) && getOtherItemsEntities(itemEntity).size() > MIN_ITEMS && itemEntity.isAlive() && !itemEntity.getItem().isEmpty())
+        if (!MAP.containsKey(chunk.toLong()) && getOtherItemsEntities(itemEntity).size() > MIN_ITEMS && itemEntity.isAlive() && !itemEntity.getItem().isEmpty())
         {
             MAP.put(chunk.toLong(), itemEntity);
             WhyYouMakeLag.LOGGER.info("added " + itemEntity.getItem().getDisplayName().getString() + " To MAP " + chunk.toString());
-            if(!updating) update(chunk.toLong());
+            if (!updating) update(chunk.toLong());
         }
     }
 
     public static void clean()
     {
-        if(LIST_TO_REMOVE.isEmpty()) return;
+        if (LIST_TO_REMOVE.isEmpty()) return;
 
         WhyYouMakeLag.LOGGER.info("Cleaned up caches for BagHandler");
 
@@ -75,13 +75,13 @@ public class BagHandler
 
             ItemEntity itemEntity = MAP.get(chunkLong);
 
-            if(itemEntity == null)
+            if (itemEntity == null)
             {
                 updating = false;
                 MAP.remove(chunkLong);
                 return;
             }
-            if(!itemEntity.isAlive())
+            if (!itemEntity.isAlive())
             {
                 updating = false;
                 return;
@@ -107,11 +107,11 @@ public class BagHandler
     {
         List<ItemEntity> itemEntityList = getOtherItemsEntities(itemEntity);
         int maxAge = 0;
-        if(itemEntityList.size() > MIN_ITEMS)
+        if (itemEntityList.size() > MIN_ITEMS)
         {
-            for(ItemEntity entity : itemEntityList)
+            for (ItemEntity entity : itemEntityList)
             {
-                if(entity.getAge() > maxAge) maxAge = entity.getAge();
+                if (entity.getAge() > maxAge) maxAge = entity.getAge();
             }
             return maxAge > MIN_AGE;
         }
@@ -126,20 +126,21 @@ public class BagHandler
         BlockPos first = getOtherItemsEntities(itemEntity).get(0).blockPosition();
         paperBagPos = first;
 
-        if(paperBagPos == null)
+        if (paperBagPos == null)
         {
             WhyYouMakeLag.LOGGER.error("Unable to find location to spawn bag");
             return false;
         }
 
-        if(serverLevel.getBlockEntity(paperBagPos) == null || serverLevel.getBlockEntity(paperBagPos) != null)
+        if (serverLevel.getBlockEntity(paperBagPos) == null || serverLevel.getBlockEntity(paperBagPos) != null)
         {
-            if(!(serverLevel.getBlockEntity(paperBagPos) instanceof TilePaperBag)) serverLevel.removeBlockEntity(paperBagPos);
-            if(serverLevel.getBlockState(paperBagPos) != WYMLBlocks.PAPER_BAG.get().defaultBlockState())
+            if (!(serverLevel.getBlockEntity(paperBagPos) instanceof TilePaperBag))
+                serverLevel.removeBlockEntity(paperBagPos);
+            if (serverLevel.getBlockState(paperBagPos) != WYMLBlocks.PAPER_BAG.get().defaultBlockState())
             {
                 serverLevel.setBlock(paperBagPos, WYMLBlocks.PAPER_BAG.get().defaultBlockState(), 3);
                 TilePaperBag tilePaperBag = (TilePaperBag) serverLevel.getBlockEntity(paperBagPos);
-                if(tilePaperBag != null) tilePaperBag.collectItems();
+                if (tilePaperBag != null) tilePaperBag.collectItems();
             }
         }
         return true;

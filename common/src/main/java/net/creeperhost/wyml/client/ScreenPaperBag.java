@@ -37,18 +37,18 @@ public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
     @Override
     protected void renderLabels(PoseStack poseStack, int i, int j)
     {
-        this.font.draw(poseStack, this.inventory.getDisplayName(), (float)this.inventoryLabelX, (float)this.inventoryLabelY, 4210752);
+        this.font.draw(poseStack, this.inventory.getDisplayName(), (float) this.inventoryLabelX, (float) this.inventoryLabelY, 4210752);
         long despawn = containerPaperBag.getTilePaperBag().getDespawnTime();
         long timeSeconds = (despawn - Instant.now().getEpochSecond());
-        this.font.draw(poseStack, ChatFormatting.RED + format(timeSeconds), this.titleLabelX, (float)this.titleLabelY, 4210752);
+        this.font.draw(poseStack, ChatFormatting.RED + format(timeSeconds), this.titleLabelX, (float) this.titleLabelY, 4210752);
         //TODO Come back to this when brain decides to work
-        this.font.draw(poseStack, ChatFormatting.RED + "Slots " + containerPaperBag.getTilePaperBag().getUsedSlots() + "/" + containerPaperBag.getTilePaperBag().getContainerSize(), imageWidth - 70, (float)this.titleLabelY, 4210752);
+        this.font.draw(poseStack, ChatFormatting.RED + "Slots " + containerPaperBag.getTilePaperBag().getUsedSlots() + "/" + containerPaperBag.getTilePaperBag().getContainerSize(), imageWidth - 70, (float) this.titleLabelY, 4210752);
 
     }
 
     public String format(long timeSeconds)
     {
-        if(lastTimeRender != timeSeconds)
+        if (lastTimeRender != timeSeconds)
         {
             long minutes = (timeSeconds % 3600) / 60;
             long seconds = timeSeconds % 60;
@@ -58,12 +58,15 @@ public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
         return renderString;
     }
 
-    public String padLeftZeros(String inputString, int length) {
-        if (inputString.length() >= length) {
+    public String padLeftZeros(String inputString, int length)
+    {
+        if (inputString.length() >= length)
+        {
             return inputString;
         }
         StringBuilder sb = new StringBuilder();
-        while (sb.length() < length - inputString.length()) {
+        while (sb.length() < length - inputString.length())
+        {
             sb.append('0');
         }
         sb.append(inputString);

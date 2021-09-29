@@ -20,12 +20,10 @@ public class WYMLBlocks
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(WhyYouMakeLag.MOD_ID, Registry.ITEM_REGISTRY);
 
     public static final RegistrySupplier<Block> PAPER_BAG = BLOCKS.register("paper_bag", BlockPaperBag::new);
-    public static final RegistrySupplier<BlockEntityType<?>> PAPER_BAG_TILE = TILES.register("paper_bag", () ->
-            BlockEntityType.Builder.of(TilePaperBag::new, PAPER_BAG.get()).build(null));
+    public static final RegistrySupplier<BlockEntityType<?>> PAPER_BAG_TILE = TILES.register("paper_bag", () -> BlockEntityType.Builder.of(TilePaperBag::new, PAPER_BAG.get()).build(null));
 
 
-    public static final RegistrySupplier<Item> PAPER_BAG_ITEM = ITEMS.register("paper_bag",
-            () -> new ItemNameBlockItem(PAPER_BAG.get(), new Item.Properties().tab(CreativeModeTab.TAB_MISC)));
+    public static final RegistrySupplier<Item> PAPER_BAG_ITEM = ITEMS.register("paper_bag", () -> new ItemNameBlockItem(PAPER_BAG.get(), new Item.Properties().tab(CreativeModeTab.TAB_MISC)));
 
     public static void init()
     {

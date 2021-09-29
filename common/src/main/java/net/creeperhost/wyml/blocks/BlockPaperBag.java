@@ -34,9 +34,9 @@ public class BlockPaperBag extends BaseEntityBlock
     @Override
     public InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult)
     {
-        if(level.isClientSide) return InteractionResult.SUCCESS;
+        if (level.isClientSide) return InteractionResult.SUCCESS;
 
-        if(!level.isClientSide())
+        if (!level.isClientSide())
         {
             TilePaperBag tilePaperBag = (TilePaperBag) level.getBlockEntity(blockPos);
             tilePaperBag.resetDespawnTime((ServerPlayer) player);
@@ -48,11 +48,14 @@ public class BlockPaperBag extends BaseEntityBlock
     }
 
     @Override
-    public void onRemove(BlockState blockState, Level level, BlockPos blockPos, BlockState blockState2, boolean bl) {
-        if (!blockState.is(blockState2.getBlock())) {
+    public void onRemove(BlockState blockState, Level level, BlockPos blockPos, BlockState blockState2, boolean bl)
+    {
+        if (!blockState.is(blockState2.getBlock()))
+        {
             BlockEntity blockEntity = level.getBlockEntity(blockPos);
-            if (blockEntity instanceof Container) {
-                Containers.dropContents(level, blockPos, (Container)blockEntity);
+            if (blockEntity instanceof Container)
+            {
+                Containers.dropContents(level, blockPos, (Container) blockEntity);
                 level.updateNeighbourForOutputSignal(blockPos, this);
             }
 
