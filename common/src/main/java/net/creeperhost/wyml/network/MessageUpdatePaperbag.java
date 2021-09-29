@@ -5,8 +5,6 @@ import net.creeperhost.wyml.blocks.TilePaperBag;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 import java.util.function.Supplier;
@@ -38,7 +36,8 @@ public class MessageUpdatePaperbag
         buf.writeLong(timeStamp);
     }
 
-    public void handle(Supplier<NetworkManager.PacketContext> context) {
+    public void handle(Supplier<NetworkManager.PacketContext> context)
+    {
         context.get().queue(() -> {
             Level level = Minecraft.getInstance().level;
             if(level == null) return;
@@ -49,9 +48,8 @@ public class MessageUpdatePaperbag
                 if(tilePaperBag == null) return;
 
                 tilePaperBag.setDespawnTime(timeStamp);
+                tilePaperBag.setUsedCount(usedSlots);
             }
-
         });
     }
-
 }

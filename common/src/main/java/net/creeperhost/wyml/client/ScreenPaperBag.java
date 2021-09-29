@@ -42,7 +42,7 @@ public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
         long timeSeconds = (despawn - Instant.now().getEpochSecond());
         this.font.draw(poseStack, ChatFormatting.RED + format(timeSeconds), this.titleLabelX, (float)this.titleLabelY, 4210752);
         //TODO Come back to this when brain decides to work
-//        this.font.draw(poseStack, ChatFormatting.RED + "Slots " + containerPaperBag.getUsedSlots() + "/" + containerPaperBag.getTilePaperBag().getInventory().getContainerSize(), imageWidth - 70, (float)this.titleLabelY, 4210752);
+        this.font.draw(poseStack, ChatFormatting.RED + "Slots " + containerPaperBag.getTilePaperBag().getUsedSlots() + "/" + containerPaperBag.getTilePaperBag().getContainerSize(), imageWidth - 70, (float)this.titleLabelY, 4210752);
 
     }
 

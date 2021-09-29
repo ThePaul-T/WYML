@@ -30,14 +30,14 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     private final InventoryPaperBag inventory;
     private long DESPAWN_TIME_STAMP;
     private final int DESPAWN_TIME = WymlConfig.cached().PAPER_BAG_DESPAWN_TIME;
-    private int USED_SLOTS;
+    private int USED_COUNT;
 
     public TilePaperBag()
     {
         super(WYMLBlocks.PAPER_BAG_TILE.get());
         this.inventory = new InventoryPaperBag(180);
         DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + DESPAWN_TIME);
-        USED_SLOTS = updateUsedSlots();
+        USED_COUNT = getUsedSlots();
     }
 
     @Override
@@ -116,7 +116,6 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         super.load(blockState, compoundTag);
         inventory.deserializeNBT(compoundTag);
         DESPAWN_TIME_STAMP = compoundTag.getLong("despawn");
-        USED_SLOTS = compoundTag.getInt("usedslots");
     }
 
     @Override
@@ -125,7 +124,6 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         CompoundTag compoundTag1 = super.save(compoundTag);
         compoundTag1.merge(inventory.serializeNBT());
         compoundTag1.putLong("despawn", DESPAWN_TIME_STAMP);
-        compoundTag1.putInt("usedslots", USED_SLOTS);
         return compoundTag1;
     }
 
@@ -146,6 +144,7 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         if(!level.isClientSide())
         {
             collectItems();
+            updateUsedCount();
 
             if (Instant.now().getEpochSecond() >= getDespawnTime())
             {
@@ -170,7 +169,22 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     public void resetDespawnTime(ServerPlayer player)
     {
         DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + DESPAWN_TIME);
-        PacketHandler.HANDLER.sendToPlayer(player, new MessageUpdatePaperbag(getBlockPos(), 0, DESPAWN_TIME_STAMP));
+        PacketHandler.HANDLER.sendToPlayer(player, new MessageUpdatePaperbag(getBlockPos(), getUsedSlots(), DESPAWN_TIME_STAMP));
+    }
+
+    public void updateUsedCount()
+    {
+        this.USED_COUNT = (int) inventory.getItems().stream().filter(itemStack -> !itemStack.isEmpty()).count();
+    }
+
+    public int getUsedSlots()
+    {
+        return USED_COUNT;
+    }
+
+    public void setUsedCount(int value)
+    {
+        this.USED_COUNT = value;
     }
 
     public void collectItems()

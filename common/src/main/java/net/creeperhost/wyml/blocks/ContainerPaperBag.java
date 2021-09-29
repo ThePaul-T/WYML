@@ -1,6 +1,9 @@
 package net.creeperhost.wyml.blocks;
 
 import net.creeperhost.wyml.init.WYMLContainers;
+import net.creeperhost.wyml.network.MessageUpdatePaperbag;
+import net.creeperhost.wyml.network.PacketHandler;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -18,11 +21,13 @@ import java.util.List;
 public class ContainerPaperBag extends AbstractContainerMenu
 {
     private final TilePaperBag tilePaperBag;
+    private final Player player;
 
     public ContainerPaperBag(int id, Inventory playerInventory, TilePaperBag tilePaperBag)
     {
         super(WYMLContainers.PAPER_BAG.get(), id);
         this.tilePaperBag = tilePaperBag;
+        this.player = playerInventory.player;
 
         int i;
         int j;
@@ -74,6 +79,7 @@ public class ContainerPaperBag extends AbstractContainerMenu
                 }
             }
         }
+        PacketHandler.HANDLER.sendToPlayer((ServerPlayer) player, new MessageUpdatePaperbag(tilePaperBag.getBlockPos(), tilePaperBag.getUsedSlots(), tilePaperBag.getDespawnTime()));
     }
 
     public int getFirstFreeSlot(InventoryPaperBag inventoryPaperBag)
@@ -132,7 +138,6 @@ public class ContainerPaperBag extends AbstractContainerMenu
             }
             slot.onTake(player, stackInSlot);
         }
-//        sortInv(tilePaperBag.getInventory());
         return originalStack;
     }
 
@@ -185,7 +190,6 @@ public class ContainerPaperBag extends AbstractContainerMenu
         }
         return changed;
     }
-
 
     private boolean tryShiftItem(ItemStack stackToShift, int numSlots)
     {
