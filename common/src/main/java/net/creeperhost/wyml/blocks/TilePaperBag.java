@@ -15,7 +15,6 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.TickableBlockEntity;
@@ -100,16 +99,6 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         inventory.clearContent();
     }
 
-    public int updateUsedSlots()
-    {
-        long count = 0;
-        for (int i = 0; i < inventory.getContainerSize(); i++)
-        {
-            if (!inventory.getItem(i).isEmpty()) count++;
-        }
-        return (int) count;
-    }
-
     @Override
     public void load(BlockState blockState, CompoundTag compoundTag)
     {
@@ -127,12 +116,6 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         return compoundTag1;
     }
 
-    @Override
-    public CompoundTag getUpdateTag()
-    {
-        return save(new CompoundTag());
-    }
-
     public InventoryPaperBag getInventory()
     {
         return inventory;
@@ -145,14 +128,24 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         {
             updateUsedCount();
 
-            if (Instant.now().getEpochSecond() >= getDespawnTime())
+            if(Instant.now().getEpochSecond() >= getDespawnTime())
             {
                 WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + getBlockPos() + " Reason: Age");
-                inventory.clearContent();
-                if (level.getBlockEntity(getBlockPos()) != null) level.removeBlockEntity(getBlockPos());
-                level.removeBlock(getBlockPos(), false);
+                remove();
+            }
+            if(inventory.isEmpty())
+            {
+                WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + getBlockPos() + " Reason: Empty");
+                remove();
             }
         }
+    }
+
+    public void remove()
+    {
+        inventory.clearContent();
+        if (level.getBlockEntity(getBlockPos()) != null) level.removeBlockEntity(getBlockPos());
+        level.removeBlock(getBlockPos(), false);
     }
 
     public long getDespawnTime()
