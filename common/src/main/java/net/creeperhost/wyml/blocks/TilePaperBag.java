@@ -25,16 +25,14 @@ import java.time.Instant;
 public class TilePaperBag extends BaseContainerBlockEntity implements TickableBlockEntity, WorldlyContainer
 {
     private final InventoryPaperBag inventory;
-    private long CREATED_TIME_STAMP;
     private long DESPAWN_TIME_STAMP;
-    private int DESPAWN_TIME = WymlConfig.cached().PAPER_BAG_DESPAWN_TIME;
+    private final int DESPAWN_TIME = WymlConfig.cached().PAPER_BAG_DESPAWN_TIME;
     private int USED_SLOTS;
 
     public TilePaperBag()
     {
         super(WYMLBlocks.PAPER_BAG_TILE.get());
         this.inventory = new InventoryPaperBag(180);
-        CREATED_TIME_STAMP = Instant.now().getEpochSecond();
         DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + DESPAWN_TIME);
         USED_SLOTS = updateUsedSlots();
     }
@@ -56,13 +54,11 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         @Override
         public int get(int index)
         {
-            switch (index)
+            if (index == 0)
             {
-                case 0:
-                    return (int) TilePaperBag.this.updateUsedSlots();
-                default:
-                    throw new IllegalArgumentException("Invalid index: " + index);
+                return TilePaperBag.this.updateUsedSlots();
             }
+            throw new IllegalArgumentException("Invalid index: " + index);
         }
 
         @Override
@@ -70,7 +66,7 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         {
             throw new IllegalStateException("Cannot set values through IIntArray");
         }
-
+        
         @Override
         public int getCount()
         {
@@ -136,17 +132,11 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         return (int) count;
     }
 
-    public long getUsedSlots()
-    {
-        return USED_SLOTS;
-    }
-
     @Override
     public void load(BlockState blockState, CompoundTag compoundTag)
     {
         super.load(blockState, compoundTag);
         inventory.deserializeNBT(compoundTag);
-        CREATED_TIME_STAMP = compoundTag.getLong("created");
         DESPAWN_TIME_STAMP = compoundTag.getLong("despawn");
         USED_SLOTS = compoundTag.getInt("usedslots");
     }
@@ -156,10 +146,15 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     {
         CompoundTag compoundTag1 = super.save(compoundTag);
         compoundTag1.merge(inventory.serializeNBT());
-        compoundTag1.putLong("created", CREATED_TIME_STAMP);
         compoundTag1.putLong("despawn", DESPAWN_TIME_STAMP);
         compoundTag1.putInt("usedslots", USED_SLOTS);
         return compoundTag1;
+    }
+
+    @Override
+    public CompoundTag getUpdateTag()
+    {
+        return save(new CompoundTag());
     }
 
     public InventoryPaperBag getInventory()
@@ -170,21 +165,18 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     @Override
     public void tick()
     {
-        collectItems();
-        if (level.isClientSide()) USED_SLOTS = updateUsedSlots();
-
-        if (Instant.now().getEpochSecond() >= DESPAWN_TIME_STAMP)
+        if(!level.isClientSide())
         {
-            WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + getBlockPos() + " Reason: Age");
-            inventory.clearContent();
-            level.removeBlockEntity(getBlockPos());
-            level.removeBlock(getBlockPos(), false);
-        }
-    }
+            collectItems();
 
-    public long getCreatedTime()
-    {
-        return CREATED_TIME_STAMP;
+            if (Instant.now().getEpochSecond() >= getDespawnTime())
+            {
+                WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + getBlockPos() + " Reason: Age");
+                inventory.clearContent();
+                if (level.getBlockEntity(getBlockPos()) != null) level.removeBlockEntity(getBlockPos());
+                level.removeBlock(getBlockPos(), false);
+            }
+        }
     }
 
     public long getDespawnTime()
@@ -194,7 +186,7 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
 
     public void resetDespawnTime()
     {
-        DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + 300);
+        DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + DESPAWN_TIME);
     }
 
     public void collectItems()
@@ -223,6 +215,7 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         }
     }
 
+    //IInventory Stop interactions via pipes/hoppers etc
     @Override
     public int[] getSlotsForFace(Direction direction)
     {

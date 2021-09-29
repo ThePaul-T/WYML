@@ -36,16 +36,14 @@ public class BlockPaperBag extends BaseEntityBlock
     {
         if(level.isClientSide) return InteractionResult.SUCCESS;
 
-        if(!level.isClientSide() && !player.isCrouching())
+        if(!level.isClientSide())
         {
-            if(!player.isCrouching())
-            {
-                TilePaperBag tilePaperBag = (TilePaperBag) level.getBlockEntity(blockPos);
-                tilePaperBag.resetDespawnTime();
-                BlockEntity blockEntity = level.getBlockEntity(blockPos);
-                MenuRegistry.openExtendedMenu((ServerPlayer) player, (MenuProvider) blockEntity, packetBuffer -> packetBuffer.writeBlockPos(blockEntity.getBlockPos()));
-                return InteractionResult.SUCCESS;
-            }
+            TilePaperBag tilePaperBag = (TilePaperBag) level.getBlockEntity(blockPos);
+            tilePaperBag.resetDespawnTime();
+            System.out.println(tilePaperBag.getDespawnTime());
+            BlockEntity blockEntity = level.getBlockEntity(blockPos);
+            MenuRegistry.openExtendedMenu((ServerPlayer) player, (MenuProvider) blockEntity, packetBuffer -> packetBuffer.writeBlockPos(blockEntity.getBlockPos()));
+            return InteractionResult.SUCCESS;
         }
         return super.use(blockState, level, blockPos, player, interactionHand, blockHitResult);
     }
