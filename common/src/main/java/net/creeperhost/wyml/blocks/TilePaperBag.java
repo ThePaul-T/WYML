@@ -3,10 +3,13 @@ package net.creeperhost.wyml.blocks;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
+import net.creeperhost.wyml.network.MessageUpdatePaperbag;
+import net.creeperhost.wyml.network.PacketHandler;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
@@ -46,33 +49,8 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     @Override
     protected AbstractContainerMenu createMenu(int i, Inventory inventory)
     {
-        return new ContainerPaperBag(i, inventory, this, containerData);
+        return new ContainerPaperBag(i, inventory, this);
     }
-
-    public final ContainerData containerData = new ContainerData()
-    {
-        @Override
-        public int get(int index)
-        {
-            if (index == 0)
-            {
-                return TilePaperBag.this.updateUsedSlots();
-            }
-            throw new IllegalArgumentException("Invalid index: " + index);
-        }
-
-        @Override
-        public void set(int index, int value)
-        {
-            throw new IllegalStateException("Cannot set values through IIntArray");
-        }
-        
-        @Override
-        public int getCount()
-        {
-            return 1;
-        }
-    };
 
     @Override
     public int getContainerSize()
@@ -184,9 +162,15 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         return DESPAWN_TIME_STAMP;
     }
 
-    public void resetDespawnTime()
+    public void setDespawnTime(long value)
+    {
+        this.DESPAWN_TIME_STAMP = value;
+    }
+
+    public void resetDespawnTime(ServerPlayer player)
     {
         DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + DESPAWN_TIME);
+        PacketHandler.HANDLER.sendToPlayer(player, new MessageUpdatePaperbag(getBlockPos(), 0, DESPAWN_TIME_STAMP));
     }
 
     public void collectItems()

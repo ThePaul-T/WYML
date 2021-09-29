@@ -12,6 +12,7 @@ import net.creeperhost.wyml.init.WYMLBlocks;
 import net.creeperhost.wyml.init.WYMLContainers;
 import net.creeperhost.wyml.init.WYMLScreens;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
+import net.creeperhost.wyml.network.PacketHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -55,6 +56,7 @@ public class WhyYouMakeLag
         WymlConfig.init(configFile.toFile());
         WYMLBlocks.init();
         WYMLContainers.MENUS.register();
+        PacketHandler.init();
 
         if(Platform.getEnvironment() == Env.CLIENT)
         {

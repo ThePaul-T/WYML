@@ -39,7 +39,7 @@ public class BlockPaperBag extends BaseEntityBlock
         if(!level.isClientSide())
         {
             TilePaperBag tilePaperBag = (TilePaperBag) level.getBlockEntity(blockPos);
-            tilePaperBag.resetDespawnTime();
+            tilePaperBag.resetDespawnTime((ServerPlayer) player);
             System.out.println(tilePaperBag.getDespawnTime());
             BlockEntity blockEntity = level.getBlockEntity(blockPos);
             MenuRegistry.openExtendedMenu((ServerPlayer) player, (MenuProvider) blockEntity, packetBuffer -> packetBuffer.writeBlockPos(blockEntity.getBlockPos()));

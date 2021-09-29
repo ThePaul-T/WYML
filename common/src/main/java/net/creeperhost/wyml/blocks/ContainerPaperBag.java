@@ -18,13 +18,11 @@ import java.util.List;
 public class ContainerPaperBag extends AbstractContainerMenu
 {
     private final TilePaperBag tilePaperBag;
-    private final ContainerData containerData;
 
-    public ContainerPaperBag(int id, Inventory playerInventory, TilePaperBag tilePaperBag, ContainerData containerData)
+    public ContainerPaperBag(int id, Inventory playerInventory, TilePaperBag tilePaperBag)
     {
         super(WYMLContainers.PAPER_BAG.get(), id);
         this.tilePaperBag = tilePaperBag;
-        this.containerData = containerData;
 
         int i;
         int j;
@@ -55,10 +53,6 @@ public class ContainerPaperBag extends AbstractContainerMenu
         return tilePaperBag;
     }
 
-    public int getUsedSlots()
-    {
-        return this.containerData.get(0);
-    }
 
     @Override
     public void slotsChanged(Container container)

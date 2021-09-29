@@ -24,6 +24,6 @@ public class WYMLContainers
                 {
                     return null;
                 }
-                return new ContainerPaperBag(id, inventory, tileQuantumStorageUnit, tileQuantumStorageUnit.containerData);
+                return new ContainerPaperBag(id, inventory, tileQuantumStorageUnit);
             }));
 }
