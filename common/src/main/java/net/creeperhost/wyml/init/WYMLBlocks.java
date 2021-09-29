@@ -1,6 +1,5 @@
 package net.creeperhost.wyml.init;
 
-import me.shedaniel.architectury.hooks.BlockEntityHooks;
 import me.shedaniel.architectury.registry.DeferredRegister;
 import me.shedaniel.architectury.registry.RegistrySupplier;
 import net.creeperhost.wyml.WhyYouMakeLag;

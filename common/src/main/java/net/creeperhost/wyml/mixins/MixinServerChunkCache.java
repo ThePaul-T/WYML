@@ -3,7 +3,6 @@ package net.creeperhost.wyml.mixins;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Either;
 import net.creeperhost.wyml.WhyYouMakeLag;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.*;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameRules;
@@ -15,13 +14,9 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 
 @Mixin(ServerChunkCache.class)

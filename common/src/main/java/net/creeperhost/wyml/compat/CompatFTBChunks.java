@@ -2,7 +2,6 @@ package net.creeperhost.wyml.compat;
 
 import dev.ftb.mods.ftbchunks.data.ClaimedChunk;
 import dev.ftb.mods.ftbchunks.data.FTBChunksAPI;
-import net.minecraft.world.level.ChunkPos;
 
 import java.util.ArrayList;
 import java.util.Collection;

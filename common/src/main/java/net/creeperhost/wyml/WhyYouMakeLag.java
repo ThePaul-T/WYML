@@ -6,7 +6,6 @@ import me.shedaniel.architectury.event.events.client.ClientLifecycleEvent;
 import me.shedaniel.architectury.platform.Platform;
 import me.shedaniel.architectury.utils.Env;
 import net.creeperhost.wyml.compat.CompatFTBChunks;
-import net.creeperhost.wyml.config.ConfigData;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.creeperhost.wyml.init.WYMLContainers;
@@ -23,13 +22,15 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.spongepowered.asm.mixin.transformer.Config;
 
-import java.awt.*;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class WhyYouMakeLag
