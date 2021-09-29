@@ -74,6 +74,9 @@ public class ConfigData
     @Comment("The minimum amount of attempted spawns of a type in a chunk before we allow pausing")
     public int PAUSE_MIN = 256;
 
+    @Comment("The minimum amount connected players to enable pausing")
+    public int MINIMUM_PAUSE_PLAYERS = 2;
+
 
     // ******************************************
     // * Slowing

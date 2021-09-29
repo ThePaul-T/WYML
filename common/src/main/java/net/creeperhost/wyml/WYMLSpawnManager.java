@@ -206,9 +206,11 @@ public class WYMLSpawnManager
         pauseTick = WhyYouMakeLag.getTicks();
         requiresSave = true;
     }
+
     public boolean canPause()
     {
-        boolean isPausable = WymlConfig.cached().ALLOW_PAUSE;
+        boolean isPausable = WymlConfig.cached().ALLOW_PAUSE &&
+                (WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount() > WymlConfig.cached().MINIMUM_PAUSE_PLAYERS);
         if(isPausable)
         {
             if (WhyYouMakeLag.isFtbChunksLoaded())
