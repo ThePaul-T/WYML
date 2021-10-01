@@ -2,9 +2,15 @@ package net.creeperhost.wyml;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import me.shedaniel.architectury.event.events.LifecycleEvent;
+import me.shedaniel.architectury.event.events.TickEvent;
 import me.shedaniel.architectury.event.events.client.ClientLifecycleEvent;
+import me.shedaniel.architectury.event.events.client.ClientTickEvent;
 import me.shedaniel.architectury.platform.Platform;
 import me.shedaniel.architectury.utils.Env;
+import net.creeperhost.mutliblockapi.events.MultiblockClientTickHandler;
+import net.creeperhost.mutliblockapi.events.MultiblockEventHandler;
+import net.creeperhost.mutliblockapi.events.MultiblockServerTickHandler;
 import net.creeperhost.wyml.compat.CompatFTBChunks;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
@@ -62,7 +68,12 @@ public class WhyYouMakeLag
         if (Platform.getEnvironment() == Env.CLIENT)
         {
             ClientLifecycleEvent.CLIENT_SETUP.register(WhyYouMakeLag::onClientSetup);
+            ClientTickEvent.CLIENT_POST.register(MultiblockClientTickHandler::onClientTick);
         }
+
+        TickEvent.SERVER_POST.register(MultiblockServerTickHandler::onWorldTick);
+        LifecycleEvent.SERVER_WORLD_UNLOAD.register(MultiblockEventHandler::onWorldUnload);
+
 
         if (spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
         if (cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
