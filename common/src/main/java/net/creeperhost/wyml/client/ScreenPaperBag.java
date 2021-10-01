@@ -2,7 +2,7 @@ package net.creeperhost.wyml.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.creeperhost.wyml.blocks.ContainerPaperBag;
+import net.creeperhost.wyml.containers.ContainerPaperBag;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;

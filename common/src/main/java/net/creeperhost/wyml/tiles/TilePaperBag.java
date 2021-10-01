@@ -1,6 +1,8 @@
-package net.creeperhost.wyml.blocks;
+package net.creeperhost.wyml.tiles;
 
 import net.creeperhost.wyml.WhyYouMakeLag;
+import net.creeperhost.wyml.containers.ContainerPaperBag;
+import net.creeperhost.wyml.containers.InventoryPaperBag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.creeperhost.wyml.network.MessageUpdatePaperbag;

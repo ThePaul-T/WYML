@@ -4,7 +4,7 @@ import me.shedaniel.architectury.registry.DeferredRegister;
 import me.shedaniel.architectury.registry.RegistrySupplier;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.blocks.BlockPaperBag;
-import net.creeperhost.wyml.blocks.TilePaperBag;
+import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.core.Registry;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;

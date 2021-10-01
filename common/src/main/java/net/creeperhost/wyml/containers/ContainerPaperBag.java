@@ -1,8 +1,10 @@
-package net.creeperhost.wyml.blocks;
+package net.creeperhost.wyml.containers;
 
+import net.creeperhost.wyml.containers.slots.SlotOutput;
 import net.creeperhost.wyml.init.WYMLContainers;
 import net.creeperhost.wyml.network.MessageUpdatePaperbag;
 import net.creeperhost.wyml.network.PacketHandler;
+import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;

@@ -1,8 +1,8 @@
 package net.creeperhost.wyml.blocks;
 
 import me.shedaniel.architectury.registry.MenuRegistry;
+import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.player.Player;
@@ -18,8 +18,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Random;
 
 public class BlockPaperBag extends BaseEntityBlock
 {
