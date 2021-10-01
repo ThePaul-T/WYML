@@ -1,6 +1,8 @@
 package net.creeperhost.wyml.blocks;
 
 import net.creeperhost.mutliblockapi.BlockMultiblockBase;
+import net.creeperhost.mutliblockapi.MultiblockValidationException;
+import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
@@ -125,21 +127,40 @@ public class BlockMultiBlockFenceGate extends BlockMultiblockBase
     }
 
     @Override
-    public InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult) {
-        if ((Boolean)blockState.getValue(OPEN)) {
-            blockState = (BlockState)blockState.setValue(OPEN, false);
-            level.setBlock(blockPos, blockState, 10);
-        } else {
-            Direction direction = player.getDirection();
-            if (blockState.getValue(FACING) == direction.getOpposite()) {
-                blockState = (BlockState)blockState.setValue(FACING, direction);
+    public InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult)
+    {
+        if(level.isClientSide()) return InteractionResult.SUCCESS;
+
+        TileMultiBlockFenceGate tileMultiBlockFenceGate = (TileMultiBlockFenceGate) level.getBlockEntity(blockPos);
+        if(tileMultiBlockFenceGate.getMultiBlock() == null)
+        {
+            System.out.println("Multiblock == null");
+            return InteractionResult.SUCCESS;
+        } else
+        {
+            System.out.println("full? " + tileMultiBlockFenceGate.getMultiBlock().isAssembled());
+            try
+            {
+                tileMultiBlockFenceGate.getMultiBlock().isMachineWhole();
+            } catch (MultiblockValidationException e)
+            {
+                e.printStackTrace();
             }
-
-            blockState = (BlockState)blockState.setValue(OPEN, true);
-            level.setBlock(blockPos, blockState, 10);
         }
-
-        level.levelEvent(player, (Boolean)blockState.getValue(OPEN) ? 1008 : 1014, blockPos, 0);
+//        if (blockState.getValue(OPEN)) {
+//            blockState = (BlockState)blockState.setValue(OPEN, false);
+//            level.setBlock(blockPos, blockState, 10);
+//        } else {
+//            Direction direction = player.getDirection();
+//            if (blockState.getValue(FACING) == direction.getOpposite()) {
+//                blockState = (BlockState)blockState.setValue(FACING, direction);
+//            }
+//
+//            blockState = (BlockState)blockState.setValue(OPEN, true);
+//            level.setBlock(blockPos, blockState, 10);
+//        }
+//
+//        level.levelEvent(player, (Boolean)blockState.getValue(OPEN) ? 1008 : 1014, blockPos, 0);
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
@@ -193,6 +214,6 @@ public class BlockMultiBlockFenceGate extends BlockMultiblockBase
     @Override
     public BlockEntity newBlockEntity(BlockGetter blockGetter)
     {
-        return null;
+        return new TileMultiBlockFenceGate();
     }
 }

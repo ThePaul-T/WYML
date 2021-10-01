@@ -6,6 +6,7 @@ import me.shedaniel.architectury.registry.RegistrySupplier;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.blocks.BlockMultiBlockFenceGate;
 import net.creeperhost.wyml.blocks.BlockPaperBag;
+import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
 import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
@@ -50,6 +51,9 @@ public class WYMLBlocks
     public static final RegistrySupplier<Item> CRIMSON_FENCE_GATE_ITEM = ITEMS.register("crimson_fence_gate", () -> new ItemNameBlockItem(CRIMSON_FENCE_GATE.get(), new Item.Properties().tab(CREATIVE_TAB)));
     public static final RegistrySupplier<Item> WARPED_FENCE_GATE_ITEM = ITEMS.register("warped_fence_gate", () -> new ItemNameBlockItem(WARPED_FENCE_GATE.get(), new Item.Properties().tab(CREATIVE_TAB)));
 
+    public static final RegistrySupplier<BlockEntityType<?>> FENCE_GATE_TILE = TILES.register("fence_gate", () -> BlockEntityType.Builder.of(TileMultiBlockFenceGate::new,
+            OAK_FENCE_GATE.get(), SPRUCE_FENCE_GATE.get(), BIRCH_FENCE_GATE.get(), JUNGLE_FENCE_GATE.get(), ACACIA_FENCE_GATE.get(), DARK_OAK_FENCE_GATE.get(), CRIMSON_FENCE_GATE.get(), WARPED_FENCE_GATE.get())
+            .build(null));
 
     public static void init()
     {

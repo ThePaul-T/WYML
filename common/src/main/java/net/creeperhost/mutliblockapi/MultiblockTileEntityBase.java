@@ -23,7 +23,6 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart implement
 	private CompoundTag cachedMultiblockData;
 	private boolean paused;
 
-
 	public MultiblockTileEntityBase(BlockEntityType<?> tileEntityType)
 	{
 		super(tileEntityType);
@@ -112,6 +111,11 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart implement
 //		super.load(blockState, compoundTag);
 //		MultiblockRegistry.onPartAdded(this.getLevel(), this);
 //	}
+
+	public void onLoad()
+	{
+		MultiblockRegistry.onPartAdded(this.getLevel(), this);
+	}
 
 
 	@Override
@@ -280,7 +284,7 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart implement
 	@Override
 	public void onOrphaned(MultiblockControllerBase controller, int oldSize, int newSize)
 	{
-//		this.load();
+		onLoad();
 	}
 
 	protected void detachSelf(boolean chunkUnloading)
@@ -291,6 +295,12 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart implement
 			this.controller = null;
 		}
 		MultiblockRegistry.onPartRemovedFromWorld(getLevel(), this);
+	}
+
+	@Override
+	public void tick()
+	{
+		System.out.println("TICK");
 	}
 
 	@Override

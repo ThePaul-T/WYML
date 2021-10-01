@@ -11,6 +11,7 @@ public abstract class RectangularMultiblockTileEntityBase extends MultiblockTile
 {
 	PartPosition position;
 	Direction outwards;
+	boolean first = true;
 
 	public RectangularMultiblockTileEntityBase(BlockEntityType<?> tileEntityType)
 	{
@@ -110,6 +111,16 @@ public abstract class RectangularMultiblockTileEntityBase extends MultiblockTile
 				position = PartPosition.BottomFace;
 				outwards = Direction.DOWN;
 			}
+		}
+	}
+
+	@Override
+	public void tick()
+	{
+		if(first)
+		{
+			onLoad();
+			first = false;
 		}
 	}
 
