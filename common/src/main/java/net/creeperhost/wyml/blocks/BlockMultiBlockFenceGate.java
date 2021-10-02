@@ -1,7 +1,5 @@
 package net.creeperhost.wyml.blocks;
 
-import net.creeperhost.mutliblockapi.BlockMultiblockBase;
-import net.creeperhost.mutliblockapi.MultiblockValidationException;
 import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -13,6 +11,7 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -30,7 +29,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
-public class BlockMultiBlockFenceGate extends BlockMultiblockBase
+public class BlockMultiBlockFenceGate extends BaseEntityBlock
 {
     public static final BooleanProperty OPEN;
     public static final BooleanProperty POWERED;
@@ -129,24 +128,13 @@ public class BlockMultiBlockFenceGate extends BlockMultiblockBase
     @Override
     public InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult)
     {
-        if(level.isClientSide()) return InteractionResult.SUCCESS;
+//        if(level.isClientSide()) return InteractionResult.SUCCESS;
 
         TileMultiBlockFenceGate tileMultiBlockFenceGate = (TileMultiBlockFenceGate) level.getBlockEntity(blockPos);
-        if(tileMultiBlockFenceGate.getMultiBlock() == null)
-        {
-            System.out.println("Multiblock == null");
-            return InteractionResult.SUCCESS;
-        } else
-        {
-            System.out.println("full? " + tileMultiBlockFenceGate.getMultiBlock().isAssembled());
-            try
-            {
-                tileMultiBlockFenceGate.getMultiBlock().isMachineWhole();
-            } catch (MultiblockValidationException e)
-            {
-                e.printStackTrace();
-            }
-        }
+        tileMultiBlockFenceGate.isWalking = false;
+        tileMultiBlockFenceGate.connectedBlocks.clear();
+        tileMultiBlockFenceGate.walkFence();
+
 //        if (blockState.getValue(OPEN)) {
 //            blockState = (BlockState)blockState.setValue(OPEN, false);
 //            level.setBlock(blockPos, blockState, 10);
