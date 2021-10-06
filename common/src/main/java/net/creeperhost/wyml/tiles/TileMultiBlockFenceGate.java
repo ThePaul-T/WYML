@@ -8,16 +8,17 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.TickableBlockEntity;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TileMultiBlockFenceGate extends BlockEntity implements TickableBlockEntity
 {
     public Map<BlockPos, Block> connectedBlocks = new HashMap<>();
+    public List<BlockPos> dirtyList = new ArrayList<>();
 
     public TileMultiBlockFenceGate()
     {
@@ -45,11 +46,13 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
 
             if(blockTurnList.isEmpty())
             {
-                blockTurnList.add(new BlockTurn(searchPos, direction));
+                BlockTurn blockTurn = new BlockTurn(searchPos, direction);
+                blockTurnList.add(blockTurn);
             }
             if(blockTurnList.get(blockTurnList.size() - 1).getDirection() != direction && direction != null)
             {
-                blockTurnList.add(new BlockTurn(searchPos, direction));
+                BlockTurn blockTurn = new BlockTurn(searchPos, direction);
+                blockTurnList.add(blockTurn);
             }
 
             if(direction == null)
@@ -59,7 +62,15 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
                 int i = blockTurnList.size() - count;
                 if(i > 0 && blockTurnList.get(i) != null)
                 {
-                    BlockTurn blockTurn = blockTurnList.get((blockTurnList.size() - count));
+                    BlockTurn blockTurn = blockTurnList.get(i);
+                    dirtyList.add(searchPos);
+
+                    for (int j = 0; j < 5; j++)
+                    {
+                        BlockPos blockPos1 = blockTurn.getBlockPos().relative(blockTurn.direction, j);
+                        if(!blockPosMatches(blockTurn.getBlockPos(), blockPos1)) dirtyList.add(blockPos1);
+                    }
+
                     count++;
                     searchPos = blockTurn.getBlockPos();
                     direction = getNextDirection(level, searchPos, blockTurn.getDirection());
@@ -84,6 +95,14 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
                 {
                     isAssembled = true;
                     isWalking = false;
+                    //Remove the old "dirty" blocks
+                    if(!dirtyList.isEmpty())
+                    {
+                        for (BlockPos blockPos : dirtyList)
+                        {
+                            connectedBlocks.remove(blockPos);
+                        }
+                    }
                     if(!level.isClientSide) System.out.println("Loop finished, We have found our gate again");
                     break;
                 }
@@ -132,7 +151,10 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
     @Override
     public void tick()
     {
-
+        if(isAssembled)
+        {
+            connectedBlocks.forEach((blockPos, block) -> spawnParticle(level, blockPos, ParticleTypes.HEART));
+        }
     }
 
     public static class BlockTurn
