@@ -49,61 +49,78 @@ public class BlockMultiBlockFenceGate extends BaseEntityBlock
     public BlockMultiBlockFenceGate()
     {
         super(Properties.of(Material.WOOD).noOcclusion().strength(2.0F));
-        this.registerDefaultState((BlockState)((BlockState)((BlockState)((BlockState)this.stateDefinition.any()).setValue(OPEN, false)).setValue(POWERED, false)).setValue(IN_WALL, false));
+        this.registerDefaultState((((this.stateDefinition.any()).setValue(OPEN, false)).setValue(POWERED, false)).setValue(IN_WALL, false));
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos, CollisionContext collisionContext)
     {
-        if ((Boolean)blockState.getValue(IN_WALL)) {
-            return ((Direction)blockState.getValue(FACING)).getAxis() == Direction.Axis.X ? X_SHAPE_LOW : Z_SHAPE_LOW;
-        } else {
-            return ((Direction)blockState.getValue(FACING)).getAxis() == Direction.Axis.X ? X_SHAPE : Z_SHAPE;
+        if (blockState.getValue(IN_WALL))
+        {
+            return (blockState.getValue(FACING)).getAxis() == Direction.Axis.X ? X_SHAPE_LOW : Z_SHAPE_LOW;
+        }
+        else
+        {
+            return (blockState.getValue(FACING)).getAxis() == Direction.Axis.X ? X_SHAPE : Z_SHAPE;
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public BlockState updateShape(BlockState blockState, Direction direction, BlockState blockState2, LevelAccessor levelAccessor, BlockPos blockPos, BlockPos blockPos2)
     {
         Direction.Axis axis = direction.getAxis();
-        if (((Direction)blockState.getValue(FACING)).getClockWise().getAxis() != axis) {
+        if ((blockState.getValue(FACING)).getClockWise().getAxis() != axis)
+        {
             return super.updateShape(blockState, direction, blockState2, levelAccessor, blockPos, blockPos2);
-        } else {
+        }
+        else
+        {
             boolean bl = this.isWall(blockState2) || this.isWall(levelAccessor.getBlockState(blockPos.relative(direction.getOpposite())));
-            return (BlockState)blockState.setValue(IN_WALL, bl);
+            return blockState.setValue(IN_WALL, bl);
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getCollisionShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos, CollisionContext collisionContext)
     {
-        if ((Boolean)blockState.getValue(OPEN)) {
+        if (blockState.getValue(OPEN))
+        {
             return Shapes.empty();
-        } else {
-            return ((Direction)blockState.getValue(FACING)).getAxis() == Direction.Axis.Z ? Z_COLLISION_SHAPE : X_COLLISION_SHAPE;
+        }
+        else
+        {
+            return (blockState.getValue(FACING)).getAxis() == Direction.Axis.Z ? Z_COLLISION_SHAPE : X_COLLISION_SHAPE;
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getOcclusionShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos)
     {
-        if ((Boolean)blockState.getValue(IN_WALL)) {
-            return ((Direction)blockState.getValue(FACING)).getAxis() == Direction.Axis.X ? X_OCCLUSION_SHAPE_LOW : Z_OCCLUSION_SHAPE_LOW;
-        } else {
-            return ((Direction)blockState.getValue(FACING)).getAxis() == Direction.Axis.X ? X_OCCLUSION_SHAPE : Z_OCCLUSION_SHAPE;
+        if (blockState.getValue(IN_WALL))
+        {
+            return (blockState.getValue(FACING)).getAxis() == Direction.Axis.X ? X_OCCLUSION_SHAPE_LOW : Z_OCCLUSION_SHAPE_LOW;
+        }
+        else
+        {
+            return (blockState.getValue(FACING)).getAxis() == Direction.Axis.X ? X_OCCLUSION_SHAPE : Z_OCCLUSION_SHAPE;
         }
     }
 
+    @SuppressWarnings("all")
     @Override
     public boolean isPathfindable(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos, PathComputationType pathComputationType)
     {
         switch(pathComputationType) {
             case LAND:
-                return (Boolean)blockState.getValue(OPEN);
+                return blockState.getValue(OPEN);
             case WATER:
                 return false;
             case AIR:
-                return (Boolean)blockState.getValue(OPEN);
+                return blockState.getValue(OPEN);
             default:
                 return false;
         }
@@ -118,61 +135,69 @@ public class BlockMultiBlockFenceGate extends BaseEntityBlock
         Direction direction = blockPlaceContext.getHorizontalDirection();
         Direction.Axis axis = direction.getAxis();
         boolean bl2 = axis == Direction.Axis.Z && (this.isWall(level.getBlockState(blockPos.west())) || this.isWall(level.getBlockState(blockPos.east()))) || axis == Direction.Axis.X && (this.isWall(level.getBlockState(blockPos.north())) || this.isWall(level.getBlockState(blockPos.south())));
-        return (BlockState)((BlockState)((BlockState)((BlockState)this.defaultBlockState().setValue(FACING, direction)).setValue(OPEN, bl)).setValue(POWERED, bl)).setValue(IN_WALL, bl2);
+        return (((this.defaultBlockState().setValue(FACING, direction)).setValue(OPEN, bl)).setValue(POWERED, bl)).setValue(IN_WALL, bl2);
     }
 
     private boolean isWall(BlockState blockState) {
         return blockState.getBlock().is(BlockTags.WALLS);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult)
     {
-//        if(level.isClientSide()) return InteractionResult.SUCCESS;
+        if(level.isClientSide()) return InteractionResult.SUCCESS;
 
         TileMultiBlockFenceGate tileMultiBlockFenceGate = (TileMultiBlockFenceGate) level.getBlockEntity(blockPos);
-        tileMultiBlockFenceGate.isWalking = false;
-        tileMultiBlockFenceGate.connectedBlocks.clear();
-        tileMultiBlockFenceGate.walkFence();
+        if(tileMultiBlockFenceGate != null) tileMultiBlockFenceGate.walkFence();
 
-//        if (blockState.getValue(OPEN)) {
-//            blockState = (BlockState)blockState.setValue(OPEN, false);
-//            level.setBlock(blockPos, blockState, 10);
-//        } else {
-//            Direction direction = player.getDirection();
-//            if (blockState.getValue(FACING) == direction.getOpposite()) {
-//                blockState = (BlockState)blockState.setValue(FACING, direction);
-//            }
-//
-//            blockState = (BlockState)blockState.setValue(OPEN, true);
-//            level.setBlock(blockPos, blockState, 10);
-//        }
-//
-//        level.levelEvent(player, (Boolean)blockState.getValue(OPEN) ? 1008 : 1014, blockPos, 0);
+        if (blockState.getValue(OPEN))
+        {
+            blockState = blockState.setValue(OPEN, false);
+            level.setBlock(blockPos, blockState, 10);
+        }
+        else
+        {
+            Direction direction = player.getDirection();
+            if (blockState.getValue(FACING) == direction.getOpposite())
+            {
+                blockState = blockState.setValue(FACING, direction);
+            }
+            blockState = blockState.setValue(OPEN, true);
+            level.setBlock(blockPos, blockState, 10);
+        }
+
+        level.levelEvent(player, blockState.getValue(OPEN) ? 1008 : 1014, blockPos, 0);
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
-    public void neighborChanged(BlockState blockState, Level level, BlockPos blockPos, Block block, BlockPos blockPos2, boolean bl) {
-        if (!level.isClientSide) {
+    public void neighborChanged(BlockState blockState, Level level, BlockPos blockPos, Block block, BlockPos blockPos2, boolean bl)
+    {
+        if (!level.isClientSide)
+        {
             boolean bl2 = level.hasNeighborSignal(blockPos);
-            if ((Boolean)blockState.getValue(POWERED) != bl2) {
-                level.setBlock(blockPos, (BlockState)((BlockState)blockState.setValue(POWERED, bl2)).setValue(OPEN, bl2), 2);
-                if ((Boolean)blockState.getValue(OPEN) != bl2) {
-                    level.levelEvent((Player)null, bl2 ? 1008 : 1014, blockPos, 0);
+            if (blockState.getValue(POWERED) != bl2)
+            {
+                level.setBlock(blockPos, (blockState.setValue(POWERED, bl2)).setValue(OPEN, bl2), 2);
+                if (blockState.getValue(OPEN) != bl2)
+                {
+                    level.levelEvent(null, bl2 ? 1008 : 1014, blockPos, 0);
                 }
             }
-
         }
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(new Property[]{FACING, OPEN, POWERED, IN_WALL});
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder)
+    {
+        builder.add(FACING, OPEN, POWERED, IN_WALL);
     }
 
-    public static boolean connectsToDirection(BlockState blockState, Direction direction) {
-        return ((Direction)blockState.getValue(FACING)).getAxis() == direction.getClockWise().getAxis();
+    public static boolean connectsToDirection(BlockState blockState, Direction direction)
+    {
+        return (blockState.getValue(FACING)).getAxis() == direction.getClockWise().getAxis();
     }
 
     @Override
@@ -181,7 +206,8 @@ public class BlockMultiBlockFenceGate extends BaseEntityBlock
         return RenderShape.MODEL;
     }
 
-    static {
+    static
+    {
         OPEN = BlockStateProperties.OPEN;
         POWERED = BlockStateProperties.POWERED;
         IN_WALL = BlockStateProperties.IN_WALL;

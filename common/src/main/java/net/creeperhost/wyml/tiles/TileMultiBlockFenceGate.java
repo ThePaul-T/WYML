@@ -1,38 +1,42 @@
 package net.creeperhost.wyml.tiles;
 
+import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.blocks.BlockMultiBlockFenceGate;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.TickableBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 
+import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TileMultiBlockFenceGate extends BlockEntity implements TickableBlockEntity
 {
-    public Map<BlockPos, Block> connectedBlocks = new HashMap<>();
-    public List<BlockPos> dirtyList = new ArrayList<>();
+    public Map<BlockPos, Block> CONNECTED_BLOCKS = new HashMap<>();
+    public List<BlockPos> DIRTY_BLOCKS = new ArrayList<>();
+    public long LAST_UPDATED_TIME = -1;
+    public boolean IS_WALKING = false;
+    public boolean IS_ASSEMBLED = false;
 
     public TileMultiBlockFenceGate()
     {
         super(WYMLBlocks.FENCE_GATE_TILE.get());
     }
 
-    public boolean isWalking = false;
-    public boolean isAssembled = false;
-
+    //Don't ask me how this works I have no idea anymore
     public void walkFence()
     {
-        if(isWalking) return;
+        if(IS_WALKING) return;
 
-        isWalking = true;
+        IS_WALKING = true;
         Level level = getLevel();
         if(level == null) return;
         BlockPos gatePos = getBlockPos();
@@ -40,7 +44,7 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
         List<BlockTurn> blockTurnList = new ArrayList<>();
         int count = 1;
 
-        while (isWalking)
+        while (IS_WALKING)
         {
             Direction direction = getNextDirection(level, searchPos, null);
 
@@ -57,53 +61,56 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
 
             if(direction == null)
             {
-                spawnParticle(level, searchPos, ParticleTypes.SMOKE);
+//                spawnParticle(level, searchPos, ParticleTypes.SMOKE);
 
                 int i = blockTurnList.size() - count;
                 if(i > 0 && blockTurnList.get(i) != null)
                 {
                     BlockTurn blockTurn = blockTurnList.get(i);
-                    dirtyList.add(searchPos);
+                    DIRTY_BLOCKS.add(searchPos);
 
                     for (int j = 0; j < 5; j++)
                     {
                         BlockPos blockPos1 = blockTurn.getBlockPos().relative(blockTurn.direction, j);
-                        if(!blockPosMatches(blockTurn.getBlockPos(), blockPos1)) dirtyList.add(blockPos1);
+                        if(!blockPosMatches(blockTurn.getBlockPos(), blockPos1)) DIRTY_BLOCKS.add(blockPos1);
                     }
 
                     count++;
                     searchPos = blockTurn.getBlockPos();
                     direction = getNextDirection(level, searchPos, blockTurn.getDirection());
 
-                    if (!level.isClientSide) System.out.println("Attempting to turn " + direction + " blockTurnList " + blockTurnList.size() + " count " + count);
+//                    if (!level.isClientSide) System.out.println("Attempting to turn " + direction + " blockTurnList " + blockTurnList.size() + " count " + count);
                 }
 
                 if(direction == null && count >= blockTurnList.size())
                 {
-                    isWalking = false;
-                    isAssembled = false;
-                    if(!level.isClientSide) System.out.println("direction is null, breaking loop");
+                    IS_WALKING = false;
+                    IS_ASSEMBLED = false;
+//                    if(!level.isClientSide) System.out.println("direction is null, breaking loop");
                     break;
                 }
             }
-            if(!level.isClientSide && direction != null) System.out.println(searchPos.relative(direction) + " Start: " + gatePos);
+
+//            if(!level.isClientSide && direction != null) System.out.println(searchPos.relative(direction) + " Start: " + gatePos);
+
             if(direction != null && canConnect(level, searchPos.relative(direction)))
             {
-                connectedBlocks.put(searchPos.relative(direction), level.getBlockState(searchPos.relative(direction)).getBlock());
-                spawnParticle(level, searchPos.relative(direction), ParticleTypes.CRIT);
+                CONNECTED_BLOCKS.put(searchPos.relative(direction), level.getBlockState(searchPos.relative(direction)).getBlock());
+//                spawnParticle(level, searchPos.relative(direction), ParticleTypes.CRIT);
                 if(blockPosMatches(searchPos.relative(direction), getBlockPos()))
                 {
-                    isAssembled = true;
-                    isWalking = false;
+                    IS_ASSEMBLED = true;
+                    IS_WALKING = false;
                     //Remove the old "dirty" blocks
-                    if(!dirtyList.isEmpty())
+                    if(!DIRTY_BLOCKS.isEmpty())
                     {
-                        for (BlockPos blockPos : dirtyList)
+                        for (BlockPos blockPos : DIRTY_BLOCKS)
                         {
-                            connectedBlocks.remove(blockPos);
+                            CONNECTED_BLOCKS.remove(blockPos);
                         }
                     }
-                    if(!level.isClientSide) System.out.println("Loop finished, We have found our gate again");
+                    if(!level.isClientSide()) onAssembled();
+//                    if(!level.isClientSide) System.out.println("Loop finished, We have found our gate again");
                     break;
                 }
                 //Reset the counter when connection works
@@ -118,6 +125,8 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
         return blockPos1.getX() == blockPos2.getX() && blockPos1.getY() == blockPos2.getY() && blockPos1.getZ() == blockPos2.getZ();
     }
 
+    //Is used for debugging (Don't remove)
+    @SuppressWarnings("unused")
     public void spawnParticle(Level level, BlockPos blockPos, ParticleOptions particleOptions)
     {
         Random random = level.random;
@@ -141,20 +150,41 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
 
     public boolean canConnect(Level level, BlockPos blockPos)
     {
-        if(connectedBlocks.containsKey(blockPos)) return false;
+        if(CONNECTED_BLOCKS.containsKey(blockPos)) return false;
         if(level.getBlockState(blockPos).getBlock() instanceof FenceBlock) return true;
         if(level.getBlockState(blockPos).getBlock() instanceof BlockMultiBlockFenceGate) return true;
 
         return false;
     }
 
+    public void onAssembled()
+    {
+        WhyYouMakeLag.LOGGER.info("New fence MultiBlock created at " + getBlockPos());
+        LAST_UPDATED_TIME = Instant.now().getEpochSecond();
+    }
+
     @Override
     public void tick()
     {
-        if(isAssembled)
+        if(IS_ASSEMBLED)
         {
-            connectedBlocks.forEach((blockPos, block) -> spawnParticle(level, blockPos, ParticleTypes.HEART));
+//            connectedBlocks.forEach((blockPos, block) -> spawnParticle(level, blockPos, ParticleTypes.HEART));
         }
+    }
+
+    @Override
+    public CompoundTag save(CompoundTag compoundTag)
+    {
+        CompoundTag compoundTag1 = super.save(compoundTag);
+        compoundTag1.putLong("lastupdated", LAST_UPDATED_TIME);
+        return compoundTag1;
+    }
+
+    @Override
+    public void load(BlockState blockState, CompoundTag compoundTag)
+    {
+        super.load(blockState, compoundTag);
+        LAST_UPDATED_TIME = compoundTag.getLong("lastupdated");
     }
 
     public static class BlockTurn
