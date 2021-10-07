@@ -2,15 +2,24 @@ package net.creeperhost.wyml.tiles;
 
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.blocks.BlockMultiBlockFenceGate;
+import net.creeperhost.wyml.containers.ContainerFence;
+import net.creeperhost.wyml.containers.ContainerPaperBag;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FenceBlock;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.TickableBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,7 +28,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class TileMultiBlockFenceGate extends BlockEntity implements TickableBlockEntity
+public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements TickableBlockEntity
 {
     public Map<BlockPos, Block> CONNECTED_BLOCKS = new HashMap<>();
     public List<BlockPos> DIRTY_BLOCKS = new ArrayList<>();
@@ -205,6 +214,18 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
     }
 
     @Override
+    protected Component getDefaultName()
+    {
+        return new TranslatableComponent("container." + WhyYouMakeLag.MOD_ID + ".fence");
+    }
+
+    @Override
+    protected AbstractContainerMenu createMenu(int i, Inventory inventory)
+    {
+        return new ContainerFence(i, inventory, this);
+    }
+
+    @Override
     public void load(BlockState blockState, CompoundTag compoundTag)
     {
         super.load(blockState, compoundTag);
@@ -213,6 +234,54 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
         {
             walkFence();
         }
+    }
+
+    @Override
+    public int getContainerSize()
+    {
+        return 0;
+    }
+
+    @Override
+    public boolean isEmpty()
+    {
+        return false;
+    }
+
+    @Override
+    public ItemStack getItem(int i)
+    {
+        return null;
+    }
+
+    @Override
+    public ItemStack removeItem(int i, int j)
+    {
+        return null;
+    }
+
+    @Override
+    public ItemStack removeItemNoUpdate(int i)
+    {
+        return null;
+    }
+
+    @Override
+    public void setItem(int i, ItemStack itemStack)
+    {
+
+    }
+
+    @Override
+    public boolean stillValid(Player player)
+    {
+        return true;
+    }
+
+    @Override
+    public void clearContent()
+    {
+
     }
 
     public static class BlockTurn

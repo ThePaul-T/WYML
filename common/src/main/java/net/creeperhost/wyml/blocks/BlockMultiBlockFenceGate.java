@@ -1,13 +1,16 @@
 package net.creeperhost.wyml.blocks;
 
+import me.shedaniel.architectury.registry.MenuRegistry;
 import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -175,6 +178,8 @@ public class BlockMultiBlockFenceGate extends BaseEntityBlock
         else
         {
             tileMultiBlockFenceGate.CONNECTED_BLOCKS.forEach((blockPos1, block) -> tileMultiBlockFenceGate.spawnParticle(level, blockPos1, ParticleTypes.CRIT));
+
+            if(!level.isClientSide()) MenuRegistry.openExtendedMenu((ServerPlayer) player, (MenuProvider) tileMultiBlockFenceGate, packetBuffer -> packetBuffer.writeBlockPos(tileMultiBlockFenceGate.getBlockPos()));
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
     }
