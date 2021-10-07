@@ -3,6 +3,8 @@ package net.creeperhost.wyml.blocks;
 import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -146,29 +148,35 @@ public class BlockMultiBlockFenceGate extends BaseEntityBlock
     @Override
     public InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult)
     {
-        if(level.isClientSide()) return InteractionResult.SUCCESS;
-
         TileMultiBlockFenceGate tileMultiBlockFenceGate = (TileMultiBlockFenceGate) level.getBlockEntity(blockPos);
-        if(tileMultiBlockFenceGate != null) tileMultiBlockFenceGate.walkFence();
+        if (tileMultiBlockFenceGate != null) tileMultiBlockFenceGate.walkFence();
 
-        if (blockState.getValue(OPEN))
+        if(!player.isCrouching())
         {
-            blockState = blockState.setValue(OPEN, false);
-            level.setBlock(blockPos, blockState, 10);
+            if (blockState.getValue(OPEN))
+            {
+                blockState = blockState.setValue(OPEN, false);
+                level.setBlock(blockPos, blockState, 10);
+            }
+            else
+            {
+                Direction direction = player.getDirection();
+                if (blockState.getValue(FACING) == direction.getOpposite())
+                {
+                    blockState = blockState.setValue(FACING, direction);
+                }
+                blockState = blockState.setValue(OPEN, true);
+                level.setBlock(blockPos, blockState, 10);
+            }
+
+            level.levelEvent(player, blockState.getValue(OPEN) ? 1008 : 1014, blockPos, 0);
+            return InteractionResult.sidedSuccess(level.isClientSide);
         }
         else
         {
-            Direction direction = player.getDirection();
-            if (blockState.getValue(FACING) == direction.getOpposite())
-            {
-                blockState = blockState.setValue(FACING, direction);
-            }
-            blockState = blockState.setValue(OPEN, true);
-            level.setBlock(blockPos, blockState, 10);
+            tileMultiBlockFenceGate.CONNECTED_BLOCKS.forEach((blockPos1, block) -> tileMultiBlockFenceGate.spawnParticle(level, blockPos1, ParticleTypes.CRIT));
+            return InteractionResult.sidedSuccess(level.isClientSide);
         }
-
-        level.levelEvent(player, blockState.getValue(OPEN) ? 1008 : 1014, blockPos, 0);
-        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @SuppressWarnings("deprecation")

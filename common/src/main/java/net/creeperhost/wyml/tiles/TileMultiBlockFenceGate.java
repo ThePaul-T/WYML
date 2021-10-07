@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TileMultiBlockFenceGate extends BlockEntity implements TickableBlockEntity
 {
@@ -25,6 +26,7 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
     public long LAST_UPDATED_TIME = -1;
     public boolean IS_WALKING = false;
     public boolean IS_ASSEMBLED = false;
+    public long CHECK_TIME = 300;
 
     public TileMultiBlockFenceGate()
     {
@@ -37,6 +39,10 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
         if(IS_WALKING) return;
 
         IS_WALKING = true;
+        CONNECTED_BLOCKS.clear();
+        DIRTY_BLOCKS.clear();
+        IS_ASSEMBLED = false;
+
         Level level = getLevel();
         if(level == null) return;
         BlockPos gatePos = getBlockPos();
@@ -96,7 +102,7 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
             if(direction != null && canConnect(level, searchPos.relative(direction)))
             {
                 CONNECTED_BLOCKS.put(searchPos.relative(direction), level.getBlockState(searchPos.relative(direction)).getBlock());
-//                spawnParticle(level, searchPos.relative(direction), ParticleTypes.CRIT);
+                spawnParticle(level, searchPos.relative(direction), ParticleTypes.CRIT);
                 if(blockPosMatches(searchPos.relative(direction), getBlockPos()))
                 {
                     IS_ASSEMBLED = true;
@@ -109,7 +115,7 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
                             CONNECTED_BLOCKS.remove(blockPos);
                         }
                     }
-                    if(!level.isClientSide()) onAssembled();
+                    onAssembled();
 //                    if(!level.isClientSide) System.out.println("Loop finished, We have found our gate again");
                     break;
                 }
@@ -168,8 +174,26 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
     {
         if(IS_ASSEMBLED)
         {
-//            connectedBlocks.forEach((blockPos, block) -> spawnParticle(level, blockPos, ParticleTypes.HEART));
+            if(Instant.now().getEpochSecond() > (LAST_UPDATED_TIME + CHECK_TIME))
+            {
+                if(!stillValid())
+                {
+                    walkFence();
+                }
+            }
         }
+    }
+
+    public boolean stillValid()
+    {
+        AtomicBoolean returnValue = new AtomicBoolean(true);
+
+        CONNECTED_BLOCKS.forEach((blockPos, block) ->
+        {
+            if(!(level.getBlockState(blockPos).getBlock() instanceof FenceBlock)) returnValue.set(false);
+            if(!(level.getBlockState(blockPos).getBlock() instanceof BlockMultiBlockFenceGate)) returnValue.set(false);
+        });
+        return returnValue.get();
     }
 
     @Override
@@ -185,6 +209,10 @@ public class TileMultiBlockFenceGate extends BlockEntity implements TickableBloc
     {
         super.load(blockState, compoundTag);
         LAST_UPDATED_TIME = compoundTag.getLong("lastupdated");
+        if(CONNECTED_BLOCKS.isEmpty())
+        {
+            walkFence();
+        }
     }
 
     public static class BlockTurn
