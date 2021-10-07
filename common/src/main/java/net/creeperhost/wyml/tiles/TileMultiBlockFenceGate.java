@@ -4,6 +4,7 @@ import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.blocks.BlockMultiBlockFenceGate;
 import net.creeperhost.wyml.containers.ContainerFence;
 import net.creeperhost.wyml.containers.ContainerPaperBag;
+import net.creeperhost.wyml.data.BlockTurn;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -86,7 +87,7 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
 
                     for (int j = 0; j < 5; j++)
                     {
-                        BlockPos blockPos1 = blockTurn.getBlockPos().relative(blockTurn.direction, j);
+                        BlockPos blockPos1 = blockTurn.getBlockPos().relative(blockTurn.getDirection(), j);
                         if(!blockPosMatches(blockTurn.getBlockPos(), blockPos1)) DIRTY_BLOCKS.add(blockPos1);
                     }
 
@@ -243,10 +244,7 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
     }
 
     @Override
-    public boolean isEmpty()
-    {
-        return false;
-    }
+    public boolean isEmpty() {return false;}
 
     @Override
     public ItemStack getItem(int i)
@@ -267,10 +265,7 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
     }
 
     @Override
-    public void setItem(int i, ItemStack itemStack)
-    {
-
-    }
+    public void setItem(int i, ItemStack itemStack) {}
 
     @Override
     public boolean stillValid(Player player)
@@ -279,30 +274,5 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
     }
 
     @Override
-    public void clearContent()
-    {
-
-    }
-
-    public static class BlockTurn
-    {
-        private final BlockPos blockPos;
-        private final Direction direction;
-
-        public BlockTurn(BlockPos blockPos, Direction direction)
-        {
-            this.blockPos = blockPos;
-            this.direction = direction;
-        }
-
-        public BlockPos getBlockPos()
-        {
-            return blockPos;
-        }
-
-        public Direction getDirection()
-        {
-            return direction;
-        }
-    }
+    public void clearContent() {}
 }
