@@ -3,8 +3,8 @@ package net.creeperhost.wyml.tiles;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.blocks.BlockMultiBlockFenceGate;
 import net.creeperhost.wyml.containers.ContainerFence;
-import net.creeperhost.wyml.containers.ContainerPaperBag;
 import net.creeperhost.wyml.data.BlockTurn;
+import net.creeperhost.wyml.data.FencePart;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -13,30 +13,33 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.TickableBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.List;
 
 public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements TickableBlockEntity
 {
-    public Map<BlockPos, Block> CONNECTED_BLOCKS = new HashMap<>();
+    public Map<BlockPos, FencePart> CONNECTED_BLOCKS = new HashMap<>();
     public List<BlockPos> DIRTY_BLOCKS = new ArrayList<>();
+    public List<BlockPos> INTERNAL_BLOCKS = new ArrayList<>();
+    public List<LivingEntity> STORED_ENTITIES = new ArrayList<>();
     public long LAST_UPDATED_TIME = -1;
     public boolean IS_WALKING = false;
     public boolean IS_ASSEMBLED = false;
-    public long CHECK_TIME = 300;
+    //TODO config this value
+    public long CHECK_TIME = 20;
+    public int MAX_SCAN_SIZE = 20;
 
     public TileMultiBlockFenceGate()
     {
@@ -111,13 +114,17 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
 
             if(direction != null && canConnect(level, searchPos.relative(direction)))
             {
-                CONNECTED_BLOCKS.put(searchPos.relative(direction), level.getBlockState(searchPos.relative(direction)).getBlock());
+                CONNECTED_BLOCKS.put(searchPos.relative(direction), new FencePart(level.getBlockState(searchPos.relative(direction)).getBlock(), searchPos.relative(direction), false));
                 spawnParticle(level, searchPos.relative(direction), ParticleTypes.CRIT);
                 if(blockPosMatches(searchPos.relative(direction), getBlockPos()))
                 {
                     IS_ASSEMBLED = true;
                     IS_WALKING = false;
                     //Remove the old "dirty" blocks
+                    for (BlockTurn blockTurn : blockTurnList)
+                    {
+                        CONNECTED_BLOCKS.put(blockTurn.getBlockPos(), new FencePart(level.getBlockState(blockTurn.getBlockPos()).getBlock(), blockTurn.getBlockPos(), true));
+                    }
                     if(!DIRTY_BLOCKS.isEmpty())
                     {
                         for (BlockPos blockPos : DIRTY_BLOCKS)
@@ -136,12 +143,60 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
         }
     }
 
+    public List<BlockPos> getCorners()
+    {
+        if(!IS_ASSEMBLED) return null;
+
+        List<BlockPos> corners = new ArrayList<>();
+        for (FencePart value : CONNECTED_BLOCKS.values())
+        {
+            if(value.isCorner() && value.getBlock() instanceof FenceBlock)
+            {
+                corners.add(value.getBlockPos());
+            }
+        }
+        return corners;
+    }
+
+    public List<BlockPos> findOpFence(BlockPos blockPos, Direction direction, int maxValue)
+    {
+        List<BlockPos> list = new ArrayList<>();
+        for (int i = 1; i < maxValue; i++)
+        {
+            BlockPos blockPos1 = blockPos.relative(direction, i);
+            if(level.getBlockState(blockPos1).getBlock() instanceof FenceBlock || level.getBlockState(blockPos1).getBlock() instanceof BlockMultiBlockFenceGate) return list;
+            list.add(blockPos1);
+        }
+        return new ArrayList<>();
+    }
+
+    public void rewalkFence()
+    {
+        INTERNAL_BLOCKS.clear();
+        for (FencePart value : CONNECTED_BLOCKS.values())
+        {
+            BlockPos blockPos = value.getBlockPos();
+            List<BlockPos> op = findOpFence(blockPos, Direction.EAST, MAX_SCAN_SIZE);
+            if(!op.isEmpty())
+            {
+                //I would use addAll but that will also add objects that are already in the list
+                for (BlockPos pos : op)
+                {
+                    if(!INTERNAL_BLOCKS.contains(pos))
+                    {
+                        INTERNAL_BLOCKS.add(pos);
+                    }
+                }
+            }
+        }
+    }
+
     public boolean blockPosMatches(BlockPos blockPos1, BlockPos blockPos2)
     {
         return blockPos1.getX() == blockPos2.getX() && blockPos1.getY() == blockPos2.getY() && blockPos1.getZ() == blockPos2.getZ();
     }
 
-    //Is used for debugging (Don't remove)
+    //Used for debugging (Don't remove)
     @SuppressWarnings("unused")
     public void spawnParticle(Level level, BlockPos blockPos, ParticleOptions particleOptions)
     {
@@ -177,18 +232,29 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
     {
         WhyYouMakeLag.LOGGER.info("New fence MultiBlock created at " + getBlockPos());
         LAST_UPDATED_TIME = Instant.now().getEpochSecond();
+        rewalkFence();
     }
 
     @Override
     public void tick()
     {
+        tileFirstTick();;
+
         if(IS_ASSEMBLED)
         {
+            if(!INTERNAL_BLOCKS.isEmpty())
+            {
+                for (BlockPos internal_block : INTERNAL_BLOCKS)
+                {
+                    spawnParticle(level, internal_block.below(), ParticleTypes.BUBBLE);
+                }
+            }
             if(Instant.now().getEpochSecond() > (LAST_UPDATED_TIME + CHECK_TIME))
             {
                 if(!stillValid())
                 {
                     walkFence();
+                    LAST_UPDATED_TIME = Instant.now().getEpochSecond();
                 }
             }
         }
@@ -196,14 +262,15 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
 
     public boolean stillValid()
     {
-        AtomicBoolean returnValue = new AtomicBoolean(true);
+        boolean returnValue = true;
 
-        CONNECTED_BLOCKS.forEach((blockPos, block) ->
+        for (FencePart value : CONNECTED_BLOCKS.values())
         {
-            if(!(level.getBlockState(blockPos).getBlock() instanceof FenceBlock)) returnValue.set(false);
-            if(!(level.getBlockState(blockPos).getBlock() instanceof BlockMultiBlockFenceGate)) returnValue.set(false);
-        });
-        return returnValue.get();
+            if(!(level.getBlockState(value.getBlockPos()).getBlock() instanceof FenceBlock)) returnValue = false;
+            if(!(level.getBlockState(value.getBlockPos()).getBlock() instanceof BlockMultiBlockFenceGate)) returnValue = false;
+        }
+
+        return returnValue;
     }
 
     @Override
@@ -231,12 +298,21 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
     {
         super.load(blockState, compoundTag);
         LAST_UPDATED_TIME = compoundTag.getLong("lastupdated");
-        if(CONNECTED_BLOCKS.isEmpty())
+        walkFence();
+    }
+
+    boolean loaded = false;
+
+    public void tileFirstTick()
+    {
+        if(!loaded)
         {
             walkFence();
+            loaded = true;
         }
     }
 
+    //Inventory
     @Override
     public int getContainerSize()
     {
