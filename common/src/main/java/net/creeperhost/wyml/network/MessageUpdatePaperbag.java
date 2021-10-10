@@ -2,7 +2,6 @@ package net.creeperhost.wyml.network;
 
 import me.shedaniel.architectury.networking.NetworkManager;
 import net.creeperhost.wyml.blocks.TilePaperBag;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.level.Level;
@@ -40,7 +39,7 @@ public class MessageUpdatePaperbag
     {
         context.get().queue(() ->
         {
-            Level level = Minecraft.getInstance().level;
+            Level level = context.get().getPlayer().level;
             if (level == null) return;
 
             if (level.getBlockEntity(blockPos) instanceof TilePaperBag)
