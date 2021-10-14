@@ -37,6 +37,16 @@ public class ContainerFence extends WYMLContainer
         }
     }
 
+    public TileMultiBlockFenceGate getTileMultiBlockFenceGate()
+    {
+        return tileMultiBlockFenceGate;
+    }
+
+    public Player getPlayer()
+    {
+        return player;
+    }
+
     @Override
     public boolean stillValid(Player player)
     {

@@ -1,6 +1,9 @@
 package net.creeperhost.wyml.blocks;
 
 import me.shedaniel.architectury.registry.MenuRegistry;
+import net.creeperhost.wyml.network.MessageUpdateFence;
+import net.creeperhost.wyml.network.MessageUpdatePaperbag;
+import net.creeperhost.wyml.network.PacketHandler;
 import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -11,7 +14,12 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -154,8 +162,22 @@ public class BlockMultiBlockFenceGate extends BaseEntityBlock
         TileMultiBlockFenceGate tileMultiBlockFenceGate = (TileMultiBlockFenceGate) level.getBlockEntity(blockPos);
         if (tileMultiBlockFenceGate != null) tileMultiBlockFenceGate.walkFence();
 
-        if(!player.isCrouching())
+        if(!level.isClientSide()) PacketHandler.HANDLER.sendToPlayer((ServerPlayer) player, new MessageUpdateFence(blockPos, tileMultiBlockFenceGate.STORED_ENTITY_COUNT));
+
+        if(!player.isCrouching() && !level.isClientSide())
         {
+            //Test code
+            if(!player.getItemInHand(interactionHand).isEmpty())
+            {
+                ItemStack held = player.getItemInHand(interactionHand);
+                if(held.getItem() instanceof SpawnEggItem)
+                {
+                    SpawnEggItem spawnEggItem = (SpawnEggItem) held.getItem();
+                    EntityType<?> entityType = spawnEggItem.getType(held.getTag());
+                    tileMultiBlockFenceGate.addEntity(entityType);
+                    return InteractionResult.CONSUME;
+                }
+            }
             if (blockState.getValue(OPEN))
             {
                 blockState = blockState.setValue(OPEN, false);

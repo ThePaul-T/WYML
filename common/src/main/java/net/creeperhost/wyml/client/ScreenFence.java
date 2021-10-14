@@ -36,6 +36,7 @@ public class ScreenFence extends AbstractContainerScreen<ContainerFence>
     protected void renderLabels(PoseStack poseStack, int i, int j)
     {
         this.font.draw(poseStack, this.inventory.getDisplayName(), (float) this.inventoryLabelX, (float) this.inventoryLabelY, 4210752);
+        this.font.draw(poseStack, "Stored Count: " + containerFence.getTileMultiBlockFenceGate().getStoredEntityCount(), (float) this.titleLabelX, (float) this.titleLabelY, 4210752);
     }
 
     @Override

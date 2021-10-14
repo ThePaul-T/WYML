@@ -11,5 +11,6 @@ public class PacketHandler
     public static void init()
     {
         HANDLER.register(MessageUpdatePaperbag.class, MessageUpdatePaperbag::write, MessageUpdatePaperbag::new, MessageUpdatePaperbag::handle);
+        HANDLER.register(MessageUpdateFence.class, MessageUpdateFence::write, MessageUpdateFence::new, MessageUpdateFence::handle);
     }
 }

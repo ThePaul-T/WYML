@@ -6,13 +6,18 @@ import net.creeperhost.wyml.containers.ContainerFence;
 import net.creeperhost.wyml.data.BlockTurn;
 import net.creeperhost.wyml.data.FencePart;
 import net.creeperhost.wyml.init.WYMLBlocks;
+import net.creeperhost.wyml.network.MessageUpdateFence;
+import net.creeperhost.wyml.network.PacketHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -33,7 +38,8 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
     public Map<BlockPos, FencePart> CONNECTED_BLOCKS = new HashMap<>();
     public List<BlockPos> DIRTY_BLOCKS = new ArrayList<>();
     public List<BlockPos> INTERNAL_BLOCKS = new ArrayList<>();
-    public List<LivingEntity> STORED_ENTITIES = new ArrayList<>();
+    public List<EntityType<?>> STORED_ENTITIES = new ArrayList<>();
+    public int STORED_ENTITY_COUNT = 0;
     public long LAST_UPDATED_TIME = -1;
     public boolean IS_WALKING = false;
     public boolean IS_ASSEMBLED = false;
@@ -242,6 +248,7 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
 
         if(IS_ASSEMBLED)
         {
+            //TODO debug, Remove
             if(!INTERNAL_BLOCKS.isEmpty())
             {
                 for (BlockPos internal_block : INTERNAL_BLOCKS)
@@ -258,6 +265,33 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
                 }
             }
         }
+    }
+
+    public void updateStoredEntities()
+    {
+
+    }
+
+    public void addEntity(EntityType<?> entityType)
+    {
+        STORED_ENTITIES.add(entityType);
+        setStoredEntityCount(STORED_ENTITIES.size());
+    }
+
+    public void removeEntity(EntityType<?> entityType)
+    {
+        STORED_ENTITIES.remove(entityType);
+        setStoredEntityCount(STORED_ENTITIES.size());
+    }
+
+    public int getStoredEntityCount()
+    {
+        return STORED_ENTITY_COUNT;
+    }
+
+    public void setStoredEntityCount(int STORED_ENTITY_COUNT)
+    {
+        this.STORED_ENTITY_COUNT = STORED_ENTITY_COUNT;
     }
 
     public boolean stillValid()
@@ -278,7 +312,50 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
     {
         CompoundTag compoundTag1 = super.save(compoundTag);
         compoundTag1.putLong("lastupdated", LAST_UPDATED_TIME);
+        compoundTag1.merge(saveEntityList());
         return compoundTag1;
+    }
+
+    public CompoundTag saveEntityList()
+    {
+        ListTag nbtTagList = new ListTag();
+        for (int i = 0; i < STORED_ENTITIES.size(); i++)
+        {
+            if (STORED_ENTITIES.get(i) != null)
+            {
+                CompoundTag entityTag = new CompoundTag();
+                EntityType<?> entityType = STORED_ENTITIES.get(i);
+                entityTag.putString("entity", EntityType.getKey(entityType).toString());
+                nbtTagList.add(entityTag);
+            }
+        }
+        CompoundTag nbt = new CompoundTag();
+        nbt.put("Entities", nbtTagList);
+        nbt.putInt("Size", STORED_ENTITIES.size());
+        return nbt;
+    }
+
+    @Override
+    public void load(BlockState blockState, CompoundTag compoundTag)
+    {
+        super.load(blockState, compoundTag);
+        LAST_UPDATED_TIME = compoundTag.getLong("lastupdated");
+        loadEntityList(compoundTag);
+        setStoredEntityCount(STORED_ENTITIES.size());
+        walkFence();
+    }
+
+    public void loadEntityList(CompoundTag nbt)
+    {
+        if(nbt == null) return;
+
+        ListTag tagList = nbt.getList("Entities", 10);
+        for (int i = 0; i < tagList.size(); i++)
+        {
+            CompoundTag entityTags = tagList.getCompound(i);
+            EntityType<?> entityType = EntityType.byString(entityTags.getString("entity")).orElse(null);
+            if(entityType != null) STORED_ENTITIES.add(entityType);
+        }
     }
 
     @Override
@@ -291,14 +368,6 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
     protected AbstractContainerMenu createMenu(int i, Inventory inventory)
     {
         return new ContainerFence(i, inventory, this);
-    }
-
-    @Override
-    public void load(BlockState blockState, CompoundTag compoundTag)
-    {
-        super.load(blockState, compoundTag);
-        LAST_UPDATED_TIME = compoundTag.getLong("lastupdated");
-        walkFence();
     }
 
     boolean loaded = false;
