@@ -294,6 +294,11 @@ public class TileMultiBlockFenceGate extends BaseContainerBlockEntity implements
         this.STORED_ENTITY_COUNT = STORED_ENTITY_COUNT;
     }
 
+    public void setStoredEntities(List<EntityType<?>> entityTypeList)
+    {
+        this.STORED_ENTITIES = entityTypeList;
+    }
+
     public boolean stillValid()
     {
         boolean returnValue = true;

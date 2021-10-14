@@ -162,7 +162,7 @@ public class BlockMultiBlockFenceGate extends BaseEntityBlock
         TileMultiBlockFenceGate tileMultiBlockFenceGate = (TileMultiBlockFenceGate) level.getBlockEntity(blockPos);
         if (tileMultiBlockFenceGate != null) tileMultiBlockFenceGate.walkFence();
 
-        if(!level.isClientSide()) PacketHandler.HANDLER.sendToPlayer((ServerPlayer) player, new MessageUpdateFence(blockPos, tileMultiBlockFenceGate.STORED_ENTITY_COUNT));
+        if(!level.isClientSide()) PacketHandler.HANDLER.sendToPlayer((ServerPlayer) player, new MessageUpdateFence(blockPos, tileMultiBlockFenceGate.getStoredEntityCount(), tileMultiBlockFenceGate.STORED_ENTITIES));
 
         if(!player.isCrouching() && !level.isClientSide())
         {

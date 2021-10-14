@@ -3,35 +3,54 @@ package net.creeperhost.wyml.network;
 import me.shedaniel.architectury.networking.NetworkManager;
 import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 public class MessageUpdateFence
 {
     BlockPos blockPos;
     int storedCount;
-    int[] entityIds;
+    List<EntityType<?>> entityTypes;
 
-    public MessageUpdateFence(BlockPos blockPos, int storedCount)
+    public MessageUpdateFence(BlockPos blockPos, int storedCount, List<EntityType<?>> entityTypes)
     {
         this.blockPos = blockPos;
         this.storedCount = storedCount;
+        this.entityTypes = entityTypes;
     }
 
     public MessageUpdateFence(FriendlyByteBuf buffer)
     {
         this.blockPos = buffer.readBlockPos();
         this.storedCount = buffer.readInt();
-        this.entityIds = buffer.readVarIntArray();
+        int[] ints = buffer.readVarIntArray();
+        List<EntityType<?>> entityTypeList = new ArrayList<>();
+        for (int entityID : ints)
+        {
+            EntityType<?> entityType = Registry.ENTITY_TYPE.byId(entityID);
+            entityTypeList.add(entityType);
+        }
+        this.entityTypes = entityTypeList;
     }
 
     public void write(FriendlyByteBuf buf)
     {
         buf.writeBlockPos(blockPos);
         buf.writeInt(storedCount);
-        buf.writeVarIntArray(entityIds);
+        List<Integer> integerList = new ArrayList<>();
+        for (EntityType<?> entityType : entityTypes)
+        {
+            integerList.add(Registry.ENTITY_TYPE.getId(entityType));
+        }
+        int[] ints = integerList.stream().filter(Objects::nonNull).mapToInt(value -> value).toArray();
+        buf.writeVarIntArray(ints);
     }
 
     public void handle(Supplier<NetworkManager.PacketContext> context)
@@ -47,6 +66,10 @@ public class MessageUpdateFence
                 if (tileMultiBlockFenceGate == null) return;
 
                 tileMultiBlockFenceGate.setStoredEntityCount(storedCount);
+                if(entityTypes != null && !entityTypes.isEmpty())
+                {
+                    tileMultiBlockFenceGate.setStoredEntities(entityTypes);
+                }
             }
         });
     }
