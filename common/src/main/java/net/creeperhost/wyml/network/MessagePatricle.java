@@ -1,16 +1,11 @@
 package net.creeperhost.wyml.network;
 
 import me.shedaniel.architectury.networking.NetworkManager;
-import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleType;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.commands.ParticleCommand;
 import net.minecraft.world.level.Level;
 
 import java.util.function.Supplier;
@@ -42,7 +37,7 @@ public class MessagePatricle
     {
         context.get().queue(() ->
         {
-            Level level = Minecraft.getInstance().level;
+            Level level = context.get().getPlayer().level;
             if (level == null) return;
 
             if(level.isLoaded(blockPos))
