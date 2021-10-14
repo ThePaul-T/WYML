@@ -125,4 +125,24 @@ public class ConfigData
     @Comment("The amount of time in seconds before a Paperbag will despawn (default 300)")
     public int PAPER_BAG_DESPAWN_TIME = 300;
 
+    // ******************************************
+    // * Spawn Limit
+    // ******************************************
+    @Comment("The amount of monster creatures that can spawn in a chunk")
+    public int MONSTER_PER_CHUNK = 70;
+
+    @Comment("The amount of creatures that can spawn in a chunk")
+    public int CREATURES_PER_CHUNK = 10;
+
+    @Comment("The amount of ambient creatures that can spawn in a chunk")
+    public int AMBIENT_CREATURES_PER_CHUNK = 15;
+
+    @Comment("The amount of water creatures that can spawn in a chunk")
+    public int WATER_CREATURES_PER_CHUNK = 5;
+
+    @Comment("The amount of water_ambient creatures that can spawn in a chunk")
+    public int WATER_AMBIENT_PER_CHUNK = 20;
+
+    @Comment("The amount of misc creatures that can spawn in a chunk")
+    public int MISC_CREATURES_PER_CHUNK = -1;
 }

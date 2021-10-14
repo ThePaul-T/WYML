@@ -8,6 +8,7 @@
     "AccessorMinecraftServer",
     "MixinItemEntity",
     "MixinMinecraftServer",
+    "MixinMobCategory",
     "MixinNaturalSpawner",
     "MixinPlayerTabOverlay",
     "MixinServerChunkCache",

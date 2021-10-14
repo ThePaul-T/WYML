@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -80,15 +81,12 @@ public class WhyYouMakeLag
         if (input.isEmpty()) return input;
 
 
-        WYMLRandom.generate(0, input.size() - 1, input.size());
         final List<ChunkHolder> copy = new ArrayList<>(input);
         for (int i = 0; i < copy.size(); i++)
         {
             try
             {
-                //TODO: If this performs worse, just switch back to a normal random
-                int random = WYMLRandom.get();
-                //int random = ThreadLocalRandom.current().nextInt(0, copy.size());
+                int random = ThreadLocalRandom.current().nextInt(0, copy.size());
 
                 copy.set(random, copy.get(i));
                 copy.set(i, input.get(random));
