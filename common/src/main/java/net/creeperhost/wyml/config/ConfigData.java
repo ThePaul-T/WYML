@@ -145,4 +145,25 @@ public class ConfigData
 
     @Comment("The amount of misc creatures that can spawn in a chunk")
     public int MISC_CREATURES_PER_CHUNK = -1;
+
+    // ******************************************
+    // * Mob Despawn Distance
+    // ******************************************
+    @Comment("The distance an monster will need to be from the player to despawn")
+    public int MONSTER_DESPAWN_DISTANCE = 128;
+
+    @Comment("TThe distance an creature will need to be from the player to despawn")
+    public int CREATURES_DESPAWN_DISTANCE = 128;
+
+    @Comment("The distance an ambient creature will need to be from the player to despawn")
+    public int AMBIENT_CREATURES_DESPAWN_DISTANCE = 128;
+
+    @Comment("The distance an water creature will need to be from the player to despawn")
+    public int WATER_CREATURES_DESPAWN_DISTANCE = 128;
+
+    @Comment("The distance an water ambient creature will need to be from the player to despawn")
+    public int WATER_AMBIENT_DESPAWN_DISTANCE = 64;
+
+    @Comment("The distance an misc creature will need to be from the player to despawn")
+    public int MISC_CREATURES_DESPAWN_DISTANCE = 128;
 }
