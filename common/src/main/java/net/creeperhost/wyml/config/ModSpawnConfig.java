@@ -1,16 +1,37 @@
 package net.creeperhost.wyml.config;
 
+import net.creeperhost.wyml.MobManager;
 import net.creeperhost.wyml.data.MobSpawnData;
+import org.apache.commons.io.IOUtils;
 
+import java.io.FileOutputStream;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.HashMap;
 
 public class ModSpawnConfig {
     private String mod;
+    transient private boolean modified = false;
     private CategorySpawnConfigData spawn;
+    public ModSpawnConfig(){}
     public ModSpawnConfig(String name, CategorySpawnConfigData spawns)
     {
         this.mod = name;
         this.spawn = spawns;
+    }
+    public boolean Save(Path path)
+    {
+        Path file = path.resolve(getName()+".json");
+        try (FileOutputStream configOut = new FileOutputStream(file.toFile()))
+        {
+            IOUtils.write(MobManager.gson.toJson(this).toJson(true, true), configOut, Charset.defaultCharset());
+        } catch (Throwable t)
+        {
+            t.printStackTrace();
+            return false;
+        }
+        modified = false;
+        return true;
     }
     public String getName()
     {
@@ -18,36 +39,36 @@ public class ModSpawnConfig {
     }
     public MobSpawnConfigData getCategory(String categoryName)
     {
-        if(spawn.Categories != null && spawn.Categories.containsKey(categoryName)) {
-            return spawn.Categories.get(categoryName);
+        if(spawn.categories == null) spawn.categories = new HashMap<>();
+        if(spawn.categories.containsKey(categoryName)) {
+            return spawn.categories.get(categoryName);
         }
         return null;
     }
     public MobSpawnConfigData addCategory(String categoryName)
     {
-        if(spawn.Categories == null)
+        if(spawn.categories == null)
         {
-            spawn.Categories = new HashMap<String, MobSpawnConfigData>();
+            spawn.categories = new HashMap<String, MobSpawnConfigData>();
         }
-        if(!spawn.Categories.containsKey(categoryName)) {
-            MobSpawnConfigData data = new MobSpawnConfigData();
-            data.Spawns = new HashMap<String, MobSpawnData>();
-            spawn.Categories.put(categoryName, data);
+        if(!spawn.categories.containsKey(categoryName)) {
+            spawn.categories.put(categoryName, new MobSpawnConfigData());
         }
+        modified = true;
         return getCategory(categoryName);
     }
     public MobSpawnData getMob(String mobName)
     {
-        if(spawn.Categories == null) return null;
-        for(String cat : spawn.Categories.keySet())
+        if(spawn.categories == null) return null;
+        for(String cat : spawn.categories.keySet())
         {
-            MobSpawnConfigData _c = spawn.Categories.get(cat);
+            MobSpawnConfigData _c = spawn.categories.get(cat);
             if(_c == null) continue;
-            for(String mob : _c.Spawns.keySet())
+            for(String mob : _c.spawns.keySet())
             {
                 if(mob == mobName)
                 {
-                    return _c.Spawns.get(mob);
+                    return _c.spawns.get(mob);
                 }
             }
         }
@@ -57,21 +78,23 @@ public class ModSpawnConfig {
     {
         MobSpawnConfigData cat = getCategory(categoryName);
         if(cat == null) return false;
-        if(cat.Spawns == null)
+        if(cat.spawns == null)
         {
-            cat.Spawns = new HashMap<String, MobSpawnData>();
+            cat.spawns = new HashMap<String, MobSpawnData>();
         }
-        if(cat.Spawns.containsKey(mobName)) return false;
-        cat.Spawns.put(mobName, mobSpawnData);
+        if(cat.spawns.containsKey(mobName)) return false;
+        cat.spawns.put(mobName, mobSpawnData);
+        modified = true;
         return true;
     }
     public boolean updateMob(String categoryName, String mobName, MobSpawnData mobSpawnData)
     {
         MobSpawnConfigData cat = getCategory(categoryName);
         if(cat == null) return false;
-        if(cat.Spawns == null) return false;
-        if(!cat.Spawns.containsKey(mobName)) return false;
-        cat.Spawns.put(mobName, mobSpawnData);
+        if(cat.spawns == null) return false;
+        if(!cat.spawns.containsKey(mobName)) return false;
+        cat.spawns.put(mobName, mobSpawnData);
+        modified = true;
         return true;
     }
 }

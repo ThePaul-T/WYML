@@ -29,10 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class WhyYouMakeLag
@@ -75,8 +72,7 @@ public class WhyYouMakeLag
 
     private static void onServerFinishedStarting(MinecraftServer minecraftServer)
     {
-        //I'm assuming this is correct but will leave it to Paul
-//        MobManager.init();
+        CompletableFuture.runAsync(() -> MobManager.init()).join();
     }
 
     @Environment(EnvType.CLIENT)

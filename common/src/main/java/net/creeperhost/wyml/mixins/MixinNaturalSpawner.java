@@ -5,7 +5,9 @@ import net.creeperhost.wyml.ChunkManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.*;
@@ -225,6 +227,15 @@ public abstract class MixinNaturalSpawner
                                 Mob mob = getMobForSpawn(serverLevel, spawnerData.type);
                                 if (mob == null)
                                 {
+                                    return;
+                                }
+                                ResourceLocation entityReg = Registry.ENTITY_TYPE.getKey(mob.getType());
+                                if(spawnManager.reachedMobLimit(entityReg))
+                                {
+                                    if(WymlConfig.cached().DEBUG_PRINT)
+                                    {
+                                        System.out.println("Stopped spawning "+entityReg+" as over configured limit.");
+                                    }
                                     return;
                                 }
 

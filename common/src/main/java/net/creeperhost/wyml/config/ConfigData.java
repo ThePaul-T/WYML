@@ -146,6 +146,9 @@ public class ConfigData
     @Comment("The amount of misc creatures that can spawn in a chunk")
     public int MISC_CREATURES_PER_CHUNK = -1;
 
+    @Comment("Allow per mob, per category, per chunk, per mob limitations from the SpawnLimits directory.")
+    public boolean ENABLE_PER_MOD_CONFIGS = true;
+
     // ******************************************
     // * Mob Despawn Distance
     // ******************************************

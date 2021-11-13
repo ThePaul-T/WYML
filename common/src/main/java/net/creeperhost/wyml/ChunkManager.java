@@ -1,9 +1,16 @@
 package net.creeperhost.wyml;
 
+import net.creeperhost.wyml.config.ModSpawnConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ClassInstanceMultiMap;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +38,7 @@ public class ChunkManager
 
     public ChunkManager(ChunkPos pos, MobCategory classification)
     {
+        //TODO: Start accepting level name too
         this.classification = classification;
         this.chunk = pos;
     }
@@ -232,7 +240,32 @@ public class ChunkManager
         pauseTick = WhyYouMakeLag.getTicks();
         requiresSave = true;
     }
-
+    public boolean reachedMobLimit(ResourceLocation resourceLocation)
+    {
+        return reachedMobLimit(resourceLocation.getNamespace(), resourceLocation.getPath());
+    }
+    public boolean reachedMobLimit(String modName, String mobName)
+    {
+        if(!WymlConfig.cached().ENABLE_PER_MOD_CONFIGS) return false;
+        Level level = WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD);
+        LevelChunk chunk = level.getChunk(getChunk().x, getChunk().z);
+        ClassInstanceMultiMap<Entity> test[] = chunk.getEntitySections();
+        int count = 0;
+        if(test == null || test.length == 0) return false;
+        for(ClassInstanceMultiMap<Entity> t : test)
+        {
+            if(t.isEmpty()) continue;
+            for (Entity entity : t) {
+                ResourceLocation resourceLocation = Registry.ENTITY_TYPE.getKey(entity.getType());
+                if(resourceLocation.getNamespace().equals(modName) && resourceLocation.getPath().equals(mobName))
+                {
+                    count++;
+                }
+            }
+        }
+        ModSpawnConfig modSpawnConfig = MobManager.getMod(modName);
+        return (count >= modSpawnConfig.getMob(mobName).limit);
+    }
     public boolean canPause()
     {
         boolean isPausable = WymlConfig.cached().ALLOW_PAUSE && (WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount() > WymlConfig.cached().MINIMUM_PAUSE_PLAYERS);

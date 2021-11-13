@@ -6,6 +6,10 @@ import net.creeperhost.wyml.data.MobSpawnData;
 import java.util.HashMap;
 
 public class MobSpawnConfigData {
-    @Comment("Per mob spawning limits")
-    public HashMap<String, MobSpawnData> Spawns;
+    public MobSpawnConfigData()
+    {
+        spawns = new HashMap<>();
+    }
+    @Comment("Set the limit per mob within this category")
+    public HashMap<String, MobSpawnData> spawns;
 }
