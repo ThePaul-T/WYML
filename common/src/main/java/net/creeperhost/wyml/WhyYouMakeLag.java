@@ -14,6 +14,7 @@ import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.creeperhost.wyml.network.PacketHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
@@ -65,9 +66,17 @@ public class WhyYouMakeLag
             ClientLifecycleEvent.CLIENT_SETUP.register(WhyYouMakeLag::onClientSetup);
         }
 
+        ServerLifecycleEvents.SERVER_STARTED.register(WhyYouMakeLag::onServerFinishedStarting);
+
         if (chunkManager.get() == null) chunkManager.set(new HashMap<String, ChunkManager>());
         if (cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
         if (cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
+    }
+
+    private static void onServerFinishedStarting(MinecraftServer minecraftServer)
+    {
+        //I'm assuming this is correct but will leave it to Paul
+//        MobManager.init();
     }
 
     @Environment(EnvType.CLIENT)
