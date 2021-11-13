@@ -1,4 +1,4 @@
-package net.creeperhost.wyml.containers.slots;
+package net.creeperhost.wyml.blocks;
 
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.Slot;

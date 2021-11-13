@@ -2,10 +2,7 @@ package net.creeperhost.wyml;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import me.shedaniel.architectury.event.events.LifecycleEvent;
-import me.shedaniel.architectury.event.events.TickEvent;
 import me.shedaniel.architectury.event.events.client.ClientLifecycleEvent;
-import me.shedaniel.architectury.event.events.client.ClientTickEvent;
 import me.shedaniel.architectury.platform.Platform;
 import me.shedaniel.architectury.utils.Env;
 import net.creeperhost.wyml.compat.CompatFTBChunks;

@@ -1,4 +1,4 @@
-package net.creeperhost.wyml.containers;
+package net.creeperhost.wyml.blocks;
 
 import com.google.common.collect.Lists;
 import net.minecraft.core.NonNullList;

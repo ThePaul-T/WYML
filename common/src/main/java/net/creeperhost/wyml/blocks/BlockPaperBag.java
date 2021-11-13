@@ -1,7 +1,6 @@
 package net.creeperhost.wyml.blocks;
 
 import me.shedaniel.architectury.registry.MenuRegistry;
-import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.*;
