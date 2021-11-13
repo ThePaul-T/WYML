@@ -9,6 +9,7 @@
     "MixinFenceBlock",
     "MixinItemEntity",
     "MixinMinecraftServer",
+    "MixinMobCategory",
     "MixinNaturalSpawner",
     "MixinPlayerTabOverlay",
     "MixinServerChunkCache",
