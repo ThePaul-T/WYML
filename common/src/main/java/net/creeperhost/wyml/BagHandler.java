@@ -1,6 +1,6 @@
 package net.creeperhost.wyml;
 
-import net.creeperhost.wyml.blocks.TilePaperBag;
+import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.minecraft.core.BlockPos;

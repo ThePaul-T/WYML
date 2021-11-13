@@ -4,8 +4,10 @@ import me.shedaniel.architectury.registry.DeferredRegister;
 import me.shedaniel.architectury.registry.MenuRegistry;
 import me.shedaniel.architectury.registry.RegistrySupplier;
 import net.creeperhost.wyml.WhyYouMakeLag;
-import net.creeperhost.wyml.blocks.ContainerPaperBag;
-import net.creeperhost.wyml.blocks.TilePaperBag;
+import net.creeperhost.wyml.containers.ContainerFence;
+import net.creeperhost.wyml.containers.ContainerPaperBag;
+import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
+import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.world.inventory.MenuType;
@@ -25,5 +27,18 @@ public class WYMLContainers
             return null;
         }
         return new ContainerPaperBag(id, inventory, tileQuantumStorageUnit);
+    }));
+
+    public static final RegistrySupplier<MenuType<ContainerFence>> FENCE = MENUS.register("fence", () -> MenuRegistry.ofExtended((id, inventory, data) ->
+    {
+        BlockPos pos = data.readBlockPos();
+        BlockEntity tileEntity = inventory.player.getCommandSenderWorld().getBlockEntity(pos);
+        TileMultiBlockFenceGate tileMultiBlockFenceGate = (TileMultiBlockFenceGate) tileEntity;
+        if (!(tileEntity instanceof TileMultiBlockFenceGate))
+        {
+
+            return null;
+        }
+        return new ContainerFence(id, inventory, tileMultiBlockFenceGate);
     }));
 }

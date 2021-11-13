@@ -6,6 +6,7 @@
   "mixins": [
     "AccessorChunkMap",
     "AccessorMinecraftServer",
+    "MixinFenceBlock",
     "MixinItemEntity",
     "MixinMinecraftServer",
     "MixinMobCategory",
