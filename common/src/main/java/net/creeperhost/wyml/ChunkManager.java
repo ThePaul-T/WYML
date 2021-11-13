@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-public class WYMLSpawnManager
+public class ChunkManager
 {
     MobCategory classification;
     ChunkPos chunk;
@@ -29,7 +29,7 @@ public class WYMLSpawnManager
     private HashMap<Long, spawnLocation> prevSpawns = new HashMap<Long, spawnLocation>();
     boolean slowMode;
 
-    public WYMLSpawnManager(ChunkPos pos, MobCategory classification)
+    public ChunkManager(ChunkPos pos, MobCategory classification)
     {
         this.classification = classification;
         this.chunk = pos;

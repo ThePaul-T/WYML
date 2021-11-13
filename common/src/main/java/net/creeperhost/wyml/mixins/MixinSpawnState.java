@@ -1,7 +1,7 @@
 package net.creeperhost.wyml.mixins;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.creeperhost.wyml.WYMLSpawnManager;
+import net.creeperhost.wyml.ChunkManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
@@ -43,7 +43,7 @@ public class MixinSpawnState
     @Inject(at = @At("HEAD"), method = "canSpawn", cancellable = true)
     private void canSpawn(EntityType<?> entityType, BlockPos blockPos, ChunkAccess chunkAccess, CallbackInfoReturnable<Boolean> cir)
     {
-        WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkAccess.getPos(), entityType.getCategory());
+        ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkAccess.getPos(), entityType.getCategory());
         if (spawnManager.isPaused())
         {
             cir.setReturnValue(false);
@@ -58,11 +58,11 @@ public class MixinSpawnState
         ChunkPos chunkPos = chunkAccess.getPos();
         if (mob != null && mob.isAlive() && mob.level != null)
         {
-            if (WhyYouMakeLag.hasSpawnManager(chunkPos, mob.getType().getCategory()))
+            if (WhyYouMakeLag.hasChunkManager(chunkPos, mob.getType().getCategory()))
             {
-                WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkPos, mob.getType().getCategory());
+                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkPos, mob.getType().getCategory());
                 spawnManager.decreaseSpawningCount(mob.blockPosition());
-                WhyYouMakeLag.updateSpawnManager(spawnManager);
+                WhyYouMakeLag.updateChunkManager(spawnManager);
                 if (WymlConfig.cached().DEBUG_PRINT)
                     System.out.println("Completed spawn for " + spawnManager.getClassification().getName() + " " + spawnManager.getChunk() + " - " + (100d - spawnManager.getFailRate()) + "% success rate (" + spawnManager.getFinishRate() + "/" + spawnManager.getStartRate() + ")");
             }

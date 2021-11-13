@@ -1,7 +1,7 @@
 package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.WYMLReimplementedHooks;
-import net.creeperhost.wyml.WYMLSpawnManager;
+import net.creeperhost.wyml.ChunkManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
@@ -97,7 +97,7 @@ public abstract class MixinNaturalSpawner
             if (entityType.getCategory() != null)
             {
                 ChunkPos chuck = new ChunkPos(blockPos);
-                WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chuck, entityType.getCategory());
+                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chuck, entityType.getCategory());
                 if (spawnManager != null)
                 {
                     if (spawnManager.isKnownBadLocation(blockPos))
@@ -123,10 +123,10 @@ public abstract class MixinNaturalSpawner
             //Keep this up to date if scaling is enabled.
             MAGIC_NUMBER = MAGIC_NUMBER_2_ELECTRIC_BOOGALOO;
         }
-        WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkAccess.getPos(), mobCategory);
+        ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkAccess.getPos(), mobCategory);
         if (spawnManager.isPaused())
         {
-            if (!spawnManager.isSaved()) WhyYouMakeLag.updateSpawnManager(spawnManager);
+            if (!spawnManager.isSaved()) WhyYouMakeLag.updateChunkManager(spawnManager);
             return;
         }
         if (spawnManager.isSlowMode())
@@ -143,7 +143,7 @@ public abstract class MixinNaturalSpawner
                 spawnManager.fastMode();
                 if (WymlConfig.cached().DEBUG_PRINT)
                     System.out.println("Entering fast spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
-                WhyYouMakeLag.updateSpawnManager(spawnManager);
+                WhyYouMakeLag.updateChunkManager(spawnManager);
             }
         }
         else
@@ -154,7 +154,7 @@ public abstract class MixinNaturalSpawner
                 spawnManager.slowMode();
                 if (WymlConfig.cached().DEBUG_PRINT)
                     System.out.println("Entering slow spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
-                WhyYouMakeLag.updateSpawnManager(spawnManager);
+                WhyYouMakeLag.updateChunkManager(spawnManager);
                 return;
             }
         }
@@ -165,7 +165,7 @@ public abstract class MixinNaturalSpawner
             int resumeRate = spawnManager.isClaimed() ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
             if (WymlConfig.cached().DEBUG_PRINT)
                 System.out.println("Pausing spawns for " + pauseTicks + " ticks or until " + resumeRate + "% success rate for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + " due to high failure rate [" + spawnManager.getFailRate() + "%].");
-            WhyYouMakeLag.updateSpawnManager(spawnManager);
+            WhyYouMakeLag.updateChunkManager(spawnManager);
             return;
         }
         BlockState blockState = chunkAccess.getBlockState(blockPos);
@@ -202,7 +202,7 @@ public abstract class MixinNaturalSpawner
                     double d = (double) l + 0.5D;
                     double e = (double) m + 0.5D;
                     spawnManager.increaseSpawningCount(mutableBlockPos);
-                    WhyYouMakeLag.updateSpawnManager(spawnManager);
+                    WhyYouMakeLag.updateChunkManager(spawnManager);
                     Player player = serverLevel.getNearestPlayer(d, (double) i, e, -1.0D, false);
                     if (player != null)
                     {
