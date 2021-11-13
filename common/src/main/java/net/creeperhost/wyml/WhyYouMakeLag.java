@@ -2,6 +2,7 @@ package net.creeperhost.wyml;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import me.shedaniel.architectury.event.events.LifecycleEvent;
 import me.shedaniel.architectury.event.events.client.ClientLifecycleEvent;
 import me.shedaniel.architectury.platform.Platform;
 import me.shedaniel.architectury.utils.Env;
@@ -14,7 +15,6 @@ import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.creeperhost.wyml.network.PacketHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
@@ -66,7 +66,7 @@ public class WhyYouMakeLag
             ClientLifecycleEvent.CLIENT_SETUP.register(WhyYouMakeLag::onClientSetup);
         }
 
-        ServerLifecycleEvents.SERVER_STARTED.register(WhyYouMakeLag::onServerFinishedStarting);
+        LifecycleEvent.SERVER_STARTED.register(WhyYouMakeLag::onServerFinishedStarting);
 
         if (chunkManager.get() == null) chunkManager.set(new HashMap<String, ChunkManager>());
         if (cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
