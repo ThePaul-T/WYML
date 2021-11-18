@@ -42,6 +42,10 @@ allprojects {
         }
 
         maven {
+            url "https://maven.creeperhost.net/"
+        }
+
+        maven {
             url "https://www.cursemaven.com"
             content {
                 includeGroup "curse.maven"
