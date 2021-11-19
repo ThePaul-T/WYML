@@ -8,10 +8,14 @@ import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ClassInstanceMultiMap;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkSource;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.dimension.DimensionType;
 
@@ -25,6 +29,7 @@ public class ChunkManager
     MobCategory classification;
     ChunkPos chunk;
     DimensionType dimensionType;
+    Level level;
     int spawningCount;
     private long startRate;
     private long finishRate;
@@ -249,14 +254,67 @@ public class ChunkManager
     {
         return reachedMobLimit(resourceLocation.getNamespace(), resourceLocation.getPath());
     }
+    public Level getLevel()
+    {
+        return this.level;
+    }
     public boolean reachedMobLimit(String modName, String mobName)
     {
-        if(!WymlConfig.cached().ENABLE_PER_MOD_CONFIGS) return false;
-        Level level = WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD);
-        LevelChunk chunk = level.getChunk(getChunk().x, getChunk().z);
+        if(!WymlConfig.cached().ENABLE_PER_MOD_CONFIGS||!MobManager.canManage) return false;
+        if(!mobName.equals("creeper")) return false;
+        if(this.level == null) {
+            for (ResourceKey<Level> levelKey : WhyYouMakeLag.minecraftServer.levelKeys()) {
+                Level _level = WhyYouMakeLag.minecraftServer.getLevel(levelKey);
+                if (_level == null) continue;
+                if (_level.dimensionType() == dimensionType) {
+                    this.level = _level;
+                    break;
+                }
+            }
+        }
+        if(level == null) level = WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD);
+        if(level == null||level.isClientSide()) return false;
+        ProfilerFiller profilerFiller = level.getProfiler();
+        profilerFiller.push("mobLimit");
+        ChunkPos pos = getChunk();
+        if(pos == null)
+        {
+            profilerFiller.pop();
+            return false;
+        }
+        LevelChunk chunk = null;
+        try {
+            ChunkSource source = level.getChunkSource();
+            if(!source.hasChunk(pos.x, pos.z))
+            {
+                profilerFiller.pop();
+                return false;
+            }
+            ChunkAccess chunkAccess = source.getChunk(pos.x, pos.z, ChunkStatus.FULL, false);
+            if(chunkAccess == null)
+            {
+                profilerFiller.pop();
+                return false;
+            }
+            chunk = (LevelChunk) chunkAccess;
+        } catch(Exception e)
+        {
+            e.printStackTrace();
+            profilerFiller.pop();
+            return false;
+        }
+        if(chunk == null)
+        {
+            profilerFiller.pop();
+            return false;
+        }
         ClassInstanceMultiMap<Entity> test[] = chunk.getEntitySections();
         int count = 0;
-        if(test == null || test.length == 0) return false;
+        if(test == null || test.length == 0)
+        {
+            profilerFiller.pop();
+            return false;
+        }
         for(ClassInstanceMultiMap<Entity> t : test)
         {
             if(t.isEmpty()) continue;
@@ -269,9 +327,18 @@ public class ChunkManager
             }
         }
         ModSpawnConfig modSpawnConfig = MobManager.getMod(modName);
-        if(modSpawnConfig == null) return false;
+        if(modSpawnConfig == null)
+        {
+            profilerFiller.pop();
+            return false;
+        }
         MobSpawnData mobSpawnData = modSpawnConfig.getMob(mobName);
-        if(mobSpawnData == null) return false;
+        if(mobSpawnData == null)
+        {
+            profilerFiller.pop();
+            return false;
+        }
+        profilerFiller.pop();
         return (count >= mobSpawnData.limit);
     }
     public boolean canPause()

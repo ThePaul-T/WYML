@@ -66,7 +66,7 @@ public class ModSpawnConfig {
             if(_c == null) continue;
             for(String mob : _c.spawns.keySet())
             {
-                if(mob == mobName)
+                if(mob.equals(mobName))
                 {
                     return _c.spawns.get(mob);
                 }

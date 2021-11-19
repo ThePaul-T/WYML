@@ -19,6 +19,7 @@ import java.util.Locale;
 
 public class MobManager {
     public static Jankson gson = Jankson.builder().build();
+    public static boolean canManage = false;
     private static HashMap<String, ModSpawnConfig> cached = new HashMap<String, ModSpawnConfig>();
     public static void init()
     {
@@ -63,6 +64,7 @@ public class MobManager {
             }
         }
         saveConfigs();
+        canManage = true;
     }
     private static boolean saveConfigs()
     {
