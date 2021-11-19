@@ -16,11 +16,14 @@ import net.creeperhost.wyml.network.PacketHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.dimension.DimensionType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -128,9 +131,9 @@ public class WhyYouMakeLag
         scheduledExecutorService.shutdownNow();
     }
 
-    public synchronized static boolean hasChunkManager(ChunkPos pos, MobCategory classification)
+    public synchronized static boolean hasChunkManager(ChunkPos pos, ResourceKey<Level> level, MobCategory classification)
     {
-        String id = pos + classification.getName();
+        String id = pos + level.toString() + classification.getName();
         return chunkManager.get().containsKey(id);
     }
 
@@ -146,7 +149,7 @@ public class WhyYouMakeLag
     @SuppressWarnings("unused")
     public synchronized static void removeChunkManager(ChunkManager manager)
     {
-        String id = manager.chunk + manager.classification.getName();
+        String id = manager.chunk + manager.dimensionType.toString() + manager.classification.getName();
         chunkManager.getAndUpdate((existing) ->
         {
             existing.remove(id);
@@ -154,14 +157,14 @@ public class WhyYouMakeLag
         });
     }
 
-    public synchronized static ChunkManager getChunkManager(ChunkPos pos, MobCategory classification)
+    public synchronized static ChunkManager getChunkManager(ChunkPos pos, DimensionType dimensionType, MobCategory classification)
     {
-        String id = pos + classification.getName();
+        String id = pos + dimensionType.toString() + classification.getName();
         if (chunkManager.get().containsKey(id))
         {
             return chunkManager.get().get(id);
         }
-        return new ChunkManager(pos, classification);
+        return new ChunkManager(pos, dimensionType, classification);
     }
 
     public static double getMagicNum()
@@ -180,7 +183,7 @@ public class WhyYouMakeLag
     public synchronized static void updateChunkManager(ChunkManager manager)
     {
         if (manager.isSaved()) return;
-        String id = manager.chunk + manager.classification.getName();
+        String id = manager.chunk + manager.dimensionType.toString() + manager.classification.getName();
         chunkManager.getAndUpdate((existing) ->
         {
             manager.isSaving();

@@ -9,8 +9,10 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.dimension.DimensionType;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -43,7 +45,8 @@ public class MixinSpawnState
     @Inject(at = @At("HEAD"), method = "canSpawn", cancellable = true)
     private void canSpawn(EntityType<?> entityType, BlockPos blockPos, ChunkAccess chunkAccess, CallbackInfoReturnable<Boolean> cir)
     {
-        ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkAccess.getPos(), entityType.getCategory());
+        //TODO: find the actual level
+        ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkAccess.getPos(), WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD).dimensionType(), entityType.getCategory());
         if (spawnManager.isPaused())
         {
             cir.setReturnValue(false);
@@ -58,9 +61,9 @@ public class MixinSpawnState
         ChunkPos chunkPos = chunkAccess.getPos();
         if (mob != null && mob.isAlive() && mob.level != null)
         {
-            if (WhyYouMakeLag.hasChunkManager(chunkPos, mob.getType().getCategory()))
+            if (WhyYouMakeLag.hasChunkManager(chunkPos, mob.level.dimension(), mob.getType().getCategory()))
             {
-                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkPos, mob.getType().getCategory());
+                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkPos, mob.level.dimensionType(), mob.getType().getCategory());
                 spawnManager.decreaseSpawningCount(mob.blockPosition());
                 WhyYouMakeLag.updateChunkManager(spawnManager);
                 if (WymlConfig.cached().DEBUG_PRINT)

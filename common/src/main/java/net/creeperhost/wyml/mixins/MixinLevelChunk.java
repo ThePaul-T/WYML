@@ -21,7 +21,7 @@ public class MixinLevelChunk {
     {
         if(entity instanceof Mob && WymlConfig.cached().HARD_MOB_LIMITS) {
             ChunkPos pos = new ChunkPos(entity.xChunk, entity.zChunk);
-            ChunkManager cm = WhyYouMakeLag.getChunkManager(pos, entity.getType().getCategory());
+            ChunkManager cm = WhyYouMakeLag.getChunkManager(pos, entity.level.dimensionType(), entity.getType().getCategory());
             ResourceLocation location = Registry.ENTITY_TYPE.getKey(entity.getType());
             if (cm.reachedMobLimit(location)) {
                 System.out.println("Set entity at " + pos.x + "," + pos.z + " to removed as past spawn limits; " + entity.getType().toString());

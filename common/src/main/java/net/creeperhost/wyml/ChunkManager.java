@@ -5,6 +5,7 @@ import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.data.MobSpawnData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ClassInstanceMultiMap;
 import net.minecraft.world.entity.Entity;
@@ -12,6 +13,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.dimension.DimensionType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +24,7 @@ public class ChunkManager
 {
     MobCategory classification;
     ChunkPos chunk;
+    DimensionType dimensionType;
     int spawningCount;
     private long startRate;
     private long finishRate;
@@ -37,11 +40,12 @@ public class ChunkManager
     private HashMap<Long, spawnLocation> prevSpawns = new HashMap<Long, spawnLocation>();
     boolean slowMode;
 
-    public ChunkManager(ChunkPos pos, MobCategory classification)
+    public ChunkManager(ChunkPos pos, DimensionType dimensionType, MobCategory classification)
     {
         //TODO: Start accepting level name too
         this.classification = classification;
         this.chunk = pos;
+        this.dimensionType = dimensionType;
     }
 
     public ChunkPos getChunk()

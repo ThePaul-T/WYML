@@ -12,10 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.NaturalSpawner;
-import net.minecraft.world.level.StructureFeatureManager;
+import net.minecraft.world.level.*;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -99,7 +96,7 @@ public abstract class MixinNaturalSpawner
             if (entityType.getCategory() != null)
             {
                 ChunkPos chuck = new ChunkPos(blockPos);
-                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chuck, entityType.getCategory());
+                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chuck, levelReader.dimensionType(), entityType.getCategory());
                 if (spawnManager != null)
                 {
                     if (spawnManager.isKnownBadLocation(blockPos))
@@ -125,7 +122,7 @@ public abstract class MixinNaturalSpawner
             //Keep this up to date if scaling is enabled.
             MAGIC_NUMBER = MAGIC_NUMBER_2_ELECTRIC_BOOGALOO;
         }
-        ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkAccess.getPos(), mobCategory);
+        ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkAccess.getPos(), serverLevel.dimensionType(), mobCategory);
         if (spawnManager.isPaused())
         {
             if (!spawnManager.isSaved()) WhyYouMakeLag.updateChunkManager(spawnManager);
