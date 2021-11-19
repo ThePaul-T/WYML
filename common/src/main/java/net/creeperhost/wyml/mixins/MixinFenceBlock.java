@@ -1,6 +1,5 @@
 package net.creeperhost.wyml.mixins;
 
-import net.creeperhost.wyml.blocks.BlockMultiBlockFenceGate;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -15,6 +14,6 @@ public class MixinFenceBlock
     @Inject(at = @At("HEAD"), method = "connectsTo", cancellable = true)
     private void connectsTo(BlockState blockState, boolean bl, Direction direction, CallbackInfoReturnable<Boolean> cir)
     {
-        if(blockState.getBlock() instanceof BlockMultiBlockFenceGate && BlockMultiBlockFenceGate.connectsToDirection(blockState, direction)) cir.setReturnValue(true);
+//        if(blockState.getBlock() instanceof BlockMultiBlockFenceGate && BlockMultiBlockFenceGate.connectsToDirection(blockState, direction)) cir.setReturnValue(true);
     }
 }

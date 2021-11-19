@@ -1,7 +1,6 @@
 package net.creeperhost.wyml.network;
 
 import me.shedaniel.architectury.networking.NetworkManager;
-import net.creeperhost.wyml.tiles.TileMultiBlockFenceGate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.network.FriendlyByteBuf;
@@ -60,17 +59,17 @@ public class MessageUpdateFence
             Level level = context.get().getPlayer().level;
             if (level == null) return;
 
-            if (level.getBlockEntity(blockPos) instanceof TileMultiBlockFenceGate)
-            {
-                TileMultiBlockFenceGate tileMultiBlockFenceGate = (TileMultiBlockFenceGate) level.getBlockEntity(blockPos);
-                if (tileMultiBlockFenceGate == null) return;
-
-                tileMultiBlockFenceGate.setStoredEntityCount(storedCount);
-                if(entityTypes != null && !entityTypes.isEmpty())
-                {
-                    tileMultiBlockFenceGate.setStoredEntities(entityTypes);
-                }
-            }
+//            if (level.getBlockEntity(blockPos) instanceof TileMultiBlockFenceGate)
+//            {
+//                TileMultiBlockFenceGate tileMultiBlockFenceGate = (TileMultiBlockFenceGate) level.getBlockEntity(blockPos);
+//                if (tileMultiBlockFenceGate == null) return;
+//
+//                tileMultiBlockFenceGate.setStoredEntityCount(storedCount);
+//                if(entityTypes != null && !entityTypes.isEmpty())
+//                {
+//                    tileMultiBlockFenceGate.setStoredEntities(entityTypes);
+//                }
+//            }
         });
     }
 }
