@@ -149,6 +149,9 @@ public class ConfigData
     @Comment("Allow per mob, per category, per chunk, per mob limitations from the SpawnLimits directory.")
     public boolean ENABLE_PER_MOD_CONFIGS = true;
 
+    @Comment("Make per mob, per category per chunk limitations hard limits or soft (Forcefully stop spawns).")
+    public boolean HARD_MOB_LIMITS = false;
+
     // ******************************************
     // * Mob Despawn Distance
     // ******************************************
