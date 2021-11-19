@@ -238,10 +238,10 @@ public abstract class MixinNaturalSpawner
 
                                 mob.moveTo(d, (double) i, e, serverLevel.random.nextFloat() * 360.0F, 0.0F);
 
-                                int canSpawn = WYMLReimplementedHooks.canSpawn(mob, serverLevel, d, i, f, null, MobSpawnType.NATURAL);
+                                int canSpawn = WYMLReimplementedHooks.canSpawn(mob, serverLevel, d, i, e, null, MobSpawnType.NATURAL);
                                 if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverLevel, mob, f)))
                                 {
-                                    if (!WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) f, null, MobSpawnType.NATURAL))
+                                    if (!WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) e, null, MobSpawnType.NATURAL))
                                     {
                                         spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.NATURAL, spawnGroupData, (CompoundTag) null);
                                         ++j;
