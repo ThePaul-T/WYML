@@ -3,6 +3,7 @@
   "plugin": "net.creeperhost.wyml.mixins.MixinDataFixersPlugin",
   "package": "net.creeperhost.wyml.mixins",
   "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.8.2",
   "mixins": [
     "AccessorChunkMap",
     "AccessorMinecraftServer",
