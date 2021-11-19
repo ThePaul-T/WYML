@@ -1,6 +1,7 @@
 package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.config.WymlConfig;
+import net.minecraft.core.Registry;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -27,7 +28,8 @@ public abstract class MixinItemEntity extends Entity
     {
         if (!this.level.isClientSide && this.age >= WymlConfig.cached().ITEM_DESPAWN_TIME)
         {
-            this.remove();
+            String name = Registry.ENTITY_TYPE.getKey(this.getType()).toString();
+            if(!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name)) this.remove();
         }
     }
 }

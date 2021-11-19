@@ -2,6 +2,9 @@ package net.creeperhost.wyml.config;
 
 import blue.endless.jankson.Comment;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ConfigData
 {
     // ******************************************
@@ -40,6 +43,8 @@ public class ConfigData
     @Comment("Set the amount of time it takes for an item to despawn in ticks, This can only be reduced (default 6000)")
     public int ITEM_DESPAWN_TIME = 6000;
 
+    @Comment("List of items which are not to have their de-spawn time changed")
+    public List<String> ITEM_DESPAWN_DENYLIST = new ArrayList<String>();
 
     // ******************************************
     // * Pausing
