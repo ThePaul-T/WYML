@@ -1,7 +1,7 @@
 package net.creeperhost.wyml.network;
 
 import me.shedaniel.architectury.networking.NetworkManager;
-import net.creeperhost.wyml.blocks.TilePaperBag;
+import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.level.Level;

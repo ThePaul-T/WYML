@@ -2,6 +2,9 @@ package net.creeperhost.wyml.config;
 
 import blue.endless.jankson.Comment;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ConfigData
 {
     // ******************************************
@@ -37,9 +40,11 @@ public class ConfigData
     @Comment("Ensure the tick loop does not run repeatedly, waits until the next tick is due (reduce cpu usage on hardware)")
     public boolean NORMALIZE_TICKS = true;
 
-    @Comment("Set the amount of time it takes for an item to despawn in ticks, This can only be reduced (default 6000)")
+    @Comment("Set the amount of time it takes for an item to de-spawn in ticks, This can only be reduced (default 6000)")
     public int ITEM_DESPAWN_TIME = 6000;
 
+    @Comment("List of items which are not to have their de-spawn time changed\r\nExample: minecraft:kelp")
+    public List<String> ITEM_DESPAWN_DENYLIST = new ArrayList<String>();
 
     // ******************************************
     // * Pausing
@@ -113,16 +118,16 @@ public class ConfigData
     // ******************************************
     // * Paper Bags
     // ******************************************
-    @Comment("Allow Paperbags to pickup item spills")
+    @Comment("Allow Paper bags to pickup item spills")
     public boolean ALLOW_PAPER_BAGS = false;
 
-    @Comment("The minimum age an item will need to be in a spill before a Paperbag will be spawned (default 60)")
+    @Comment("The minimum age an item will need to be in a spill before a Paper bag will be spawned (default 60)")
     public int MIN_ITEM_AGE = 60;
 
-    @Comment("The minimum amount of items in a spill needed for a Paperbag to spawn (default 20)")
+    @Comment("The minimum amount of items in a spill needed for a Paper bag to spawn (default 20)")
     public int MIN_ITEM_COUNT = 20;
 
-    @Comment("The amount of time in seconds before a Paperbag will despawn (default 300)")
+    @Comment("The amount of time in seconds before a Paper bag will de-spawn (default 300)")
     public int PAPER_BAG_DESPAWN_TIME = 300;
 
     // ******************************************
@@ -145,6 +150,12 @@ public class ConfigData
 
     @Comment("The amount of misc creatures that can spawn in a chunk")
     public int MISC_CREATURES_PER_CHUNK = -1;
+
+    @Comment("Allow per mob, per category, per chunk, per mob limitations from the SpawnLimits directory.")
+    public boolean ENABLE_PER_MOD_CONFIGS = true;
+
+    @Comment("Make per mob, per category per chunk limitations hard limits or soft (Forcefully stop spawns even when not natural).")
+    public boolean HARD_MOB_LIMITS = false;
 
     // ******************************************
     // * Mob Despawn Distance

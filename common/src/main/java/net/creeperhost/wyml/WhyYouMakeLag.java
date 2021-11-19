@@ -3,9 +3,7 @@ package net.creeperhost.wyml;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.shedaniel.architectury.event.events.LifecycleEvent;
-import me.shedaniel.architectury.event.events.TickEvent;
 import me.shedaniel.architectury.event.events.client.ClientLifecycleEvent;
-import me.shedaniel.architectury.event.events.client.ClientTickEvent;
 import me.shedaniel.architectury.platform.Platform;
 import me.shedaniel.architectury.utils.Env;
 import net.creeperhost.wyml.compat.CompatFTBChunks;
@@ -18,11 +16,14 @@ import net.creeperhost.wyml.network.PacketHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.dimension.DimensionType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,10 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class WhyYouMakeLag
@@ -47,7 +45,7 @@ public class WhyYouMakeLag
     public static HashMap<MobCategory, Integer> spawnableChunkCount = new HashMap<>();
     public static AtomicReference<List<Long>> cachedClaimedChunks = new AtomicReference<>();
     public static AtomicReference<List<Long>> cachedForceLoadedChunks = new AtomicReference<>();
-    private static AtomicReference<HashMap<String, WYMLSpawnManager>> spawnManager = new AtomicReference<>();
+    private static AtomicReference<HashMap<String, ChunkManager>> chunkManager = new AtomicReference<>();
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
@@ -68,9 +66,16 @@ public class WhyYouMakeLag
             ClientLifecycleEvent.CLIENT_SETUP.register(WhyYouMakeLag::onClientSetup);
         }
 
-        if (spawnManager.get() == null) spawnManager.set(new HashMap<String, WYMLSpawnManager>());
+        LifecycleEvent.SERVER_STARTED.register(WhyYouMakeLag::onServerFinishedStarting);
+
+        if (chunkManager.get() == null) chunkManager.set(new HashMap<String, ChunkManager>());
         if (cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
         if (cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
+    }
+
+    private static void onServerFinishedStarting(MinecraftServer minecraftServer)
+    {
+        CompletableFuture.runAsync(() -> MobManager.init()).join();
     }
 
     @Environment(EnvType.CLIENT)
@@ -126,15 +131,15 @@ public class WhyYouMakeLag
         scheduledExecutorService.shutdownNow();
     }
 
-    public synchronized static boolean hasSpawnManager(ChunkPos pos, MobCategory classification)
+    public synchronized static boolean hasChunkManager(ChunkPos pos, ResourceKey<Level> level, MobCategory classification)
     {
-        String id = pos + classification.getName();
-        return spawnManager.get().containsKey(id);
+        String id = pos + level.toString() + classification.getName();
+        return chunkManager.get().containsKey(id);
     }
 
-    public synchronized static void removeSpawnManager(String id)
+    public synchronized static void removeChunkManager(String id)
     {
-        spawnManager.getAndUpdate((existing) ->
+        chunkManager.getAndUpdate((existing) ->
         {
             existing.remove(id);
             return existing;
@@ -142,24 +147,24 @@ public class WhyYouMakeLag
     }
 
     @SuppressWarnings("unused")
-    public synchronized static void removeSpawnManager(WYMLSpawnManager manager)
+    public synchronized static void removeChunkManager(ChunkManager manager)
     {
-        String id = manager.chunk + manager.classification.getName();
-        spawnManager.getAndUpdate((existing) ->
+        String id = manager.chunk + manager.dimensionType.toString() + manager.classification.getName();
+        chunkManager.getAndUpdate((existing) ->
         {
             existing.remove(id);
             return existing;
         });
     }
 
-    public synchronized static WYMLSpawnManager getSpawnManager(ChunkPos pos, MobCategory classification)
+    public synchronized static ChunkManager getChunkManager(ChunkPos pos, DimensionType dimensionType, MobCategory classification)
     {
-        String id = pos + classification.getName();
-        if (spawnManager.get().containsKey(id))
+        String id = pos + dimensionType.toString() + classification.getName();
+        if (chunkManager.get().containsKey(id))
         {
-            return spawnManager.get().get(id);
+            return chunkManager.get().get(id);
         }
-        return new WYMLSpawnManager(pos, classification);
+        return new ChunkManager(pos, dimensionType, classification);
     }
 
     public static double getMagicNum()
@@ -175,11 +180,11 @@ public class WhyYouMakeLag
         return magicNum;
     }
 
-    public synchronized static void updateSpawnManager(WYMLSpawnManager manager)
+    public synchronized static void updateChunkManager(ChunkManager manager)
     {
         if (manager.isSaved()) return;
-        String id = manager.chunk + manager.classification.getName();
-        spawnManager.getAndUpdate((existing) ->
+        String id = manager.chunk + manager.dimensionType.toString() + manager.classification.getName();
+        chunkManager.getAndUpdate((existing) ->
         {
             manager.isSaving();
             existing.put(id, manager);
@@ -214,13 +219,13 @@ public class WhyYouMakeLag
                 int managersTotal = 0;
                 int blockCacheRemoved = 0;
                 int blockCacheTotal = 0;
-                HashMap<String, WYMLSpawnManager> spawnManagers = new HashMap<>(spawnManager.get());
+                HashMap<String, ChunkManager> spawnManagers = new HashMap<>(chunkManager.get());
                 List<String> toRemove = new ArrayList<String>();
                 Set<String> ids = spawnManagers.keySet();
                 for (String id : ids)
                 {
                     managersTotal++;
-                    WYMLSpawnManager sm = spawnManagers.get(id);
+                    ChunkManager sm = spawnManagers.get(id);
                     if (sm.hasExpired())
                     {
                         toRemove.add(id);
@@ -231,7 +236,7 @@ public class WhyYouMakeLag
                         int amRemoved = sm.cleanBlockCache();
                         if (amRemoved > 0 || !sm.isSaved())
                         {
-                            updateSpawnManager(sm);
+                            updateChunkManager(sm);
                         }
                         blockCacheRemoved += amRemoved;
                     }
@@ -239,7 +244,7 @@ public class WhyYouMakeLag
                 spawnManagers.clear();
                 for (String id : toRemove)
                 {
-                    removeSpawnManager(id);
+                    removeChunkManager(id);
                     managersRemoved = managersRemoved + 1;
                 }
                 if (true)//WymlConfig.DEBUG_PRINT.get())

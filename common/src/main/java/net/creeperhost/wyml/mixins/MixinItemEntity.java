@@ -1,9 +1,11 @@
 package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.config.WymlConfig;
+import net.minecraft.core.Registry;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,6 +19,8 @@ public abstract class MixinItemEntity extends Entity
     @Shadow
     private int age;
 
+    @Shadow public abstract ItemStack getItem();
+
     public MixinItemEntity(EntityType<?> entityType, Level level)
     {
         super(entityType, level);
@@ -27,7 +31,8 @@ public abstract class MixinItemEntity extends Entity
     {
         if (!this.level.isClientSide && this.age >= WymlConfig.cached().ITEM_DESPAWN_TIME)
         {
-            this.remove();
+            String name = Registry.ITEM.getKey(this.getItem().getItem()).toString();
+            if(!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name)) this.remove();
         }
     }
 }

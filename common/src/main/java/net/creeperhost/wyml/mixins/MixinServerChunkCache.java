@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-@Mixin(ServerChunkCache.class)
+@Mixin(value = ServerChunkCache.class, priority = 999)
 public abstract class MixinServerChunkCache
 {
     @Shadow
