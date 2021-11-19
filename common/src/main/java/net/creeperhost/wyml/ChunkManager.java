@@ -2,6 +2,7 @@ package net.creeperhost.wyml;
 
 import net.creeperhost.wyml.config.ModSpawnConfig;
 import net.creeperhost.wyml.config.WymlConfig;
+import net.creeperhost.wyml.data.MobSpawnData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
@@ -264,7 +265,10 @@ public class ChunkManager
             }
         }
         ModSpawnConfig modSpawnConfig = MobManager.getMod(modName);
-        return (count >= modSpawnConfig.getMob(mobName).limit);
+        if(modSpawnConfig == null) return false;
+        MobSpawnData mobSpawnData = modSpawnConfig.getMob(mobName);
+        if(mobSpawnData == null) return false;
+        return (count >= mobSpawnData.limit);
     }
     public boolean canPause()
     {
