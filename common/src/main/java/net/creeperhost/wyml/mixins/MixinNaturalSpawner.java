@@ -35,7 +35,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Random;
 
 
-@Mixin(NaturalSpawner.class)
+@Mixin(value = NaturalSpawner.class, priority = 9001)
 public abstract class MixinNaturalSpawner
 {
     @Shadow
