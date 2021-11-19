@@ -261,7 +261,6 @@ public class ChunkManager
     public boolean reachedMobLimit(String modName, String mobName)
     {
         if(!WymlConfig.cached().ENABLE_PER_MOD_CONFIGS||!MobManager.canManage) return false;
-        if(!mobName.equals("creeper")) return false;
         if(this.level == null) {
             for (ResourceKey<Level> levelKey : WhyYouMakeLag.minecraftServer.levelKeys()) {
                 Level _level = WhyYouMakeLag.minecraftServer.getLevel(levelKey);
