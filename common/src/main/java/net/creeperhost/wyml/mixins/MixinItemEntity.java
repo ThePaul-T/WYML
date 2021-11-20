@@ -22,30 +22,29 @@ public abstract class MixinItemEntity extends MixinEntity
     @Shadow
     public abstract ItemStack getItem();
 
-    public MixinItemEntity(EntityType<?> entityType, Level level)
-    {
-        super(entityType, level);
-    }
-    
     @Inject(at = @At("TAIL"), method = "tick", cancellable = true)
     private void tick(CallbackInfo ci)
     {
-        if (!getThis().level.isClientSide && age >= WymlConfig.cached().ITEM_DESPAWN_TIME)
-        {
-            getThis().remove();
+        if ((tickCount + getTickOffset()) % 20 == 0) {
+            if (!getThis().level.isClientSide && age >= WymlConfig.cached().ITEM_DESPAWN_TIME) {
+                String name = Registry.ITEM.getKey(this.getItem().getItem()).toString();
+                if (!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name)) getThis().remove();
+            }
         }
     }
 
     @Inject(method = "mergeWithNeighbours", at = @At(value = "HEAD"), cancellable = true)
     private void onMergeWithNeighbours(CallbackInfo ci) {
-        if (!WymlConfig.cached().NORMALIZE_ITEM_STACK_MERGING) return;
-        if ((tickCount + getTickOffset()) % 20 != 0)
+        if (WymlConfig.cached().NORMALIZE_ITEM_STACK_MERGING) {
+            if ((tickCount + getTickOffset()) % 20 != 0) {
+                ci.cancel();
+                return;
+            }
+        }
+        if ((tickCount + getTickOffset()) % 20 == 0)
         {
-            ci.cancel();
-            return;
-        } else {
             String name = Registry.ITEM.getKey(this.getItem().getItem()).toString();
-            if(!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name)) this.remove();
+            if(!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name)) getThis().remove();
         }
     }
 }
