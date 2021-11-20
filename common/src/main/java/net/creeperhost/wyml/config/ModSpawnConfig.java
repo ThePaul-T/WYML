@@ -21,6 +21,7 @@ public class ModSpawnConfig {
     }
     public boolean Save(Path path)
     {
+        if(!modified) return true;
         Path file = path.resolve(getName()+".json");
         try (FileOutputStream configOut = new FileOutputStream(file.toFile()))
         {

@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 public class MobManager {
     public static Jankson gson = Jankson.builder().build();
@@ -63,10 +64,9 @@ public class MobManager {
                 mod.addMob(catName, mobName, _mob);
             }
         }
-        saveConfigs();
-        canManage = true;
+        CompletableFuture.runAsync(MobManager::saveConfigs).thenRun(() -> {canManage = true;});
     }
-    private static boolean saveConfigs()
+    public static boolean saveConfigs()
     {
         Path path = WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + "-SpawnRules").toAbsolutePath();
         for(String modName : cached.keySet())
