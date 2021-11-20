@@ -1,10 +1,6 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "5.0.0"
+    id "com.github.johnrengelman.shadow" version "7.0.0"
     id "com.matthewprenger.cursegradle" version "1.4.0"
-}
-
-configurations {
-    shadowCommon // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
 }
 
 architectury {
@@ -12,12 +8,18 @@ architectury {
     forge()
 }
 
-loom {
-    useFabricMixin = true
+configurations {
+    common
+    shadowCommon
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
 }
 
 loom {
-    mixinConfig "wyml.mixins.json"
+    forge {
+        mixinConfig "wyml.mixins.json"
+    }
 }
 
 dependencies {
@@ -32,10 +34,7 @@ dependencies {
     modImplementation "dev.latvian.mods:rhino:${rootProject.rhino_version}"
     modImplementation "dev.latvian.mods:kubejs-forge:${rootProject.kubejs_version}"
 
-    implementation(project(path: ":common")) {
-        transitive = false
-    }
-    developmentForge(project(path: ":common")) {
+    common(project(path: ":common", configuration: "dev")) {
         transitive = false
     }
     shadowCommon(project(path: ":common", configuration: "transformProductionForge")) {
@@ -72,32 +71,8 @@ jar {
     classifier "dev"
 }
 
-java {
-    withSourcesJar()
-}
-
 sourcesJar {
     def commonSources = project(":common").sourcesJar
     dependsOn commonSources
     from commonSources.archiveFile.map { zipTree(it) }
-}
-
-publishing {
-    publications {
-        mavenForge(MavenPublication) {
-            artifactId = rootProject.archives_base_name + "-" + project.name
-            // add all the jars that should be included when publishing to maven
-            artifact(remapJar) {
-                classifier null
-            }
-            artifact(sourcesJar) {
-                builtBy remapSourcesJar
-            }
-        }
-    }
-
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
-    }
 }

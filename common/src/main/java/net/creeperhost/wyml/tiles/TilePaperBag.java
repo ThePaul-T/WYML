@@ -1,5 +1,6 @@
 package net.creeperhost.wyml.tiles;
 
+import net.creeperhost.wyml.WYMLReimplementedHooks;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.containers.ContainerPaperBag;
 import net.creeperhost.wyml.containers.InventoryPaperBag;
@@ -191,7 +192,7 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
             for (ItemEntity itemEntity : level.getLoadedEntitiesOfClass(ItemEntity.class, searchArea))
             {
                 ItemStack itemStack = itemEntity.getItem();
-                if (itemEntity.isAlive())
+                if (itemEntity.isAlive() && WYMLReimplementedHooks.isValidPickup(itemStack, level))
                 {
                     ItemStack inserted = inventory.addItem(itemStack);
                     if (inserted.isEmpty())

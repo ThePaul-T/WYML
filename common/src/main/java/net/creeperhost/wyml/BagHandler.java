@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 public class BagHandler
 {
-    public static HashMap<Long, ItemEntity> MAP;
+    public static HashMap<Long, ItemEntity> MAP = new HashMap<>();
     public static List<Long> LIST_TO_REMOVE = new ArrayList<>();
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static boolean updating = false;

@@ -1,19 +1,18 @@
 package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.WYMLReimplementedHooks;
-import net.creeperhost.wyml.WYMLSpawnManager;
+import net.creeperhost.wyml.ChunkManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.NaturalSpawner;
-import net.minecraft.world.level.StructureFeatureManager;
+import net.minecraft.world.level.*;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -33,7 +32,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Random;
 
 
-@Mixin(NaturalSpawner.class)
+@Mixin(value = NaturalSpawner.class, priority = 9001)
 public abstract class MixinNaturalSpawner
 {
     @Shadow
@@ -97,7 +96,7 @@ public abstract class MixinNaturalSpawner
             if (entityType.getCategory() != null)
             {
                 ChunkPos chuck = new ChunkPos(blockPos);
-                WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chuck, entityType.getCategory());
+                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chuck, levelReader.dimensionType(), entityType.getCategory());
                 if (spawnManager != null)
                 {
                     if (spawnManager.isKnownBadLocation(blockPos))
@@ -123,10 +122,10 @@ public abstract class MixinNaturalSpawner
             //Keep this up to date if scaling is enabled.
             MAGIC_NUMBER = MAGIC_NUMBER_2_ELECTRIC_BOOGALOO;
         }
-        WYMLSpawnManager spawnManager = WhyYouMakeLag.getSpawnManager(chunkAccess.getPos(), mobCategory);
+        ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkAccess.getPos(), serverLevel.dimensionType(), mobCategory);
         if (spawnManager.isPaused())
         {
-            if (!spawnManager.isSaved()) WhyYouMakeLag.updateSpawnManager(spawnManager);
+            if (!spawnManager.isSaved()) WhyYouMakeLag.updateChunkManager(spawnManager);
             return;
         }
         if (spawnManager.isSlowMode())
@@ -143,7 +142,7 @@ public abstract class MixinNaturalSpawner
                 spawnManager.fastMode();
                 if (WymlConfig.cached().DEBUG_PRINT)
                     System.out.println("Entering fast spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
-                WhyYouMakeLag.updateSpawnManager(spawnManager);
+                WhyYouMakeLag.updateChunkManager(spawnManager);
             }
         }
         else
@@ -154,7 +153,7 @@ public abstract class MixinNaturalSpawner
                 spawnManager.slowMode();
                 if (WymlConfig.cached().DEBUG_PRINT)
                     System.out.println("Entering slow spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
-                WhyYouMakeLag.updateSpawnManager(spawnManager);
+                WhyYouMakeLag.updateChunkManager(spawnManager);
                 return;
             }
         }
@@ -165,7 +164,7 @@ public abstract class MixinNaturalSpawner
             int resumeRate = spawnManager.isClaimed() ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
             if (WymlConfig.cached().DEBUG_PRINT)
                 System.out.println("Pausing spawns for " + pauseTicks + " ticks or until " + resumeRate + "% success rate for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + " due to high failure rate [" + spawnManager.getFailRate() + "%].");
-            WhyYouMakeLag.updateSpawnManager(spawnManager);
+            WhyYouMakeLag.updateChunkManager(spawnManager);
             return;
         }
         BlockState blockState = chunkAccess.getBlockState(blockPos);
@@ -202,7 +201,7 @@ public abstract class MixinNaturalSpawner
                     double d = (double) l + 0.5D;
                     double e = (double) m + 0.5D;
                     spawnManager.increaseSpawningCount(mutableBlockPos);
-                    WhyYouMakeLag.updateSpawnManager(spawnManager);
+                    WhyYouMakeLag.updateChunkManager(spawnManager);
                     Player player = serverLevel.getNearestPlayer(d, (double) i, e, -1.0D, false);
                     if (player != null)
                     {
@@ -227,13 +226,22 @@ public abstract class MixinNaturalSpawner
                                 {
                                     return;
                                 }
+                                ResourceLocation entityReg = Registry.ENTITY_TYPE.getKey(mob.getType());
+                                if(spawnManager.reachedMobLimit(entityReg))
+                                {
+                                    if(WymlConfig.cached().DEBUG_PRINT)
+                                    {
+                                        System.out.println("Stopped spawning "+entityReg+" as over configured limit.");
+                                    }
+                                    return;
+                                }
 
                                 mob.moveTo(d, (double) i, e, serverLevel.random.nextFloat() * 360.0F, 0.0F);
 
-                                int canSpawn = WYMLReimplementedHooks.canSpawn(mob, serverLevel, d, i, f, null, MobSpawnType.NATURAL);
+                                int canSpawn = WYMLReimplementedHooks.canSpawn(mob, serverLevel, d, i, e, null, MobSpawnType.NATURAL);
                                 if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverLevel, mob, f)))
                                 {
-                                    if (!WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) f, null, MobSpawnType.NATURAL))
+                                    if (!WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) e, null, MobSpawnType.NATURAL))
                                     {
                                         spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.NATURAL, spawnGroupData, (CompoundTag) null);
                                         ++j;
