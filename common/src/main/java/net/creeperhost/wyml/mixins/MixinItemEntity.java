@@ -14,23 +14,36 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ItemEntity.class)
-public abstract class MixinItemEntity extends Entity
+public abstract class MixinItemEntity extends MixinEntity
 {
     @Shadow
     private int age;
 
-    @Shadow public abstract ItemStack getItem();
+    @Shadow
+    public abstract ItemStack getItem();
 
     public MixinItemEntity(EntityType<?> entityType, Level level)
     {
         super(entityType, level);
     }
-
+    
     @Inject(at = @At("TAIL"), method = "tick", cancellable = true)
     private void tick(CallbackInfo ci)
     {
-        if (!this.level.isClientSide && this.age >= WymlConfig.cached().ITEM_DESPAWN_TIME)
+        if (!getThis().level.isClientSide && age >= WymlConfig.cached().ITEM_DESPAWN_TIME)
         {
+            getThis().remove();
+        }
+    }
+
+    @Inject(method = "mergeWithNeighbours", at = @At(value = "HEAD"), cancellable = true)
+    private void onMergeWithNeighbours(CallbackInfo ci) {
+        if (!WymlConfig.cached().NORMALIZE_ITEM_STACK_MERGING) return;
+        if ((tickCount + getTickOffset()) % 20 != 0)
+        {
+            ci.cancel();
+            return;
+        } else {
             String name = Registry.ITEM.getKey(this.getItem().getItem()).toString();
             if(!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name)) this.remove();
         }

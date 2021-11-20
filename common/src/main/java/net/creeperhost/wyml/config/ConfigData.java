@@ -95,6 +95,12 @@ public class ConfigData
     @Comment("How long to stay in slow mode after spawn rates are under control")
     public int SLOW_TICKS = 600;
 
+    @Comment("Set to true to spread entity pushing updates between ticks. (Reduces network and CPU usage)")
+    public boolean NORMALIZE_PUSHING = true;
+
+    @Comment("Set to true to spread the merging of ItemStacks between ticks. (Reduces CPU usage)")
+    public boolean NORMALIZE_ITEM_STACK_MERGING = true;
+
 
     // ******************************************
     // * Sampling
