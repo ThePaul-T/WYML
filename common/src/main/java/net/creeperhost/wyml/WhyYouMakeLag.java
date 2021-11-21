@@ -76,7 +76,7 @@ public class WhyYouMakeLag
     private static void onServerFinishedStarting(MinecraftServer minecraftServer)
     {
         CompletableFuture.runAsync(() -> MobManager.init()).thenRun(() -> {
-           System.out.println("Finished preparing WYML per-mod per-mob configurations.");
+           System.out.println("Finished preparing WYML per-mod per-category per-mob configurations.");
         });
     }
 

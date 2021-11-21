@@ -21,7 +21,6 @@ public class WymlConfig
     private static boolean loaded;
     private static Jankson gson = Jankson.builder().build();
 
-    //TODO switch from gson to jankson (JSON5 with comments, ideally)
     public static void loadFromFile(File file)
     {
         lastFile = file;
