@@ -147,15 +147,16 @@ public abstract class MixinNaturalSpawner
         }
         else
         {
-            if(spawnManager.getClassification() == null || WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()) == null) return;
-            int maxSpawnRate = WhyYouMakeLag.calculateSpawnCount(spawnManager.getClassification(), WhyYouMakeLag.mobCategoryCounts, WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()));
-            if (spawnManager.getSpawnsInSample() > maxSpawnRate && WymlConfig.cached().ALLOW_SLOW)
+            if(spawnManager.getClassification() != null && WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()) != null)
             {
-                spawnManager.slowMode();
-                if (WymlConfig.cached().DEBUG_PRINT)
-                    System.out.println("Entering slow spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
-                WhyYouMakeLag.updateChunkManager(spawnManager);
-                return;
+                int maxSpawnRate = WhyYouMakeLag.calculateSpawnCount(spawnManager.getClassification(), WhyYouMakeLag.mobCategoryCounts, WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()));
+                if (spawnManager.getSpawnsInSample() > maxSpawnRate && WymlConfig.cached().ALLOW_SLOW)
+                {
+                    spawnManager.slowMode();
+                    if (WymlConfig.cached().DEBUG_PRINT) System.out.println("Entering slow spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
+                    WhyYouMakeLag.updateChunkManager(spawnManager);
+                    return;
+                }
             }
         }
         if ((spawnManager.getFailRate() > WymlConfig.cached().PAUSE_RATE && spawnManager.getStartRate() > WymlConfig.cached().PAUSE_MIN && spawnManager.ticksSinceSlow() > slowTicks && spawnManager.canPause() && !spawnManager.isClaimed()) || (spawnManager.getFailRate() > WymlConfig.cached().PAUSE_CLAIMED_RATE && spawnManager.getStartRate() > WymlConfig.cached().PAUSE_MIN && spawnManager.ticksSinceSlow() > slowTicks && spawnManager.canPause() && spawnManager.isClaimed()))
