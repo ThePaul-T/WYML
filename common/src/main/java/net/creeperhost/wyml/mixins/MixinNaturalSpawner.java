@@ -112,6 +112,7 @@ public abstract class MixinNaturalSpawner
 
     private static void spawnCategoryForPosition1(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback)
     {
+        if(serverLevel.isClientSide) return;
         StructureFeatureManager structureFeatureManager = serverLevel.structureFeatureManager();
         ChunkGenerator chunkGenerator = serverLevel.getChunkSource().getGenerator();
         int slowTicks = WymlConfig.cached().SLOW_TICKS;
