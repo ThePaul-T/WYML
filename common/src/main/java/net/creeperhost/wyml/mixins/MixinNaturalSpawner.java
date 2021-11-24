@@ -147,6 +147,7 @@ public abstract class MixinNaturalSpawner
         }
         else
         {
+            if(spawnManager.getClassification() == null || WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()) == null) return;
             int maxSpawnRate = WhyYouMakeLag.calculateSpawnCount(spawnManager.getClassification(), WhyYouMakeLag.mobCategoryCounts, WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()));
             if (spawnManager.getSpawnsInSample() > maxSpawnRate && WymlConfig.cached().ALLOW_SLOW)
             {
