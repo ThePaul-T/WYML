@@ -41,10 +41,18 @@ public abstract class MixinItemEntity extends MixinEntity
                 return;
             }
         }
+        //Not sure why this is needed here as we run this on tick() but I fixed it not checking the items age anyways
         if ((tickCount + getTickOffset()) % 20 == 0)
         {
-            String name = Registry.ITEM.getKey(this.getItem().getItem()).toString();
-            if(!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name)) getThis().remove();
+            if (!getThis().level.isClientSide && age >= WymlConfig.cached().ITEM_DESPAWN_TIME)
+            {
+                String name = Registry.ITEM.getKey(this.getItem().getItem()).toString();
+                if (!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name))
+                {
+                    getThis().remove();
+                    ci.cancel();
+                }
+            }
         }
     }
 }
