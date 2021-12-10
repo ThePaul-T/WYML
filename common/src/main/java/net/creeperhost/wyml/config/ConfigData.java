@@ -183,4 +183,10 @@ public class ConfigData
 
     @Comment("The distance an misc creature will need to be from the player to despawn")
     public int MISC_CREATURES_DESPAWN_DISTANCE = 128;
+
+    // ******************************************
+    // * Data Fixer Upper
+    // ******************************************
+    @Comment("Enable DFU patch")
+    public boolean ENABLE_DATA_FIXER_UPPER_NBT_PATCH = true;
 }
