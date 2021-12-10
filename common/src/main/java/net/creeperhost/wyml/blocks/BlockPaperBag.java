@@ -1,6 +1,6 @@
 package net.creeperhost.wyml.blocks;
 
-import me.shedaniel.architectury.registry.MenuRegistry;
+import dev.architectury.registry.menu.MenuRegistry;
 import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,6 +12,8 @@ import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
@@ -72,8 +74,16 @@ public class BlockPaperBag extends BaseEntityBlock
 
     @Nullable
     @Override
-    public BlockEntity newBlockEntity(BlockGetter blockGetter)
+    public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState)
     {
-        return new TilePaperBag();
+        return new TilePaperBag(blockPos, blockState);
     }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState blockState, BlockEntityType<T> blockEntityType)
+    {
+        return level.isClientSide() ? null : TilePaperBag::tick;
+    }
+
 }

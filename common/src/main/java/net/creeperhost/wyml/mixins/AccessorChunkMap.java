@@ -15,6 +15,6 @@ public interface AccessorChunkMap
     @Invoker("tick")
     void tick1();
 
-    @Invoker("noPlayersCloseForSpawning")
+    @Invoker("anyPlayerCloseEnoughForSpawning")
     boolean noPlayersCloseForSpawning1(ChunkPos chunkPos);
 }

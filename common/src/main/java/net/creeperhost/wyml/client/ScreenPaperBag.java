@@ -37,7 +37,7 @@ public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
     @Override
     protected void renderLabels(PoseStack poseStack, int i, int j)
     {
-        this.font.draw(poseStack, this.inventory.getDisplayName(), (float) this.inventoryLabelX, (float) this.inventoryLabelY, 4210752);
+        this.font.draw(poseStack, this.playerInventoryTitle, (float) this.inventoryLabelX, (float) this.inventoryLabelY, 4210752);
         long despawn = containerPaperBag.getTilePaperBag().getDespawnTime();
         long timeSeconds = (despawn - Instant.now().getEpochSecond());
         this.font.draw(poseStack, ChatFormatting.RED + format(timeSeconds), this.titleLabelX, (float) this.titleLabelY, 4210752);
@@ -77,8 +77,8 @@ public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
     @Override
     protected void renderBg(PoseStack poseStack, float f, int i, int j)
     {
-        RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
-        this.minecraft.getTextureManager().bind(CONTAINER_TEXTURE);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderTexture(0, CONTAINER_TEXTURE);
         int k = (this.width - this.imageWidth) / 2;
         int l = (this.height - this.imageHeight) / 2;
         this.blit(poseStack, k, l, 0, 0, this.imageWidth, this.imageHeight);

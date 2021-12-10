@@ -1,11 +1,11 @@
 package net.creeperhost.wyml;
 
+import dev.architectury.event.events.client.ClientLifecycleEvent;
+import dev.architectury.event.events.common.LifecycleEvent;
+import dev.architectury.platform.Platform;
+import dev.architectury.utils.Env;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import me.shedaniel.architectury.event.events.LifecycleEvent;
-import me.shedaniel.architectury.event.events.client.ClientLifecycleEvent;
-import me.shedaniel.architectury.platform.Platform;
-import me.shedaniel.architectury.utils.Env;
 import net.creeperhost.wyml.compat.CompatFTBChunks;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;

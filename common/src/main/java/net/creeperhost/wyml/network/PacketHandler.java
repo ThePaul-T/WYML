@@ -1,6 +1,6 @@
 package net.creeperhost.wyml.network;
 
-import me.shedaniel.architectury.networking.NetworkChannel;
+import dev.architectury.networking.NetworkChannel;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.minecraft.resources.ResourceLocation;
 

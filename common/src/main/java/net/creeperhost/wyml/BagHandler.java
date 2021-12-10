@@ -148,6 +148,6 @@ public class BagHandler
 
     public static List<ItemEntity> getOtherItemsEntities(ItemEntity itemEntity)
     {
-        return itemEntity.level.getLoadedEntitiesOfClass(ItemEntity.class, itemEntity.getBoundingBox().inflate(4.0D, 4.0D, 4.0D));
+        return itemEntity.level.getEntitiesOfClass(ItemEntity.class, itemEntity.getBoundingBox().inflate(4.0D, 4.0D, 4.0D));
     }
 }

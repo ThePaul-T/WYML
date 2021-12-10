@@ -29,6 +29,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Optional;
 import java.util.Random;
 
 
@@ -41,6 +42,12 @@ public abstract class MixinNaturalSpawner
     @Mutable
     @Shadow
     private static int MAGIC_NUMBER;
+
+    @Shadow
+    protected static Optional<MobSpawnSettings.SpawnerData> getRandomSpawnMobAt(ServerLevel serverLevel, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobCategory mobCategory, Random random, BlockPos blockPos)
+    {
+        return null;
+    }
 
     @Invoker("isValidPositionForMob")
     private static boolean isValidPositionForMob(ServerLevel serverLevel, Mob mob, double d)
@@ -61,13 +68,6 @@ public abstract class MixinNaturalSpawner
         return false;
     }
 
-    @Invoker("getRandomSpawnMobAt")
-    @Nullable
-    private static MobSpawnSettings.SpawnerData getRandomSpawnMobAt(ServerLevel serverLevel, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobCategory mobCategory, Random random, BlockPos blockPos)
-    {
-        return null;
-    }
-
     @Invoker("isRightDistanceToPlayerAndSpawnPoint")
     private static boolean isRightDistanceToPlayerAndSpawnPoint(ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos.MutableBlockPos mutableBlockPos, double d)
     {
@@ -81,11 +81,12 @@ public abstract class MixinNaturalSpawner
      * @reason Cause Mojang code is questionable, would've injected but 100% sure I am rewriting this whole function soon(tm) - Sorry not sorry.
      */
 
-    @Inject(at = @At("HEAD"), method = "spawnCategoryForPosition", cancellable = true)
+    //TODO
+    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/world/level/NaturalSpawner;spawnCategoryForPosition(Lnet/minecraft/world/entity/MobCategory;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/NaturalSpawner$SpawnPredicate;Lnet/minecraft/world/level/NaturalSpawner$AfterSpawnCallback;)V", cancellable = true)
     private static void spawnBlah(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback, CallbackInfo ci)
     {
-        spawnCategoryForPosition1(mobCategory, serverLevel, chunkAccess, blockPos, spawnPredicate, afterSpawnCallback);
-        ci.cancel();
+//        spawnCategoryForPosition1(mobCategory, serverLevel, chunkAccess, blockPos, spawnPredicate, afterSpawnCallback);
+//        ci.cancel();
     }
 
     @Inject(at = @At("HEAD"), method = "isSpawnPositionOk", cancellable = true)
@@ -213,7 +214,7 @@ public abstract class MixinNaturalSpawner
                         {
                             if (spawnerData == null)
                             {
-                                spawnerData = getRandomSpawnMobAt(serverLevel, structureFeatureManager, chunkGenerator, mobCategory, serverLevel.random, mutableBlockPos);
+                                spawnerData = getRandomSpawnMobAt(serverLevel, structureFeatureManager, chunkGenerator, mobCategory, serverLevel.random, mutableBlockPos).get();
                                 if (spawnerData == null)
                                 {
                                     break;

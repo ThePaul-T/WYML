@@ -37,7 +37,7 @@ public class MixinSpawnState
      * @reason
      */
     @Overwrite
-    private boolean canSpawnForCategory(MobCategory mobCategory)
+    public boolean canSpawnForCategory(MobCategory mobCategory, ChunkPos chunkPos)
     {
         return WhyYouMakeLag.shouldSpawn(mobCategory, mobCategoryCounts, spawnableChunkCount);
     }

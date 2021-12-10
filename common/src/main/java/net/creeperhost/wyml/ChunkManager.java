@@ -307,24 +307,25 @@ public class ChunkManager
             profilerFiller.pop();
             return false;
         }
-        ClassInstanceMultiMap<Entity> test[] = chunk.getEntitySections();
+        //TODO
+//        ClassInstanceMultiMap<Entity> test[] = chunk.getEntitySections();
         int count = 0;
-        if(test == null || test.length == 0)
-        {
-            profilerFiller.pop();
-            return false;
-        }
-        for(ClassInstanceMultiMap<Entity> t : test)
-        {
-            if(t.isEmpty()) continue;
-            for (Entity entity : t) {
-                ResourceLocation resourceLocation = Registry.ENTITY_TYPE.getKey(entity.getType());
-                if(resourceLocation.getNamespace().equals(modName) && resourceLocation.getPath().equals(mobName))
-                {
-                    count++;
-                }
-            }
-        }
+//        if(test == null || test.length == 0)
+//        {
+//            profilerFiller.pop();
+//            return false;
+//        }
+//        for(ClassInstanceMultiMap<Entity> t : test)
+//        {
+//            if(t.isEmpty()) continue;
+//            for (Entity entity : t) {
+//                ResourceLocation resourceLocation = Registry.ENTITY_TYPE.getKey(entity.getType());
+//                if(resourceLocation.getNamespace().equals(modName) && resourceLocation.getPath().equals(mobName))
+//                {
+//                    count++;
+//                }
+//            }
+//        }
         ModSpawnConfig modSpawnConfig = MobManager.getMod(modName);
         if(modSpawnConfig == null)
         {

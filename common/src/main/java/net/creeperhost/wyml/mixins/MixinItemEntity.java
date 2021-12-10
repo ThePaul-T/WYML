@@ -28,7 +28,7 @@ public abstract class MixinItemEntity extends MixinEntity
         if ((tickCount + getTickOffset()) % 20 == 0) {
             if (!getThis().level.isClientSide && age >= WymlConfig.cached().ITEM_DESPAWN_TIME) {
                 String name = Registry.ITEM.getKey(this.getItem().getItem()).toString();
-                if (!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name)) getThis().remove();
+                if (!WymlConfig.cached().ITEM_DESPAWN_DENYLIST.contains(name)) getThis().remove(Entity.RemovalReason.KILLED);
             }
         }
     }

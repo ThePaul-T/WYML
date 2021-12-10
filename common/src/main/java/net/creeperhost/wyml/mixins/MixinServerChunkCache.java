@@ -6,6 +6,7 @@ import net.creeperhost.wyml.WhyYouMakeLag;
 import net.minecraft.server.level.*;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.LocalMobCapCalculator;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.storage.LevelData;
@@ -65,7 +66,7 @@ public abstract class MixinServerChunkCache
             boolean bl3 = levelData.getGameTime() % 400L == 0L;
             this.level.getProfiler().push("naturalSpawnCount");
             int j = this.distanceManager.getNaturalSpawnChunkCount();
-            NaturalSpawner.SpawnState spawnState = NaturalSpawner.createState(j, this.level.getAllEntities(), this::getFullChunk);
+            NaturalSpawner.SpawnState spawnState = NaturalSpawner.createState(j, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap));
             this.lastSpawnState = spawnState;
             this.level.getProfiler().pop();
             List<ChunkHolder> list = Lists.newArrayList(((AccessorChunkMap) chunkMap).getChunks1());

@@ -1,8 +1,8 @@
 package net.creeperhost.wyml.init;
 
-import me.shedaniel.architectury.registry.DeferredRegister;
-import me.shedaniel.architectury.registry.MenuRegistry;
-import me.shedaniel.architectury.registry.RegistrySupplier;
+import dev.architectury.registry.menu.MenuRegistry;
+import dev.architectury.registry.registries.DeferredRegister;
+import dev.architectury.registry.registries.RegistrySupplier;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.containers.ContainerPaperBag;
 import net.creeperhost.wyml.tiles.TilePaperBag;

@@ -8,6 +8,7 @@ import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.creeperhost.wyml.network.MessageUpdatePaperbag;
 import net.creeperhost.wyml.network.PacketHandler;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -19,24 +20,26 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
-import net.minecraft.world.level.block.entity.TickableBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.TickingBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 
-public class TilePaperBag extends BaseContainerBlockEntity implements TickableBlockEntity, WorldlyContainer
+public class TilePaperBag extends BaseContainerBlockEntity implements WorldlyContainer
 {
     private final InventoryPaperBag inventory;
     private long DESPAWN_TIME_STAMP;
     private final int DESPAWN_TIME = WymlConfig.cached().PAPER_BAG_DESPAWN_TIME;
     private int USED_COUNT;
 
-    public TilePaperBag()
+    public TilePaperBag(BlockPos blockPos, BlockState blockState)
     {
-        super(WYMLBlocks.PAPER_BAG_TILE.get());
+        super(WYMLBlocks.PAPER_BAG_TILE.get(), blockPos, blockState);
         this.inventory = new InventoryPaperBag(180);
         DESPAWN_TIME_STAMP = (Instant.now().getEpochSecond() + DESPAWN_TIME);
         USED_COUNT = getUsedSlots();
@@ -103,20 +106,19 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
     }
 
     @Override
-    public void load(BlockState blockState, CompoundTag compoundTag)
+    public void load(CompoundTag compoundTag)
     {
-        super.load(blockState, compoundTag);
+        super.load(compoundTag);
         inventory.deserializeNBT(compoundTag);
         DESPAWN_TIME_STAMP = compoundTag.getLong("despawn");
     }
 
     @Override
-    public CompoundTag save(CompoundTag compoundTag)
+    protected void saveAdditional(CompoundTag compoundTag)
     {
-        CompoundTag compoundTag1 = super.save(compoundTag);
-        compoundTag1.merge(inventory.serializeNBT());
-        compoundTag1.putLong("despawn", DESPAWN_TIME_STAMP);
-        return compoundTag1;
+        super.saveAdditional(compoundTag);
+        compoundTag.merge(inventory.serializeNBT());
+        compoundTag.putLong("despawn", DESPAWN_TIME_STAMP);
     }
 
     public InventoryPaperBag getInventory()
@@ -124,22 +126,22 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         return inventory;
     }
 
-    @Override
-    public void tick()
+    public static <T extends BlockEntity> void tick(Level level, BlockPos blockPos, BlockState blockState, T blockEntity)
     {
         if (!level.isClientSide())
         {
-            updateUsedCount();
+            TilePaperBag tilePaperBag = (TilePaperBag) level.getBlockEntity(blockPos);
+            tilePaperBag.updateUsedCount();
 
-            if (Instant.now().getEpochSecond() >= getDespawnTime())
+            if (Instant.now().getEpochSecond() >= tilePaperBag.getDespawnTime())
             {
-                WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + getBlockPos() + " Reason: Age");
-                remove();
+                WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + tilePaperBag.getBlockPos() + " Reason: Age");
+                tilePaperBag.remove();
             }
-            if (inventory.isEmpty())
+            if (tilePaperBag.inventory.isEmpty())
             {
-                WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + getBlockPos() + " Reason: Empty");
-                remove();
+                WhyYouMakeLag.LOGGER.info("Removing PaperBag from location " + tilePaperBag.getBlockPos() + " Reason: Empty");
+                tilePaperBag.remove();
             }
         }
     }
@@ -187,9 +189,9 @@ public class TilePaperBag extends BaseContainerBlockEntity implements TickableBl
         if (level.isClientSide()) return;
         //4.0D == 4 Blocks around the paper bag
         AABB searchArea = new AABB(getBlockPos()).inflate(4.0D, 4.0D, 4.0D);
-        if (!level.getLoadedEntitiesOfClass(ItemEntity.class, searchArea).isEmpty())
+        if (!level.getEntitiesOfClass(ItemEntity.class, searchArea).isEmpty())
         {
-            for (ItemEntity itemEntity : level.getLoadedEntitiesOfClass(ItemEntity.class, searchArea))
+            for (ItemEntity itemEntity : level.getEntitiesOfClass(ItemEntity.class, searchArea))
             {
                 ItemStack itemStack = itemEntity.getItem();
                 if (itemEntity.isAlive() && WYMLReimplementedHooks.isValidPickup(itemStack, level))
