@@ -1,5 +1,5 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "7.0.0"
+    id "com.github.johnrengelman.shadow" version "7.1.2"
     id "com.matthewprenger.cursegradle" version "1.4.0"
 }
 
@@ -8,9 +8,13 @@ architectury {
     fabric()
 }
 
+loom {
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+}
+
 configurations {
     common
-    shadowCommon
+    shadowCommon // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
     compileClasspath.extendsFrom common
     runtimeClasspath.extendsFrom common
     developmentFabric.extendsFrom common
@@ -26,7 +30,7 @@ dependencies {
 //    modImplementation("dev.ftb.mods:ftb-ranks-fabric:${rootProject.ftb_ranks_version}") { transitive = false }
 //    modImplementation("dev.ftb.mods:ftb-chunks-fabric:${rootProject.ftb_chunks_version}") { transitive = false }
 
-    common(project(path: ":common", configuration: "dev")) {
+    common(project(path: ":common", configuration: "namedElements")) {
         transitive = false
     }
     shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) {
@@ -52,8 +56,10 @@ shadowJar {
 }
 
 remapJar {
+    injectAccessWidener = true
     input.set shadowJar.archiveFile
     dependsOn shadowJar
+    archiveBaseName.set "${rootProject.archives_base_name}-${project.name}-${rootProject.minecraft_version}"
     classifier "fabric"
 }
 
@@ -65,6 +71,26 @@ sourcesJar {
     def commonSources = project(":common").sourcesJar
     dependsOn commonSources
     from commonSources.archiveFile.map { zipTree(it) }
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}
+
+publishing {
+    publications {
+        mavenFabric(MavenPublication) {
+            artifactId = rootProject.archives_base_name + "-" + project.name
+            from components.java
+        }
+    }
+
+    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+    repositories {
+        // Add repositories to publish to here.
+    }
 }
 
 //if (ENV.CURSEFORGE_KEY) {
