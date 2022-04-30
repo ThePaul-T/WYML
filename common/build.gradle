@@ -1,6 +1,6 @@
-//architectury {
-//    common(rootProject.enabled_platforms.split(","))
-//}
+architectury {
+    common(rootProject.enabled_platforms.split(","))
+}
 
 loom {
     accessWidenerPath = file("src/main/resources/wyml.accesswidener")

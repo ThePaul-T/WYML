@@ -30,12 +30,8 @@ dependencies {
 //    modImplementation("dev.ftb.mods:ftb-ranks-fabric:${rootProject.ftb_ranks_version}") { transitive = false }
 //    modImplementation("dev.ftb.mods:ftb-chunks-fabric:${rootProject.ftb_chunks_version}") { transitive = false }
 
-    common(project(path: ":common", configuration: "namedElements")) {
-        transitive = false
-    }
-    shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) {
-        transitive = false
-    }
+    common(project(path: ":common", configuration: "namedElements")) { transitive false }
+    shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
 
     implementation "blue.endless:jankson:1.2.1"
     shadowCommon "blue.endless:jankson:1.2.1"
