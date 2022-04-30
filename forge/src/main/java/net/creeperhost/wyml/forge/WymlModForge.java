@@ -10,6 +10,7 @@ public class WymlModForge
 {
     public WymlModForge()
     {
+        System.out.println("Hi I'm a mod, Please let me load");
         EventBuses.registerModEventBus(WhyYouMakeLag.MOD_ID, FMLJavaModLoadingContext.get().getModEventBus());
         WhyYouMakeLag.init();
     }

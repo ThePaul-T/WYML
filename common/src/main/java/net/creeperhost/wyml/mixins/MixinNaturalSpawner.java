@@ -1,7 +1,7 @@
 package net.creeperhost.wyml.mixins;
 
-import net.creeperhost.wyml.WYMLReimplementedHooks;
 import net.creeperhost.wyml.ChunkManager;
+import net.creeperhost.wyml.WYMLReimplementedHooks;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
@@ -12,16 +12,18 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.*;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.NaturalSpawner;
+import net.minecraft.world.level.StructureFeatureManager;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
@@ -32,87 +34,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Optional;
 import java.util.Random;
 
-
-@Mixin(value = NaturalSpawner.class, priority = 9001)
-public abstract class MixinNaturalSpawner
-{
-    @Shadow
-    @Final
-    private static Logger LOGGER;
+@Mixin(NaturalSpawner.class)
+public abstract class MixinNaturalSpawner {
     @Mutable
     @Shadow
     private static int MAGIC_NUMBER;
 
-    @Shadow
-    protected static Optional<MobSpawnSettings.SpawnerData> getRandomSpawnMobAt(ServerLevel serverLevel, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobCategory mobCategory, Random random, BlockPos blockPos)
-    {
-        return null;
+    @Inject(at = @At("HEAD"), method = "spawnCategoryForPosition(Lnet/minecraft/world/entity/MobCategory;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/NaturalSpawner$SpawnPredicate;Lnet/minecraft/world/level/NaturalSpawner$AfterSpawnCallback;)V", cancellable = true)
+    private static void spawnCategoryForPosition(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback, CallbackInfo ci) {
+        spawnCategoryForPosition1(mobCategory, serverLevel, chunkAccess, blockPos, spawnPredicate, afterSpawnCallback);
+        ci.cancel();
     }
 
-    @Invoker("isValidPositionForMob")
-    private static boolean isValidPositionForMob(ServerLevel serverLevel, Mob mob, double d)
-    {
-        return false;
-    }
-
-    @Invoker("getMobForSpawn")
-    @Nullable
-    private static Mob getMobForSpawn(ServerLevel serverLevel, EntityType<?> entityType)
-    {
-        return null;
-    }
-
-    @Invoker("isValidSpawnPostitionForType")
-    private static boolean isValidSpawnPostitionForType(ServerLevel serverLevel, MobCategory mobCategory, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobSpawnSettings.SpawnerData spawnerData, BlockPos.MutableBlockPos mutableBlockPos, double d)
-    {
-        return false;
-    }
-
-    @Invoker("isRightDistanceToPlayerAndSpawnPoint")
-    private static boolean isRightDistanceToPlayerAndSpawnPoint(ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos.MutableBlockPos mutableBlockPos, double d)
-    {
-        return false;
-    }
-
-    ;
-
-    /**
-     * @author ThePaul_T - 2021
-     * @reason Cause Mojang code is questionable, would've injected but 100% sure I am rewriting this whole function soon(tm) - Sorry not sorry.
-     */
-
-    //TODO
-    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/world/level/NaturalSpawner;spawnCategoryForPosition(Lnet/minecraft/world/entity/MobCategory;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/NaturalSpawner$SpawnPredicate;Lnet/minecraft/world/level/NaturalSpawner$AfterSpawnCallback;)V", cancellable = true)
-    private static void spawnBlah(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback, CallbackInfo ci)
-    {
-//        spawnCategoryForPosition1(mobCategory, serverLevel, chunkAccess, blockPos, spawnPredicate, afterSpawnCallback);
-//        ci.cancel();
-    }
-
-    @Inject(at = @At("HEAD"), method = "isSpawnPositionOk", cancellable = true)
-    private static void isSpawnPosition(SpawnPlacements.Type type, LevelReader levelReader, BlockPos blockPos, EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir)
-    {
-        if (blockPos != null)
-        {
-            if (entityType.getCategory() != null)
-            {
-                ChunkPos chuck = new ChunkPos(blockPos);
-                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chuck, levelReader.dimensionType(), entityType.getCategory());
-                if (spawnManager != null)
-                {
-                    if (spawnManager.isKnownBadLocation(blockPos))
-                    {
-                        cir.setReturnValue(false);
-                        cir.cancel();
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
-    private static void spawnCategoryForPosition1(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback)
-    {
+    private static void spawnCategoryForPosition1(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback) {
         if(serverLevel.isClientSide) return;
         StructureFeatureManager structureFeatureManager = serverLevel.structureFeatureManager();
         ChunkGenerator chunkGenerator = serverLevel.getChunkSource().getGenerator();
@@ -172,26 +106,24 @@ public abstract class MixinNaturalSpawner
             return;
         }
         BlockState blockState = chunkAccess.getBlockState(blockPos);
-        if (!blockState.isRedstoneConductor(chunkAccess, blockPos))
-        {
+        if (!blockState.isRedstoneConductor(chunkAccess, blockPos)) {
             BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
             int j = 0;
 
-            for (int k = 0; k < 3; ++k)
-            {
+            for(int k = 0; k < 3; ++k) {
                 int l = blockPos.getX();
                 int m = blockPos.getZ();
+                boolean n = true;
                 MobSpawnSettings.SpawnerData spawnerData = null;
                 SpawnGroupData spawnGroupData = null;
                 int o = Mth.ceil(serverLevel.random.nextFloat() * 4.0F);
                 int p = 0;
                 int sampleSpawns = spawnManager.getSpawnsInSample();
                 int maxAttempts = WymlConfig.cached().MAX_CHUNK_SPAWN_REQ_TICK;
-                for (int q = 0; q < o; ++q)
-                {
+                for(int q = 0; q < o; ++q) {
                     if (sampleSpawns > maxAttempts)
                     {
-                        if (WymlConfig.cached().DEBUG_PRINT) LOGGER.debug("Skipping spawn as beyond limits..");
+                        if (WymlConfig.cached().DEBUG_PRINT) System.out.println("Skipping spawn as beyond limits..");
                         continue;
                     }
                     sampleSpawns = spawnManager.getSpawnsInSample();
@@ -202,32 +134,27 @@ public abstract class MixinNaturalSpawner
                     {
                         return;
                     }
-                    double d = (double) l + 0.5D;
-                    double e = (double) m + 0.5D;
+                    double d = (double)l + 0.5D;
+                    double e = (double)m + 0.5D;
                     spawnManager.increaseSpawningCount(mutableBlockPos);
                     WhyYouMakeLag.updateChunkManager(spawnManager);
-                    Player player = serverLevel.getNearestPlayer(d, (double) i, e, -1.0D, false);
-                    if (player != null)
-                    {
-                        double f = player.distanceToSqr(d, (double) i, e);
-                        if (isRightDistanceToPlayerAndSpawnPoint(serverLevel, chunkAccess, mutableBlockPos, f))
-                        {
-                            if (spawnerData == null)
-                            {
-                                spawnerData = getRandomSpawnMobAt(serverLevel, structureFeatureManager, chunkGenerator, mobCategory, serverLevel.random, mutableBlockPos).get();
-                                if (spawnerData == null)
-                                {
+                    Player player = serverLevel.getNearestPlayer(d, (double)i, e, -1.0D, false);
+                    if (player != null) {
+                        double f = player.distanceToSqr(d, (double)i, e);
+                        if (isRightDistanceToPlayerAndSpawnPoint(serverLevel, chunkAccess, mutableBlockPos, f)) {
+                            if (spawnerData == null) {
+                                Optional<MobSpawnSettings.SpawnerData> optional = getRandomSpawnMobAt(serverLevel, structureFeatureManager, chunkGenerator, mobCategory, serverLevel.random, mutableBlockPos);
+                                if (optional.isEmpty()) {
                                     break;
                                 }
 
+                                spawnerData = (MobSpawnSettings.SpawnerData)optional.get();
                                 o = spawnerData.minCount + serverLevel.random.nextInt(1 + spawnerData.maxCount - spawnerData.minCount);
                             }
 
-                            if (isValidSpawnPostitionForType(serverLevel, mobCategory, structureFeatureManager, chunkGenerator, spawnerData, mutableBlockPos, f) && spawnPredicate.test(spawnerData.type, mutableBlockPos, chunkAccess))
-                            {
+                            if (isValidSpawnPostitionForType(serverLevel, mobCategory, structureFeatureManager, chunkGenerator, spawnerData, mutableBlockPos, f) && spawnPredicate.test(spawnerData.type, mutableBlockPos, chunkAccess)) {
                                 Mob mob = getMobForSpawn(serverLevel, spawnerData.type);
-                                if (mob == null)
-                                {
+                                if (mob == null) {
                                     return;
                                 }
                                 ResourceLocation entityReg = Registry.ENTITY_TYPE.getKey(mob.getType());
@@ -239,26 +166,21 @@ public abstract class MixinNaturalSpawner
                                     }
                                     return;
                                 }
-
-                                mob.moveTo(d, (double) i, e, serverLevel.random.nextFloat() * 360.0F, 0.0F);
-
+                                mob.moveTo(d, (double)i, e, serverLevel.random.nextFloat() * 360.0F, 0.0F);
                                 int canSpawn = WYMLReimplementedHooks.canSpawn(mob, serverLevel, d, i, e, null, MobSpawnType.NATURAL);
                                 if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverLevel, mob, f)))
                                 {
-                                    if (!WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) e, null, MobSpawnType.NATURAL))
-                                    {
+                                    if (!WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) e, null, MobSpawnType.NATURAL)) {
                                         spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.NATURAL, spawnGroupData, (CompoundTag) null);
                                         ++j;
                                         ++p;
                                         serverLevel.addFreshEntityWithPassengers(mob);
                                         afterSpawnCallback.run(mob, chunkAccess);
-                                        if (j >= WYMLReimplementedHooks.getMaxGroupSize(mob))
-                                        {
+                                        if (j >= mob.getMaxSpawnClusterSize()) {
                                             return;
                                         }
 
-                                        if (mob.isMaxGroupSizeReached(p))
-                                        {
+                                        if (mob.isMaxGroupSizeReached(p)) {
                                             break;
                                         }
                                     }
@@ -268,6 +190,54 @@ public abstract class MixinNaturalSpawner
                     }
                 }
             }
+
         }
+    }
+
+    @Inject(at = @At("HEAD"), method = "isSpawnPositionOk", cancellable = true)
+    private static void isSpawnPositionOk(SpawnPlacements.Type type, LevelReader levelReader, BlockPos blockPos, @Nullable EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir)
+    {
+        if (blockPos != null)
+        {
+            if (entityType.getCategory() != null)
+            {
+                ChunkPos chuck = new ChunkPos(blockPos);
+                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chuck, levelReader.dimensionType(), entityType.getCategory());
+                if (spawnManager != null)
+                {
+                    if (spawnManager.isKnownBadLocation(blockPos))
+                    {
+                        cir.setReturnValue(false);
+                        cir.cancel();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    @Invoker("getRandomSpawnMobAt")
+    private static Optional<MobSpawnSettings.SpawnerData> getRandomSpawnMobAt(ServerLevel serverLevel, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobCategory mobCategory, Random random, BlockPos blockPos) {
+        return null;
+    }
+
+    @Invoker("isValidPositionForMob")
+    private static boolean isValidPositionForMob(ServerLevel serverLevel, Mob mob, double f) {
+        return false;
+    }
+
+    @Invoker("getMobForSpawn")
+    private static Mob getMobForSpawn(ServerLevel serverLevel, EntityType<?> type) {
+        return null;
+    }
+
+    @Invoker("isValidSpawnPostitionForType")
+    private static boolean isValidSpawnPostitionForType(ServerLevel serverLevel, MobCategory mobCategory, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobSpawnSettings.SpawnerData spawnerData, BlockPos.MutableBlockPos mutableBlockPos, double f) {
+        return false;
+    }
+
+    @Invoker("isRightDistanceToPlayerAndSpawnPoint")
+    private static boolean isRightDistanceToPlayerAndSpawnPoint(ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos.MutableBlockPos mutableBlockPos, double f) {
+        return false;
     }
 }

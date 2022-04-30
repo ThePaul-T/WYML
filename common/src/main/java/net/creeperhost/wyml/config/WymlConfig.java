@@ -3,6 +3,7 @@ package net.creeperhost.wyml.config;
 import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonElement;
 import blue.endless.jankson.JsonObject;
+import dev.architectury.platform.Platform;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import org.apache.commons.io.IOUtils;
 
@@ -20,6 +21,7 @@ public class WymlConfig
     private static File lastFile;
     private static boolean loaded;
     private static Jankson gson = Jankson.builder().build();
+    private static boolean HAS_INITIALISED = false;
 
     public static void loadFromFile(File file)
     {
@@ -63,6 +65,7 @@ public class WymlConfig
 
     public static ConfigData cached()
     {
+        if(!WymlConfig.HAS_INITIALISED) WymlConfig.init();
         return data.get();
     }
 
@@ -87,6 +90,11 @@ public class WymlConfig
         ConfigData conf = data.get();
         JsonElement elem = gson.toJson(conf);
         return elem.toJson(true, true);
+    }
+
+    public static void init()
+    {
+        init(Platform.getConfigFolder().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
     }
 
     public static void init(File file)
@@ -142,5 +150,6 @@ public class WymlConfig
         } catch (Exception ignored)
         {
         }
+        WymlConfig.HAS_INITIALISED = true;
     }
 }

@@ -12,7 +12,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.dimension.DimensionType;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -36,10 +35,12 @@ public class MixinSpawnState
      * @author
      * @reason
      */
-    @Overwrite
-    public boolean canSpawnForCategory(MobCategory mobCategory, ChunkPos chunkPos)
+    @Inject(at = @At("HEAD"), method= "canSpawnForCategory", cancellable = true)
+    public void canSpawnForCategory(MobCategory mobCategory, ChunkPos chunkPos, CallbackInfoReturnable<Boolean> cir)
     {
-        return WhyYouMakeLag.shouldSpawn(mobCategory, mobCategoryCounts, spawnableChunkCount);
+        boolean spawn = WhyYouMakeLag.shouldSpawn(mobCategory, mobCategoryCounts, spawnableChunkCount);
+        cir.setReturnValue(spawn);
+        cir.cancel();
     }
 
     @Inject(at = @At("HEAD"), method = "canSpawn", cancellable = true)
