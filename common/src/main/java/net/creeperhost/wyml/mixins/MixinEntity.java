@@ -16,10 +16,6 @@ public abstract class MixinEntity
     @Shadow
     protected Random random;
 
-//    @Dynamic
-//    @Shadow
-//    public int tickCount;
-
     private int tickOffset = -1;
 
     protected int getTickOffset() {

@@ -18,8 +18,7 @@ public class MixinLivingEntity extends MixinEntity
     {
         if (!WymlConfig.cached().NORMALIZE_PUSHING) return;
         // Rate limit entity pushing.
-        //if (entity.getType() != EntityType.PLAYER && (tickCount + getTickOffset()) % 20 != 0)
-        if (entity.getType() != EntityType.PLAYER && (WhyYouMakeLag.getTicks() + getTickOffset()) % 20 != 0)
+        if (entity.getType() != EntityType.PLAYER && (getThis().tickCount + getTickOffset()) % 20 != 0)
         {
             ci.cancel();
         }
