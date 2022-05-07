@@ -23,7 +23,6 @@ import net.minecraft.world.level.chunk.ChunkGenerator;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
@@ -149,6 +148,7 @@ public abstract class MixinNaturalSpawner {
                                 }
 
                                 spawnerData = (MobSpawnSettings.SpawnerData)optional.get();
+                                //TODO: Block spawns here too if too many
                                 o = spawnerData.minCount + serverLevel.random.nextInt(1 + spawnerData.maxCount - spawnerData.minCount);
                             }
 

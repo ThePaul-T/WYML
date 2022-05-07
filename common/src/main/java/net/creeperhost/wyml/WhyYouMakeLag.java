@@ -12,18 +12,20 @@ import net.creeperhost.wyml.init.WYMLBlocks;
 import net.creeperhost.wyml.init.WYMLContainers;
 import net.creeperhost.wyml.init.WYMLScreens;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
+import net.creeperhost.wyml.mixins.AccessorServerLevel;
 import net.creeperhost.wyml.network.PacketHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -123,6 +125,10 @@ public class WhyYouMakeLag
     public static int getTicks()
     {
         return ((AccessorMinecraftServer) minecraftServer).getTickCount();
+    }
+    public static PersistentEntitySectionManager<Entity> getEntitySectionManager()
+    {
+        return ((AccessorServerLevel) WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD)).getEntityManager();
     }
 
     public static void serverStopping()

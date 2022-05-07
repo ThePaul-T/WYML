@@ -1,12 +1,12 @@
 {
   "required": true,
-  "plugin": "net.creeperhost.wyml.mixins.MixinDataFixersPlugin",
   "package": "net.creeperhost.wyml.mixins",
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8.2",
   "mixins": [
     "AccessorChunkMap",
     "AccessorMinecraftServer",
+    "AccessorServerLevel",
     "MixinEntity",
     "MixinItemEntity",
     "MixinLivingEntity",

@@ -7,16 +7,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.ClassInstanceMultiMap;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkSource;
-import net.minecraft.world.level.chunk.ChunkStatus;
-import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.*;
 import net.minecraft.world.level.dimension.DimensionType;
 
 import java.util.ArrayList;
@@ -289,6 +285,7 @@ public class ChunkManager
                 profilerFiller.pop();
                 return false;
             }
+
             ChunkAccess chunkAccess = source.getChunk(pos.x, pos.z, ChunkStatus.FULL, false);
             if(chunkAccess == null)
             {
@@ -307,25 +304,25 @@ public class ChunkManager
             profilerFiller.pop();
             return false;
         }
-        //TODO
-//        ClassInstanceMultiMap<Entity> test[] = chunk.getEntitySections();
         int count = 0;
-//        if(test == null || test.length == 0)
-//        {
-//            profilerFiller.pop();
-//            return false;
-//        }
-//        for(ClassInstanceMultiMap<Entity> t : test)
-//        {
-//            if(t.isEmpty()) continue;
-//            for (Entity entity : t) {
-//                ResourceLocation resourceLocation = Registry.ENTITY_TYPE.getKey(entity.getType());
-//                if(resourceLocation.getNamespace().equals(modName) && resourceLocation.getPath().equals(mobName))
-//                {
-//                    count++;
-//                }
-//            }
-//        }
+        try {
+            //            PersistentEntitySectionManager<Entity> entities = WhyYouMakeLag.getEntitySectionManager();
+            Iterable<Entity> entities = WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD).getAllEntities();
+            for(Entity entity : entities) {
+                if(entity.chunkPosition().equals(pos)) {
+                    ResourceLocation resourceLocation = Registry.ENTITY_TYPE.getKey(entity.getType());
+                    if(resourceLocation.getNamespace().equals(modName) && resourceLocation.getPath().equals(mobName))
+                    {
+                        count++;
+                    }
+                }
+            }
+        } catch(Exception e)
+        {
+            e.printStackTrace();
+            profilerFiller.pop();
+            return false;
+        }
         ModSpawnConfig modSpawnConfig = MobManager.getMod(modName);
         if(modSpawnConfig == null)
         {
