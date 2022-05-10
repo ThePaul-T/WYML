@@ -8,10 +8,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -250,14 +247,17 @@ public class ChunkManager
         pauseTick = WhyYouMakeLag.getTicks();
         requiresSave = true;
     }
+
     public boolean reachedMobLimit(ResourceLocation resourceLocation)
     {
         return reachedMobLimit(resourceLocation.getNamespace(), resourceLocation.getPath());
     }
+
     public Level getLevel()
     {
         return this.level;
     }
+
     public boolean reachedMobLimit(String modName, String mobName)
     {
         if(!WymlConfig.cached().ENABLE_PER_MOD_CONFIGS||!MobManager.canManage) return false;
@@ -278,6 +278,8 @@ public class ChunkManager
         ChunkPos pos = getChunk();
         if(pos == null)
         {
+            System.out.println("pos == null");
+
             profilerFiller.pop();
             return false;
         }
@@ -286,6 +288,7 @@ public class ChunkManager
             ChunkSource source = level.getChunkSource();
             if(!source.hasChunk(pos.x, pos.z))
             {
+                System.out.println(mobName + " source.hasChunk == null");
                 profilerFiller.pop();
                 return false;
             }
@@ -293,6 +296,7 @@ public class ChunkManager
             ChunkAccess chunkAccess = source.getChunk(pos.x, pos.z, ChunkStatus.FULL, false);
             if(chunkAccess == null)
             {
+                System.out.println(mobName +  "chunkAccess == null");
                 profilerFiller.pop();
                 return false;
             }
@@ -305,6 +309,8 @@ public class ChunkManager
         }
         if(chunk == null)
         {
+            System.out.println(mobName +  "chunk == null");
+
             profilerFiller.pop();
             return false;
         }
@@ -333,11 +339,21 @@ public class ChunkManager
             EntityType<?> type = Registry.ENTITY_TYPE.get(resourceLocation);
             if(type == null)
             {
+                System.out.println(mobName + "type == null");
+
                 profilerFiller.pop();
                 return false;
             }
-            List<?> list = level.getEntitiesOfClass(type.getBaseClass(), aabb);
-            count = list.size();
+            List<Entity> list = level.getEntities(type.create(level), aabb);
+            List<Entity> cleaned = new ArrayList<>();
+            for (Entity entity : list)
+            {
+                if(entity.getType() == type)
+                {
+                    cleaned.add(entity);
+                }
+            }
+            count = cleaned.size();
 
         } catch(Exception e)
         {
@@ -358,8 +374,10 @@ public class ChunkManager
             return false;
         }
         profilerFiller.pop();
+        System.out.println(mobName + " " + count + " / " + mobSpawnData.limit);
         return (count >= mobSpawnData.limit);
     }
+
     public boolean canPause()
     {
         boolean isPausable = WymlConfig.cached().ALLOW_PAUSE && (WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount() > WymlConfig.cached().MINIMUM_PAUSE_PLAYERS);
@@ -426,5 +444,4 @@ public class ChunkManager
         boolean success;
         int lastUpdated;
     }
-
 }

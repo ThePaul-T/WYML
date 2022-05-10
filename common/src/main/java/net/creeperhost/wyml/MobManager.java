@@ -45,7 +45,7 @@ public class MobManager {
                 _mob.limit = 8;
                 switch(catName.toUpperCase(Locale.ROOT))
                 {
-                    case "WATER_CREATURES":
+                    case "WATER_CREATURE":
                         _mob.limit = WymlConfig.cached().WATER_CREATURES_PER_CHUNK;
                         break;
                     case "WATER_AMBIENT":
@@ -54,10 +54,10 @@ public class MobManager {
                     case "MONSTER":
                         _mob.limit = WymlConfig.cached().MONSTER_PER_CHUNK;
                         break;
-                    case "CREATURES":
+                    case "CREATURE":
                         _mob.limit = WymlConfig.cached().CREATURES_PER_CHUNK;
                         break;
-                    case "AMBIENT_CREATURES":
+                    case "AMBIENT":
                         _mob.limit = WymlConfig.cached().AMBIENT_CREATURES_PER_CHUNK;
                         break;
                 }

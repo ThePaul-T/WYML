@@ -158,6 +158,7 @@ public abstract class MixinNaturalSpawner {
                                     return;
                                 }
                                 ResourceLocation entityReg = Registry.ENTITY_TYPE.getKey(mob.getType());
+                                System.out.println(mob.getType().getDescription().getString());
                                 if(spawnManager.reachedMobLimit(entityReg))
                                 {
                                     if(WymlConfig.cached().DEBUG_PRINT)
@@ -190,7 +191,6 @@ public abstract class MixinNaturalSpawner {
                     }
                 }
             }
-
         }
     }
 
