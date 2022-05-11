@@ -278,55 +278,12 @@ public class ChunkManager
         ChunkPos pos = getChunk();
         if(pos == null)
         {
-            System.out.println("pos == null");
-
-            profilerFiller.pop();
-            return false;
-        }
-        LevelChunk chunk = null;
-        try {
-            ChunkSource source = level.getChunkSource();
-            if(!source.hasChunk(pos.x, pos.z))
-            {
-                System.out.println(mobName + " source.hasChunk == null");
-                profilerFiller.pop();
-                return false;
-            }
-
-            ChunkAccess chunkAccess = source.getChunk(pos.x, pos.z, ChunkStatus.FULL, false);
-            if(chunkAccess == null)
-            {
-                System.out.println(mobName +  "chunkAccess == null");
-                profilerFiller.pop();
-                return false;
-            }
-            chunk = (LevelChunk) chunkAccess;
-        } catch(Exception e)
-        {
-            e.printStackTrace();
-            profilerFiller.pop();
-            return false;
-        }
-        if(chunk == null)
-        {
-            System.out.println(mobName +  "chunk == null");
-
             profilerFiller.pop();
             return false;
         }
         int count = 0;
-        try {
-            //            PersistentEntitySectionManager<Entity> entities = WhyYouMakeLag.getEntitySectionManager();
-//            Iterable<Entity> entities = WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD).getAllEntities();
-//            for(Entity entity : entities) {
-//                if(entity.chunkPosition().equals(pos)) {
-//                    ResourceLocation resourceLocation = Registry.ENTITY_TYPE.getKey(entity.getType());
-//                    if(resourceLocation.getNamespace().equals(modName) && resourceLocation.getPath().equals(mobName))
-//                    {
-//                        count++;
-//                    }
-//                }
-//            }
+        try
+        {
             int maxX = pos.getMaxBlockX();
             int maxZ = pos.getMaxBlockZ();
             int minX = pos.getMinBlockX();
@@ -334,13 +291,11 @@ public class ChunkManager
             int maxY = level.getMaxBuildHeight();
             int minY = level.getMinBuildHeight();
 
-            AABB aabb = new AABB(chunk.getPos().getMiddleBlockX() - minX, minY,  chunk.getPos().getMiddleBlockX() - minZ,  chunk.getPos().getMiddleBlockX() + maxX, maxY, chunk.getPos().getMiddleBlockX() + maxZ);
+            AABB aabb = new AABB(pos.getMiddleBlockX() - minX, minY,  pos.getMiddleBlockX() - minZ,  pos.getMiddleBlockX() + maxX, maxY, pos.getMiddleBlockX() + maxZ);
             ResourceLocation resourceLocation = new ResourceLocation(modName, mobName);
             EntityType<?> type = Registry.ENTITY_TYPE.get(resourceLocation);
             if(type == null)
             {
-                System.out.println(mobName + "type == null");
-
                 profilerFiller.pop();
                 return false;
             }
@@ -374,7 +329,7 @@ public class ChunkManager
             return false;
         }
         profilerFiller.pop();
-        System.out.println(mobName + " " + count + " / " + mobSpawnData.limit);
+//        System.out.println(mobName + " " + count + " / " + mobSpawnData.limit);
         return (count >= mobSpawnData.limit);
     }
 

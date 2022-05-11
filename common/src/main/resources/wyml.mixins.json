@@ -12,10 +12,11 @@
     "MixinLivingEntity",
     "MixinMinecraftServer",
     "MixinMobCategory",
+    "MixinMobSpawnSettings",
+    "MixinNaturalSpawner",
     "MixinPlayerTabOverlay",
     "MixinServerWorld",
-    "MixinSpawnState",
-    "MixinNaturalSpawner"
+    "MixinSpawnState"
   ],
   "client": [
   ],
