@@ -38,7 +38,7 @@ public class MixinServerWorld
             ResourceLocation location = Registry.ENTITY_TYPE.getKey(entity.getType());
             if (cm.reachedMobLimit(location))
             {
-                System.out.println("Set entity at " + pos.x + "," + pos.z + " to removed as past spawn limits; " + entity.getType().toString());
+                if(WymlConfig.cached().DEBUG_PRINT) System.out.println("Set entity at " + pos.x + "," + pos.z + " to removed as past spawn limits; " + entity.getType().toString());
                 if(entity.isAlive())
                 {
                     entity.remove(Entity.RemovalReason.DISCARDED);
