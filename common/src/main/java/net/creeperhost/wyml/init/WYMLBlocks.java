@@ -14,6 +14,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemNameBlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
 public class WYMLBlocks
@@ -27,7 +28,7 @@ public class WYMLBlocks
 
     public static final RegistrySupplier<Block> PAPER_BAG = BLOCKS.register("paper_bag", BlockPaperBag::new);
 
-    public static final RegistrySupplier<BlockEntityType<TilePaperBag>> PAPER_BAG_TILE = TILES.register("paper_bag", () -> BlockEntityHooks.builder(TilePaperBag::new, PAPER_BAG.get()).build(null));
+    public static final RegistrySupplier<BlockEntityType<TilePaperBag>> PAPER_BAG_TILE = TILES.register("paper_bag", () -> BlockEntityType.Builder.of(TilePaperBag::new, PAPER_BAG.get()).build(null));
 
     public static final RegistrySupplier<Item> PAPER_BAG_ITEM = ITEMS.register("paper_bag", () -> new ItemNameBlockItem(PAPER_BAG.get(), new Item.Properties().tab(CREATIVE_TAB)));
 
