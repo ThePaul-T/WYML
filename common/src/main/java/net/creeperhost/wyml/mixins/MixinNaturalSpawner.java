@@ -12,6 +12,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.random.WeightedRandomList;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
@@ -72,7 +73,7 @@ public abstract class MixinNaturalSpawner {
 
     private static void spawnCategoryForPosition1(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback) {
         if(serverLevel.isClientSide) return;
-        StructureFeatureManager structureFeatureManager = serverLevel.structureFeatureManager();
+        StructureManager structureFeatureManager = serverLevel.structureManager();
         ChunkGenerator chunkGenerator = serverLevel.getChunkSource().getGenerator();
         int slowTicks = WymlConfig.cached().SLOW_TICKS;
         int i = blockPos.getY();
@@ -241,7 +242,7 @@ public abstract class MixinNaturalSpawner {
     }
 
     @Inject(at = @At("HEAD"), method = "spawnMobsForChunkGeneration", cancellable = true)
-    private static void spawnForChunk(ServerLevelAccessor serverLevelAccessor, Holder<Biome> holder, ChunkPos chunkPos, Random random, CallbackInfo ci)
+    private static void spawnForChunk(ServerLevelAccessor serverLevelAccessor, Holder<Biome> holder, ChunkPos chunkPos, RandomSource random, CallbackInfo ci)
     {
         MobSpawnSettings mobSpawnSettings = ((Biome) holder.value()).getMobSettings();
         WeightedRandomList<MobSpawnSettings.SpawnerData> weightedRandomList = mobSpawnSettings.getMobs(MobCategory.CREATURE);
@@ -402,7 +403,7 @@ public abstract class MixinNaturalSpawner {
     }
 
     @Invoker("getRandomSpawnMobAt")
-    private static Optional<MobSpawnSettings.SpawnerData> getRandomSpawnMobAt(ServerLevel serverLevel, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobCategory mobCategory, Random random, BlockPos blockPos) {
+    private static Optional<MobSpawnSettings.SpawnerData> getRandomSpawnMobAt(ServerLevel serverLevel, StructureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobCategory mobCategory, RandomSource random, BlockPos blockPos) {
         return null;
     }
 
@@ -417,7 +418,7 @@ public abstract class MixinNaturalSpawner {
     }
 
     @Invoker("isValidSpawnPostitionForType")
-    private static boolean isValidSpawnPostitionForType(ServerLevel serverLevel, MobCategory mobCategory, StructureFeatureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobSpawnSettings.SpawnerData spawnerData, BlockPos.MutableBlockPos mutableBlockPos, double f) {
+    private static boolean isValidSpawnPostitionForType(ServerLevel serverLevel, MobCategory mobCategory, StructureManager structureFeatureManager, ChunkGenerator chunkGenerator, MobSpawnSettings.SpawnerData spawnerData, BlockPos.MutableBlockPos mutableBlockPos, double f) {
         return false;
     }
 

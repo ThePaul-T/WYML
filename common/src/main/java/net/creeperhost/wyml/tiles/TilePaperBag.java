@@ -12,7 +12,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -48,7 +47,7 @@ public class TilePaperBag extends BaseContainerBlockEntity implements WorldlyCon
     @Override
     public Component getDefaultName()
     {
-        return new TranslatableComponent("container." + WhyYouMakeLag.MOD_ID + ".paper_bag");
+        return Component.literal("container." + WhyYouMakeLag.MOD_ID + ".paper_bag");
     }
 
     @Override
