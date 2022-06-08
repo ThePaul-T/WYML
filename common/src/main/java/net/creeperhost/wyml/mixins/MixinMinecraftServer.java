@@ -65,7 +65,7 @@ public abstract class MixinMinecraftServer
     }
 
     @Inject(at = @At("RETURN"), method = "spin")
-    private static void spin(Function<Thread, CallbackI.S> function, CallbackInfoReturnable<CallbackI.S> cir)
+    private static void spin(Function<Thread, MinecraftServer> function, CallbackInfoReturnable<MinecraftServer> cir)
     {
         MinecraftServer minecraftServer = (MinecraftServer) cir.getReturnValue();
         WhyYouMakeLag.serverStarted(minecraftServer);

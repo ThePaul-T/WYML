@@ -1,5 +1,6 @@
 package net.creeperhost.wyml.mixins;
 
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Final;
@@ -14,7 +15,7 @@ public abstract class MixinEntity
 
     @Final
     @Shadow
-    protected Random random;
+    protected RandomSource random;
 
     private int tickOffset = -1;
 
