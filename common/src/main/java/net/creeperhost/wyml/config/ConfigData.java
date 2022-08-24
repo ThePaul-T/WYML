@@ -184,6 +184,9 @@ public class ConfigData
     @Comment("The distance an misc creature will need to be from the player to despawn")
     public int MISC_CREATURES_DESPAWN_DISTANCE = 128;
 
+    @Comment("Disable counting chunk gen mobs, This will stop WYML tracking mobs added to the chunk via world gen")
+    public boolean DISABLE_COUNTING_CHUNK_GENERATED_MOBS = false;
+
     // ******************************************
     // * Data Fixer Upper
     // ******************************************
