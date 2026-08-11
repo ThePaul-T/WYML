@@ -37,20 +37,20 @@ public class BagHandler
     public static void itemEntityAdded(ItemEntity itemEntity)
     {
         if (itemEntity == null) return;
-        if (itemEntity.level.isClientSide) return;
-        ChunkPos chunk = itemEntity.level.getChunkAt(itemEntity.blockPosition()).getPos();
+        if (itemEntity.level().isClientSide()) return;
+        ChunkPos chunk = itemEntity.level().getChunkAt(itemEntity.blockPosition()).getPos();
         if (chunk == null) return;
-        if (MAP.containsKey(chunk.toLong()))
+        if (MAP.containsKey(chunk.pack()))
         {
-            if (!updating) update(chunk.toLong());
+            if (!updating) update(chunk.pack());
             return;
         }
 
-        if (!MAP.containsKey(chunk.toLong()) && getOtherItemsEntities(itemEntity).size() > MIN_ITEMS && itemEntity.isAlive() && !itemEntity.getItem().isEmpty())
+        if (!MAP.containsKey(chunk.pack()) && getOtherItemsEntities(itemEntity).size() > MIN_ITEMS && itemEntity.isAlive() && !itemEntity.getItem().isEmpty())
         {
-            MAP.put(chunk.toLong(), itemEntity);
+            MAP.put(chunk.pack(), itemEntity);
             WhyYouMakeLag.LOGGER.info("added " + itemEntity.getItem().getDisplayName().getString() + " To MAP " + chunk.toString());
-            if (!updating) update(chunk.toLong());
+            if (!updating) update(chunk.pack());
         }
     }
 
@@ -120,7 +120,7 @@ public class BagHandler
 
     public static boolean createBag(ItemEntity itemEntity)
     {
-        ServerLevel serverLevel = (ServerLevel) itemEntity.level;
+        ServerLevel serverLevel = (ServerLevel) itemEntity.level();
         BlockPos paperBagPos = itemEntity.blockPosition();
 
         BlockPos first = getOtherItemsEntities(itemEntity).get(0).blockPosition();
@@ -148,6 +148,6 @@ public class BagHandler
 
     public static List<ItemEntity> getOtherItemsEntities(ItemEntity itemEntity)
     {
-        return itemEntity.level.getEntitiesOfClass(ItemEntity.class, itemEntity.getBoundingBox().inflate(4.0D, 4.0D, 4.0D));
+        return itemEntity.level().getEntitiesOfClass(ItemEntity.class, itemEntity.getBoundingBox().inflate(4.0D, 4.0D, 4.0D));
     }
 }

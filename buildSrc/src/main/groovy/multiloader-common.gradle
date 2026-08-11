@@ -1,0 +1,91 @@
+plugins {
+    id "java-library"
+    id "maven-publish"
+}
+
+group = maven_group
+version = mod_version
+
+base {
+    archivesName = "${archives_base_name}-${project.name}-${minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Sponge"
+                url = uri("https://repo.spongepowered.org/repository/maven-public")
+            }
+        }
+        filter { includeGroupAndSubgroups("org.spongepowered") }
+    }
+    maven {
+        name = "CreeperHost"
+        url = uri("https://maven.creeperhost.net")
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = java_version as int
+}
+
+processResources {
+    def expandProps = [
+            version                       : mod_version,
+            minecraft_version             : minecraft_version,
+            minecraft_version_range       : minecraft_version_range,
+            fabric_api_version            : fabric_api_version,
+            fabric_loader_version         : fabric_loader_version,
+            mod_name                      : mod_name,
+            mod_author                    : mod_author,
+            mod_id                        : mod_id,
+            license                       : license,
+            description                   : mod_description,
+            neoforge_version              : neoforge_version,
+            neoforge_loader_version_range : neoforge_loader_version_range,
+            polylib_version               : polylib_version,
+            polylib_mod_version           : polylib_mod_version,
+            java_version                  : java_version
+    ]
+
+    def jsonExpandProps = expandProps.collectEntries { key, value ->
+        [(key): value instanceof String ? value.replace("\n", "\\n") : value]
+    }
+
+    filesMatching(["META-INF/neoforge.mods.toml", "META-INF/mods.toml"]) {
+        expand expandProps
+    }
+    filesMatching(["pack.mcmeta", "fabric.mod.json", "*.mixins.json"]) {
+        expand jsonExpandProps
+    }
+    inputs.properties(expandProps)
+}
+
+jar {
+    from(rootProject.file("LICENSE")) {
+        rename { "${it}_${mod_name}" }
+    }
+}
+
+sourcesJar {
+    from(rootProject.file("LICENSE")) {
+        rename { "${it}_${mod_name}" }
+    }
+}
+
+publishing {
+    publications {
+        register("mavenJava", MavenPublication) {
+            artifactId = base.archivesName.get()
+            from components.java
+        }
+    }
+}

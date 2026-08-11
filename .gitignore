@@ -1,10 +1,12 @@
 build/
 *.ipr
 run/
+runs/
 *.iws
 out/
 *.iml
 .gradle/
+.gradle-user-home/
 output/
 bin/
 libs/

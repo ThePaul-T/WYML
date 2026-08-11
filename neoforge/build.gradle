@@ -1,33 +1,37 @@
 plugins {
     id "com.gradleup.shadow"
     id "multiloader-loader"
-    id "net.fabricmc.fabric-loom"
+    id "net.neoforged.moddev"
 }
 
-dependencies {
-    minecraft "com.mojang:minecraft:${minecraft_version}"
-    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
-    implementation "net.creeperhost.polylib:polylib-fabric:${polylib_version}"
-
-    implementation "blue.endless:jankson:1.2.1"
-    shadow("blue.endless:jankson:1.2.1") { transitive = false }
-}
-
-loom {
-    accessWidenerPath = project(":common").file("src/main/resources/wyml.accesswidener")
+neoForge {
+    version = neoforge_version
     runs {
+        configureEach {
+            ideName = "NeoForge ${it.name.capitalize()} (${project.path})"
+        }
         client {
             client()
-            ideConfigGenerated(true)
-            runDir("runs/client")
+            gameDirectory = file("runs/client")
         }
         server {
             server()
-            ideConfigGenerated(true)
-            runDir("runs/server")
+            gameDirectory = file("runs/server")
         }
     }
+    mods {
+        wyml {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+dependencies {
+    implementation "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
+    accessTransformers "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
+
+    implementation "blue.endless:jankson:1.2.1"
+    shadow("blue.endless:jankson:1.2.1") { transitive = false }
 }
 
 jar {
@@ -54,6 +58,6 @@ assemble.dependsOn(shadowJar)
 
 publishing {
     publications.named("mavenJava", MavenPublication) {
-        artifactId = "${archives_base_name}-fabric"
+        artifactId = "${archives_base_name}-neoforge"
     }
 }

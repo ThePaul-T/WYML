@@ -1,11 +1,9 @@
 package net.creeperhost.wyml;
 
-import dev.architectury.event.events.client.ClientLifecycleEvent;
-import dev.architectury.event.events.common.LifecycleEvent;
-import dev.architectury.platform.Platform;
-import dev.architectury.utils.Env;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.creeperhost.polylib.event.events.server.PolyServerLifecycleEvents;
+import net.creeperhost.polylib.platform.Services;
 import net.creeperhost.wyml.compat.CompatFTBChunks;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
@@ -13,10 +11,6 @@ import net.creeperhost.wyml.init.WYMLContainers;
 import net.creeperhost.wyml.init.WYMLScreens;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.creeperhost.wyml.mixins.AccessorServerLevel;
-import net.creeperhost.wyml.network.PacketHandler;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
@@ -51,7 +45,7 @@ public class WhyYouMakeLag
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     public static ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
     public static Logger LOGGER = LogManager.getLogger();
-    public static Path configFile = WymlExpectPlatform.getConfigDirectory().resolve(MOD_ID + ".json");
+    public static Path configFile = Services.PLATFORM.getConfigFolder().resolve(MOD_ID + ".json");
 
     public static long tickStartNano;
     public static long tickStopNano;
@@ -60,32 +54,18 @@ public class WhyYouMakeLag
     {
         WymlConfig.init(configFile.toFile());
         WYMLBlocks.init();
-        WYMLContainers.MENUS.register();
-        PacketHandler.init();
-
-        if (Platform.getEnvironment() == Env.CLIENT)
+        WYMLContainers.init();
+        if (Services.PLATFORM.isClient())
         {
-            ClientLifecycleEvent.CLIENT_SETUP.register(WhyYouMakeLag::onClientSetup);
+            WYMLScreens.init();
         }
 
-        LifecycleEvent.SERVER_STARTED.register(WhyYouMakeLag::onServerFinishedStarting);
+        PolyServerLifecycleEvents.SERVER_STARTED.register(WhyYouMakeLag::serverStarted);
+        PolyServerLifecycleEvents.SERVER_STOPPING.register(server -> WhyYouMakeLag.serverStopping());
 
         if (chunkManager.get() == null) chunkManager.set(new HashMap<String, ChunkManager>());
         if (cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
         if (cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
-    }
-
-    private static void onServerFinishedStarting(MinecraftServer minecraftServer)
-    {
-        CompletableFuture.runAsync(() -> MobManager.init()).thenRun(() -> {
-           System.out.println("Finished preparing WYML per-mod per-category per-mob configurations.");
-        });
-    }
-
-    @Environment(EnvType.CLIENT)
-    private static void onClientSetup(Minecraft minecraft)
-    {
-        WYMLScreens.init();
     }
 
     public static List<ChunkHolder> shuffle(final List<ChunkHolder> input)
@@ -112,14 +92,14 @@ public class WhyYouMakeLag
 
     public static boolean isFtbChunksLoaded()
     {
-        return WymlExpectPlatform.isModLoaded("ftbchunks");
+        return Services.PLATFORM.isModLoaded("ftbchunks");
     }
 
     public static LongSet getForceLoadedChunks()
     {
         if (minecraftServer == null) return null;
         if (minecraftServer.getLevel(Level.OVERWORLD) == null) return null;
-        return minecraftServer.getLevel(Level.OVERWORLD).getForcedChunks();
+        return minecraftServer.getLevel(Level.OVERWORLD).getChunkSource().getForceLoadedChunks();
     }
 
     public static int getTicks()
@@ -207,6 +187,9 @@ public class WhyYouMakeLag
 
         WhyYouMakeLag.minecraftServer = minecraftServer;
         if (WymlConfig.cached().ALLOW_PAPER_BAGS) BagHandler.create();
+
+        CompletableFuture.runAsync(MobManager::init).thenRun(() ->
+                LOGGER.info("Finished preparing WYML per-mod per-category per-mob configurations."));
 
         Runnable cleanThread = () ->
         {

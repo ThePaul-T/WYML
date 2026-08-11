@@ -1,37 +1,39 @@
 package net.creeperhost.wyml;
 
-import dev.architectury.injectables.annotations.ExpectPlatform;
+import net.creeperhost.wyml.platform.WymlPlatformHooks;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BaseSpawner;
 import net.minecraft.world.level.Level;
 
+import java.util.ServiceLoader;
+
 public class WYMLReimplementedHooks
 {
-    @ExpectPlatform
-    public static int canSpawn(Mob mob, ServerLevel level, double d0, int i, double d1, BaseSpawner spawner, MobSpawnType reason)
+    private static final WymlPlatformHooks PLATFORM = ServiceLoader.load(WymlPlatformHooks.class, WYMLReimplementedHooks.class.getClassLoader())
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("No WYML platform hooks were provided by the active loader"));
+
+    public static int canSpawn(Mob mob, ServerLevel level, double d0, int i, double d1, BaseSpawner spawner, EntitySpawnReason reason)
     {
-        return 0;
+        return PLATFORM.canSpawn(mob, level, reason);
     }
 
-    @ExpectPlatform
-    public static boolean doSpecialSpawn(Mob mob, ServerLevel level, double d0, int i, double d1, BaseSpawner spawner, MobSpawnType reason)
+    public static boolean doSpecialSpawn(Mob mob, ServerLevel level, double d0, int i, double d1, BaseSpawner spawner, EntitySpawnReason reason)
     {
-        return false;
+        return PLATFORM.doSpecialSpawn(mob, level, d0, i, d1, spawner, reason);
     }
 
-    @ExpectPlatform
     public static int getMaxGroupSize(Mob mob)
     {
-        return mob.getMaxSpawnClusterSize();
+        return PLATFORM.getMaxGroupSize(mob);
     }
 
-    @ExpectPlatform
     public static boolean isValidPickup(ItemStack itemStack, Level level)
     {
-        return false;
+        return PLATFORM.isValidPickup(itemStack, level);
     }
 }

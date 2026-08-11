@@ -1,7 +1,7 @@
 package net.creeperhost.wyml.mixins;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import org.spongepowered.asm.mixin.Final;
@@ -18,9 +18,9 @@ public class MixinPlayerTabOverlay
     @Final
     private Minecraft minecraft;
 
-    @Inject(at = @At("TAIL"), method = "renderPingIcon", cancellable = true)
-    private void render(PoseStack poseStack, int i, int j, int k, PlayerInfo playerInfo, CallbackInfo ci)
+    @Inject(at = @At("TAIL"), method = "extractPingIcon")
+    private void renderLatency(GuiGraphicsExtractor graphics, int slotWidth, int x, int y, PlayerInfo playerInfo, CallbackInfo ci)
     {
-        minecraft.font.drawShadow(poseStack, "" + playerInfo.getLatency() + " ms", j + i + 2, k, -1);
+        graphics.text(minecraft.font, playerInfo.getLatency() + " ms", x + slotWidth + 2, y, -1);
     }
 }

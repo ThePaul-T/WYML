@@ -35,8 +35,8 @@ public class MixinSpawnState
      * @author
      * @reason
      */
-    @Inject(at = @At("HEAD"), method= "canSpawnForCategory", cancellable = true)
-    public void canSpawnForCategory(MobCategory mobCategory, ChunkPos chunkPos, CallbackInfoReturnable<Boolean> cir)
+    @Inject(at = @At("HEAD"), method = "canSpawnForCategoryGlobal", cancellable = true)
+    private void canSpawnForCategoryGlobal(MobCategory mobCategory, CallbackInfoReturnable<Boolean> cir)
     {
         boolean spawn = WhyYouMakeLag.shouldSpawn(mobCategory, mobCategoryCounts, spawnableChunkCount);
         cir.setReturnValue(spawn);
@@ -60,11 +60,11 @@ public class MixinSpawnState
     private void afterSpawn(Mob mob, ChunkAccess chunkAccess, CallbackInfo ci)
     {
         ChunkPos chunkPos = chunkAccess.getPos();
-        if (mob != null && mob.isAlive() && mob.level != null)
+        if (mob != null && mob.isAlive() && mob.level() != null)
         {
-            if (WhyYouMakeLag.hasChunkManager(chunkPos, mob.level.dimension(), mob.getType().getCategory()))
+            if (WhyYouMakeLag.hasChunkManager(chunkPos, mob.level().dimension(), mob.getType().getCategory()))
             {
-                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkPos, mob.level.dimensionType(), mob.getType().getCategory());
+                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkPos, mob.level().dimensionType(), mob.getType().getCategory());
                 spawnManager.decreaseSpawningCount(mob.blockPosition());
                 WhyYouMakeLag.updateChunkManager(spawnManager);
                 if (WymlConfig.cached().DEBUG_PRINT)

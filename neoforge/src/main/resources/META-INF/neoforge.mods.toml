@@ -1,0 +1,36 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "${license}"
+
+[[mods]]
+modId = "wyml"
+version = "${version}"
+displayName = "WhyYouMakeLag"
+authors = "CreeperHost"
+description = '''
+Server-side tools for diagnosing and controlling mob spawning lag.
+'''
+
+[[mixins]]
+config = "wyml.mixins.json"
+
+[[dependencies.wyml]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${neoforge_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.wyml]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.wyml]]
+modId = "polylib"
+type = "required"
+versionRange = "[${polylib_mod_version},)"
+ordering = "AFTER"
+side = "BOTH"

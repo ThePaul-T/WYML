@@ -3,7 +3,7 @@ package net.creeperhost.wyml.config;
 import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonElement;
 import blue.endless.jankson.JsonObject;
-import dev.architectury.platform.Platform;
+import net.creeperhost.polylib.platform.Services;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import org.apache.commons.io.IOUtils;
 
@@ -94,7 +94,7 @@ public class WymlConfig
 
     public static void init()
     {
-        init(Platform.getConfigFolder().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
+        init(Services.PLATFORM.getConfigFolder().resolve(WhyYouMakeLag.MOD_ID + ".json").toFile());
     }
 
     public static void init(File file)

@@ -4,9 +4,10 @@ import net.creeperhost.wyml.config.ModSpawnConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.data.MobSpawnData;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.profiling.Profiler;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
@@ -82,12 +83,12 @@ public class ChunkManager
 
     public boolean isClaimed()
     {
-        return WhyYouMakeLag.cachedClaimedChunks.get().contains(getChunk().toLong());
+        return WhyYouMakeLag.cachedClaimedChunks.get().contains(getChunk().pack());
     }
 
     public boolean isForceLoaded()
     {
-        return WhyYouMakeLag.cachedForceLoadedChunks.get().contains(getChunk().toLong());
+        return WhyYouMakeLag.cachedForceLoadedChunks.get().contains(getChunk().pack());
     }
 
     public double getFailRate()
@@ -248,7 +249,7 @@ public class ChunkManager
         requiresSave = true;
     }
 
-    public boolean reachedMobLimit(ResourceLocation resourceLocation)
+    public boolean reachedMobLimit(Identifier resourceLocation)
     {
         return reachedMobLimit(resourceLocation.getNamespace(), resourceLocation.getPath());
     }
@@ -273,7 +274,7 @@ public class ChunkManager
         }
         if(level == null) level = WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD);
         if(level == null||level.isClientSide()) return false;
-        ProfilerFiller profilerFiller = level.getProfiler();
+        ProfilerFiller profilerFiller = Profiler.get();
         profilerFiller.push("mobLimit");
         ChunkPos pos = getChunk();
         if(pos == null)
@@ -288,27 +289,19 @@ public class ChunkManager
             int maxZ = pos.getMaxBlockZ();
             int minX = pos.getMinBlockX();
             int minZ = pos.getMinBlockZ();
-            int maxY = level.getMaxBuildHeight();
-            int minY = level.getMinBuildHeight();
+            int maxY = level.getMaxY();
+            int minY = level.getMinY();
 
-            AABB aabb = new AABB(pos.getMiddleBlockX() - minX, minY,  pos.getMiddleBlockX() - minZ,  pos.getMiddleBlockX() + maxX, maxY, pos.getMiddleBlockX() + maxZ);
-            ResourceLocation resourceLocation = new ResourceLocation(modName, mobName);
-            EntityType<?> type = Registry.ENTITY_TYPE.get(resourceLocation);
+            AABB aabb = new AABB(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
+            Identifier resourceLocation = Identifier.fromNamespaceAndPath(modName, mobName);
+            EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getValue(resourceLocation);
             if(type == null)
             {
                 profilerFiller.pop();
                 return false;
             }
-            List<Entity> list = level.getEntities(type.create(level), aabb);
-            List<Entity> cleaned = new ArrayList<>();
-            for (Entity entity : list)
-            {
-                if(entity.getType() == type)
-                {
-                    cleaned.add(entity);
-                }
-            }
-            count = cleaned.size();
+            List<Entity> list = level.getEntities((Entity) null, aabb, entity -> entity.getType() == type);
+            count = list.size();
 
         } catch(Exception e)
         {

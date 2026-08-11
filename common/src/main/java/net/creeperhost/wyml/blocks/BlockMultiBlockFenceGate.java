@@ -1,6 +1,5 @@
 //package net.creeperhost.wyml.blocks;
 //
-//import me.shedaniel.architectury.registry.MenuRegistry;
 //import net.creeperhost.wyml.network.MessageUpdateFence;
 //import net.creeperhost.wyml.network.MessageUpdatePaperbag;
 //import net.creeperhost.wyml.network.PacketHandler;

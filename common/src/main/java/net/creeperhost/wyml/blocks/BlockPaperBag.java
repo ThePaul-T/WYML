@@ -1,89 +1,91 @@
 package net.creeperhost.wyml.blocks;
 
-import dev.architectury.registry.menu.MenuRegistry;
+import net.creeperhost.polylib.platform.Services;
 import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.*;
+import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
-public class BlockPaperBag extends BaseEntityBlock
+public class BlockPaperBag extends Block implements EntityBlock
 {
-    public BlockPaperBag()
+    public BlockPaperBag(Properties properties)
     {
-        super(Properties.of(Material.METAL).strength(2.0F).noOcclusion());
+        super(properties.strength(2.0F).noOcclusion());
     }
 
     @Override
-    public RenderShape getRenderShape(BlockState blockState)
+    protected RenderShape getRenderShape(BlockState state)
     {
         return RenderShape.MODEL;
     }
 
     @Override
-    public InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult)
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult)
     {
-        if (level.isClientSide) return InteractionResult.SUCCESS;
-
-        if (!level.isClientSide())
+        if (level.isClientSide())
         {
-            TilePaperBag tilePaperBag = (TilePaperBag) level.getBlockEntity(blockPos);
-            tilePaperBag.resetDespawnTime((ServerPlayer) player);
-            BlockEntity blockEntity = level.getBlockEntity(blockPos);
-            MenuRegistry.openExtendedMenu((ServerPlayer) player, (MenuProvider) blockEntity, packetBuffer -> packetBuffer.writeBlockPos(blockEntity.getBlockPos()));
             return InteractionResult.SUCCESS;
         }
-        return super.use(blockState, level, blockPos, player, interactionHand, blockHitResult);
-    }
 
-    @Override
-    public void onRemove(BlockState blockState, Level level, BlockPos blockPos, BlockState blockState2, boolean bl)
-    {
-        if (!blockState.is(blockState2.getBlock()))
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (player instanceof ServerPlayer serverPlayer && blockEntity instanceof TilePaperBag paperBag)
         {
-            BlockEntity blockEntity = level.getBlockEntity(blockPos);
-            if (blockEntity instanceof Container)
-            {
-                Containers.dropContents(level, blockPos, (Container) blockEntity);
-                level.updateNeighbourForOutputSignal(blockPos, this);
-            }
-
-            super.onRemove(blockState, level, blockPos, blockState2, bl);
+            paperBag.resetDespawnTime();
+            Services.REGISTER_HELPER.openMenu(serverPlayer, (MenuProvider) blockEntity, buffer -> buffer.writeBlockPos(pos));
+            return InteractionResult.SUCCESS;
         }
+        return InteractionResult.PASS;
     }
 
     @Override
-    public VoxelShape getShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos, CollisionContext collisionContext)
+    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston)
+    {
+        if (level.getBlockEntity(pos) instanceof TilePaperBag paperBag)
+        {
+            Containers.dropContents(level, pos, paperBag.getInventory());
+        }
+        Containers.updateNeighboursAfterDestroy(state, level, pos);
+        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+    }
+
+    @Override
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context)
     {
         return Block.box(2.0D, 0.0D, 5.0D, 14.0D, 15.0D, 11.0D);
     }
 
-    @Nullable
     @Override
-    public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState)
+    public @Nullable BlockEntity newBlockEntity(BlockPos pos, BlockState state)
     {
-        return new TilePaperBag(blockPos, blockState);
+        return new TilePaperBag(pos, state);
     }
 
-    @Nullable
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState blockState, BlockEntityType<T> blockEntityType)
+    public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type)
     {
-        return level.isClientSide() ? null : TilePaperBag::tick;
+        return (tickLevel, pos, tickState, blockEntity) ->
+        {
+            if (blockEntity instanceof TilePaperBag paperBag)
+            {
+                paperBag.tick();
+            }
+        };
     }
-
 }

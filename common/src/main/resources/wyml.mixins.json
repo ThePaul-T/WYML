@@ -1,10 +1,9 @@
 {
   "required": true,
   "package": "net.creeperhost.wyml.mixins",
-  "compatibilityLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_25",
   "minVersion": "0.8.2",
   "mixins": [
-    "AccessorChunkMap",
     "AccessorMinecraftServer",
     "AccessorServerLevel",
     "MixinEntity",
@@ -14,11 +13,11 @@
     "MixinMobCategory",
     "MixinMobSpawnSettings",
     "MixinNaturalSpawner",
-    "MixinPlayerTabOverlay",
     "MixinServerWorld",
     "MixinSpawnState"
   ],
   "client": [
+    "MixinPlayerTabOverlay"
   ],
   "server": [
   ],

@@ -1,13 +1,16 @@
 package net.creeperhost.wyml.init;
 
-import dev.architectury.registry.menu.MenuRegistry;
+import net.creeperhost.polylib.registry.PolyScreens;
 import net.creeperhost.wyml.client.ScreenPaperBag;
 
-public class WYMLScreens
+public final class WYMLScreens
 {
+    private WYMLScreens()
+    {
+    }
+
     public static void init()
     {
-        MenuRegistry.registerScreenFactory(WYMLContainers.PAPER_BAG.get(), ScreenPaperBag::new);
-//        MenuRegistry.registerScreenFactory(WYMLContainers.FENCE.get(), ScreenFence::new);
+        PolyScreens.register(WYMLContainers.PAPER_BAG, ScreenPaperBag::create);
     }
 }

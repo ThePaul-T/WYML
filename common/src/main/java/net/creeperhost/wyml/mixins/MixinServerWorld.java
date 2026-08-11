@@ -4,8 +4,8 @@ import net.creeperhost.wyml.BagHandler;
 import net.creeperhost.wyml.ChunkManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
@@ -34,11 +34,11 @@ public class MixinServerWorld
         if(entity instanceof Mob && WymlConfig.cached().HARD_MOB_LIMITS)
         {
             ChunkPos pos = entity.chunkPosition();
-            ChunkManager cm = WhyYouMakeLag.getChunkManager(pos, entity.level.dimensionType(), entity.getType().getCategory());
-            ResourceLocation location = Registry.ENTITY_TYPE.getKey(entity.getType());
+            ChunkManager cm = WhyYouMakeLag.getChunkManager(pos, entity.level().dimensionType(), entity.getType().getCategory());
+            Identifier location = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
             if (cm.reachedMobLimit(location))
             {
-                if(WymlConfig.cached().DEBUG_PRINT) System.out.println("Set entity at " + pos.x + "," + pos.z + " to removed as past spawn limits; " + entity.getType().toString());
+                if(WymlConfig.cached().DEBUG_PRINT) System.out.println("Set entity at " + pos.x() + "," + pos.z() + " to removed as past spawn limits; " + entity.getType().toString());
                 if(entity.isAlive())
                 {
                     entity.remove(Entity.RemovalReason.DISCARDED);

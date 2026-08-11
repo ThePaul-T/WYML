@@ -7,8 +7,9 @@ import net.creeperhost.wyml.config.MobSpawnConfigData;
 import net.creeperhost.wyml.config.ModSpawnConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.data.MobSpawnData;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.creeperhost.polylib.platform.Services;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 
@@ -24,10 +25,10 @@ public class MobManager {
     private static HashMap<String, ModSpawnConfig> cached = new HashMap<String, ModSpawnConfig>();
     public static void init()
     {
-        for(EntityType<?> entity : Registry.ENTITY_TYPE)
+        for(EntityType<?> entity : BuiltInRegistries.ENTITY_TYPE)
         {
             if(entity.getCategory() != MobCategory.MISC) {
-                ResourceLocation resourceLocation = Registry.ENTITY_TYPE.getKey(entity);
+                Identifier resourceLocation = BuiltInRegistries.ENTITY_TYPE.getKey(entity);
                 String modName = resourceLocation.getNamespace();
                 String mobName = resourceLocation.getPath();
                 String catName = entity.getCategory().getName();
@@ -68,7 +69,7 @@ public class MobManager {
     }
     public static boolean saveConfigs()
     {
-        Path path = WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + "-SpawnRules").toAbsolutePath();
+        Path path = Services.PLATFORM.getConfigFolder().resolve(WhyYouMakeLag.MOD_ID + "-SpawnRules").toAbsolutePath();
         for(String modName : cached.keySet())
         {
             ModSpawnConfig mod = cached.get(modName);
@@ -84,7 +85,7 @@ public class MobManager {
     public static ModSpawnConfig getMod(String name)
     {
         if(cached.containsKey(name)) return cached.get(name);
-        Path path = WymlExpectPlatform.getConfigDirectory().resolve(WhyYouMakeLag.MOD_ID + "-SpawnRules").toAbsolutePath();
+        Path path = Services.PLATFORM.getConfigFolder().resolve(WhyYouMakeLag.MOD_ID + "-SpawnRules").toAbsolutePath();
         Path file = path.resolve(name+".json");
         CategorySpawnConfigData tmp = new CategorySpawnConfigData();
         tmp.categories = new HashMap<>();

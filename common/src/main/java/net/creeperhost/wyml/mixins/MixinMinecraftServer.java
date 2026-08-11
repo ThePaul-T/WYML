@@ -2,7 +2,7 @@ package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.server.MinecraftServer;
 import org.lwjgl.system.CallbackI;
 import org.spongepowered.asm.mixin.Mixin;
@@ -10,10 +10,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 @Mixin(MinecraftServer.class)
 public abstract class MixinMinecraftServer
@@ -22,10 +20,10 @@ public abstract class MixinMinecraftServer
     @Shadow
     public abstract Thread getRunningThread();
 
-    @Inject(at = @At("HEAD"), method = "stopServer", cancellable = true)
-    private void serverStopped(CallbackInfo ci)
+    @Inject(at = @At("HEAD"), method = "loadLevel")
+    private void captureServerBeforeWorldGeneration(CallbackInfo ci)
     {
-        WhyYouMakeLag.serverStopping();
+        WhyYouMakeLag.minecraftServer = (MinecraftServer) (Object) this;
     }
 
     @Inject(at = @At("HEAD"), method = "tickServer", cancellable = true)
@@ -62,12 +60,5 @@ public abstract class MixinMinecraftServer
     private void loadLevel(CallbackInfo ci)
     {
         if (WymlConfig.cached().ENABLE_GARBAGE_COLLECTION_LOAD) System.gc();
-    }
-
-    @Inject(at = @At("RETURN"), method = "spin")
-    private static void spin(Function<Thread, MinecraftServer> function, CallbackInfoReturnable<MinecraftServer> cir)
-    {
-        MinecraftServer minecraftServer = (MinecraftServer) cir.getReturnValue();
-        WhyYouMakeLag.serverStarted(minecraftServer);
     }
 }

@@ -1,34 +1,49 @@
-architectury {
-    common(rootProject.enabled_platforms.split(","))
+plugins {
+    id "multiloader-common"
+    id "net.neoforged.moddev"
 }
 
-loom {
-    accessWidenerPath = file("src/main/resources/wyml.accesswidener")
+neoForge {
+    neoFormVersion = neo_form_version
 }
 
 dependencies {
-    // We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
-    // Do NOT use other classes from fabric loader
-    modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
-    // Remove the next line if you don't want to depend on the API
-    modApi "dev.architectury:architectury:${rootProject.architectury_version}"
-//    modApi("dev.ftb.mods:ftb-chunks-fabric:${rootProject.ftb_chunks_version}") { transitive = false }
-//    modApi("dev.ftb.mods:ftb-library-fabric:${rootProject.ftb_library_version}") { transitive = false }
-
+    compileOnly "org.spongepowered:mixin:0.8.5"
+    compileOnly "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
+    accessTransformers "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
     implementation "blue.endless:jankson:1.2.1"
-
 }
 
-publishing {
-    publications {
-        mavenCommon(MavenPublication) {
-            artifactId = rootProject.archives_base_name
-            from components.java
+configurations {
+    commonJava {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+    commonResources {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+}
+
+artifacts {
+    commonJava sourceSets.main.java.sourceDirectories.singleFile
+    commonResources sourceSets.main.resources.sourceDirectories.singleFile
+}
+
+def loaderAttribute = Attribute.of("io.github.mcgradleconventions.loader", String)
+["apiElements", "runtimeElements", "sourcesElements"].each { variant ->
+    configurations.named(variant) {
+        attributes {
+            attribute(loaderAttribute, "common")
         }
     }
-
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
+}
+sourceSets.configureEach {
+    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName].each { variant ->
+        configurations.named(variant) {
+            attributes {
+                attribute(loaderAttribute, "common")
+            }
+        }
     }
 }

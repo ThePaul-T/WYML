@@ -1,86 +1,87 @@
 package net.creeperhost.wyml.client;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.creeperhost.polylib.client.modulargui.ModularGui;
+import net.creeperhost.polylib.client.modulargui.ModularGuiContainer;
+import net.creeperhost.polylib.client.modulargui.elements.GuiRectangle;
+import net.creeperhost.polylib.client.modulargui.elements.GuiScrolling;
+import net.creeperhost.polylib.client.modulargui.elements.GuiSlots;
+import net.creeperhost.polylib.client.modulargui.elements.GuiText;
+import net.creeperhost.polylib.client.modulargui.lib.Constraints;
+import net.creeperhost.polylib.client.modulargui.lib.container.ContainerGuiProvider;
+import net.creeperhost.polylib.client.modulargui.lib.container.ContainerScreenAccess;
+import net.creeperhost.polylib.client.modulargui.lib.geometry.Align;
+import net.creeperhost.polylib.client.modulargui.lib.geometry.Constraint;
 import net.creeperhost.wyml.containers.ContainerPaperBag;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
 import java.time.Instant;
 
-public class ScreenPaperBag extends AbstractContainerScreen<ContainerPaperBag>
+import static net.creeperhost.polylib.client.modulargui.lib.geometry.Constraint.match;
+import static net.creeperhost.polylib.client.modulargui.lib.geometry.Constraint.relative;
+import static net.creeperhost.polylib.client.modulargui.lib.geometry.GeoParam.BOTTOM;
+import static net.creeperhost.polylib.client.modulargui.lib.geometry.GeoParam.HEIGHT;
+import static net.creeperhost.polylib.client.modulargui.lib.geometry.GeoParam.LEFT;
+import static net.creeperhost.polylib.client.modulargui.lib.geometry.GeoParam.RIGHT;
+import static net.creeperhost.polylib.client.modulargui.lib.geometry.GeoParam.TOP;
+import static net.creeperhost.polylib.client.modulargui.lib.geometry.GeoParam.WIDTH;
+
+public class ScreenPaperBag extends ContainerGuiProvider<ContainerPaperBag>
 {
-    private static final ResourceLocation CONTAINER_TEXTURE = new ResourceLocation("textures/gui/container/shulker_box.png");
-
-    private final ContainerPaperBag containerPaperBag;
-    private long lastTimeRender = 0;
-    private String renderString = "";
-
-    public ScreenPaperBag(ContainerPaperBag containerPaperBag, Inventory inventory, Component component)
-    {
-        super(containerPaperBag, inventory, component);
-        this.containerPaperBag = containerPaperBag;
-        ++this.imageHeight;
-    }
-
     @Override
-    public void render(PoseStack poseStack, int i, int j, float f)
+    public void buildGui(ModularGui gui, ContainerScreenAccess<ContainerPaperBag> screenAccess)
     {
-        this.renderBackground(poseStack);
-        super.render(poseStack, i, j, f);
-        this.renderTooltip(poseStack, i, j);
+        ContainerPaperBag menu = screenAccess.getMenu();
+        gui.initStandardGui(212, 240);
+        gui.setGuiTitle(Component.translatable("container.wyml.paper_bag"));
+
+        var root = gui.getRoot();
+        GuiRectangle background = new GuiRectangle(root).rectangle(0xFFD0D0D0, 0xFF202020);
+        Constraints.bind(background, root);
+
+        new GuiText(root, gui.getGuiTitle())
+                .setTextColour(0xFF303030)
+                .setShadow(false)
+                .constrain(TOP, relative(root.get(TOP), 7))
+                .constrain(LEFT, relative(root.get(LEFT), 8))
+                .constrain(RIGHT, relative(root.get(RIGHT), -8))
+                .constrain(HEIGHT, Constraint.literal(10));
+
+        new GuiText(root, () -> Component.literal(statusText(menu)))
+                .setTextColour(0xFFAA2020)
+                .setShadow(false)
+                .setAlignment(Align.MAX)
+                .constrain(TOP, relative(root.get(TOP), 7))
+                .constrain(LEFT, relative(root.get(LEFT), 70))
+                .constrain(RIGHT, relative(root.get(RIGHT), -8))
+                .constrain(HEIGHT, Constraint.literal(10));
+
+        var scrollWindow = GuiScrolling.simpleScrollWindow(root, true, false);
+        scrollWindow.container
+                .constrain(TOP, relative(root.get(TOP), 22))
+                .constrain(LEFT, relative(root.get(LEFT), 15))
+                .constrain(WIDTH, Constraint.literal(182))
+                .constrain(HEIGHT, Constraint.literal(112));
+
+        var scrollContent = scrollWindow.primary.getContentElement();
+        new GuiSlots(scrollContent, screenAccess, menu.paperBag, 9)
+                .constrain(TOP, match(scrollContent.get(TOP)))
+                .constrain(LEFT, match(scrollContent.get(LEFT)));
+
+        var playerSlots = GuiSlots.player(root, screenAccess, menu.playerMain, menu.playerHotbar);
+        playerSlots.container
+                .constrain(LEFT, Constraint.midPoint(root.get(LEFT), root.get(RIGHT), -81))
+                .constrain(BOTTOM, relative(root.get(BOTTOM), -8));
     }
 
-    @Override
-    protected void renderLabels(PoseStack poseStack, int i, int j)
+    private static String statusText(ContainerPaperBag menu)
     {
-        this.font.draw(poseStack, this.playerInventoryTitle, (float) this.inventoryLabelX, (float) this.inventoryLabelY, 4210752);
-        long despawn = containerPaperBag.getTilePaperBag().getDespawnTime();
-        long timeSeconds = (despawn - Instant.now().getEpochSecond());
-        this.font.draw(poseStack, ChatFormatting.RED + format(timeSeconds), this.titleLabelX, (float) this.titleLabelY, 4210752);
-        //TODO Come back to this when brain decides to work
-        this.font.draw(poseStack, ChatFormatting.RED + "Slots " + containerPaperBag.getTilePaperBag().getUsedSlots() + "/" + containerPaperBag.getTilePaperBag().getContainerSize(), imageWidth - 70, (float) this.titleLabelY, 4210752);
-
+        long remaining = Math.max(0, menu.tile.getDespawnTime() - Instant.now().getEpochSecond());
+        return String.format("%d/%d slots  %02d:%02d", menu.tile.getUsedSlots(), menu.tile.getInventory().getContainerSize(), remaining / 60, remaining % 60);
     }
 
-    public String format(long timeSeconds)
+    public static ModularGuiContainer<ContainerPaperBag> create(ContainerPaperBag menu, Inventory inventory, Component title)
     {
-        if (lastTimeRender != timeSeconds)
-        {
-            long minutes = (timeSeconds % 3600) / 60;
-            long seconds = timeSeconds % 60;
-            lastTimeRender = timeSeconds;
-            renderString = "Despawns in " + padLeftZeros("" + minutes, 2) + ":" + padLeftZeros("" + seconds, 2);
-        }
-        return renderString;
-    }
-
-    public String padLeftZeros(String inputString, int length)
-    {
-        if (inputString.length() >= length)
-        {
-            return inputString;
-        }
-        StringBuilder sb = new StringBuilder();
-        while (sb.length() < length - inputString.length())
-        {
-            sb.append('0');
-        }
-        sb.append(inputString);
-
-        return sb.toString();
-    }
-
-    @Override
-    protected void renderBg(PoseStack poseStack, float f, int i, int j)
-    {
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.setShaderTexture(0, CONTAINER_TEXTURE);
-        int k = (this.width - this.imageWidth) / 2;
-        int l = (this.height - this.imageHeight) / 2;
-        this.blit(poseStack, k, l, 0, 0, this.imageWidth, this.imageHeight);
+        return new ModularGuiContainer<>(menu, inventory, new ScreenPaperBag());
     }
 }
