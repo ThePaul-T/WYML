@@ -4,6 +4,11 @@ plugins {
     id "net.neoforged.moddev"
 }
 
+configurations {
+    devRuntime
+    runtimeClasspath.extendsFrom(devRuntime)
+}
+
 neoForge {
     version = neoforge_version
     runs {
@@ -29,6 +34,8 @@ neoForge {
 dependencies {
     implementation "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
     accessTransformers "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
+    compileOnly "dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}"
+    devRuntime "dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}"
 
     implementation "blue.endless:jankson:1.2.1"
     shadow("blue.endless:jankson:1.2.1") { transitive = false }

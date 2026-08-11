@@ -24,6 +24,9 @@
     "minecraft": "${minecraft_version}",
     "java": ">=${java_version}"
   },
+  "suggests": {
+    "ftbchunks": ">=${ftb_chunks_version}"
+  },
   "mixins": [
     "wyml.mixins.json"
   ]

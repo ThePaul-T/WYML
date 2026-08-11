@@ -4,11 +4,18 @@ plugins {
     id "net.fabricmc.fabric-loom"
 }
 
+configurations {
+    devRuntime
+    runtimeClasspath.extendsFrom(devRuntime)
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
     implementation "net.creeperhost.polylib:polylib-fabric:${polylib_version}"
+    compileOnly "dev.ftb.mods:ftb-chunks-fabric:${ftb_chunks_version}"
+    devRuntime "dev.ftb.mods:ftb-chunks-fabric:${ftb_chunks_version}"
 
     implementation "blue.endless:jankson:1.2.1"
     shadow("blue.endless:jankson:1.2.1") { transitive = false }

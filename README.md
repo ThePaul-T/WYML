@@ -105,7 +105,7 @@ WYML still hooks the spawning system when these options are off; these switches 
 | `PAUSE_CLAIMED_TICKS` | `1800` | Pause duration for claimed chunks. |
 | `RESUME_CLAIMED_RATE` | `10` | Resume threshold for claimed chunks. |
 
-FTB Chunks claim detection is currently disabled while its compatibility layer is updated for the 26.1.2 port. Claimed-chunk-specific settings therefore do not currently have an effect.
+When FTB Chunks 26.1.2.7 or newer is installed, WYML detects claims through the FTB Chunks API. Claimed-chunk pause settings update immediately when chunks are claimed or unclaimed; FTB Chunks remains optional.
 
 ### Spawn slowing and sampling
 

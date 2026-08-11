@@ -4,7 +4,6 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.creeperhost.polylib.event.events.server.PolyServerLifecycleEvents;
 import net.creeperhost.polylib.platform.Services;
-import net.creeperhost.wyml.compat.CompatFTBChunks;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.creeperhost.wyml.init.WYMLContainers;
@@ -39,7 +38,6 @@ public class WhyYouMakeLag
     public static MinecraftServer minecraftServer;
     public static Object2IntOpenHashMap<MobCategory> mobCategoryCounts;
     public static HashMap<MobCategory, Integer> spawnableChunkCount = new HashMap<>();
-    public static AtomicReference<List<Long>> cachedClaimedChunks = new AtomicReference<>();
     public static AtomicReference<List<Long>> cachedForceLoadedChunks = new AtomicReference<>();
     private static AtomicReference<HashMap<String, ChunkManager>> chunkManager = new AtomicReference<>();
     public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
@@ -64,7 +62,6 @@ public class WhyYouMakeLag
         PolyServerLifecycleEvents.SERVER_STOPPING.register(server -> WhyYouMakeLag.serverStopping());
 
         if (chunkManager.get() == null) chunkManager.set(new HashMap<String, ChunkManager>());
-        if (cachedClaimedChunks.get() == null) cachedClaimedChunks.set(new ArrayList<Long>());
         if (cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
     }
 
@@ -195,11 +192,6 @@ public class WhyYouMakeLag
         {
             try
             {
-                if (WhyYouMakeLag.isFtbChunksLoaded())
-                {
-                    List<Long> pos = CompatFTBChunks.getChunkPosList();
-                    cachedClaimedChunks.set(pos);
-                }
                 List<Long> forceLoaded = new ArrayList<>();
                 if (getForceLoadedChunks() != null)
                 {

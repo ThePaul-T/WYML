@@ -1,5 +1,6 @@
 package net.creeperhost.wyml;
 
+import net.creeperhost.wyml.compat.CompatFTBChunks;
 import net.creeperhost.wyml.config.ModSpawnConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.data.MobSpawnData;
@@ -83,7 +84,16 @@ public class ChunkManager
 
     public boolean isClaimed()
     {
-        return WhyYouMakeLag.cachedClaimedChunks.get().contains(getChunk().pack());
+        if (!WhyYouMakeLag.isFtbChunksLoaded() || WhyYouMakeLag.minecraftServer == null) return false;
+        for (ResourceKey<Level> levelKey : WhyYouMakeLag.minecraftServer.levelKeys())
+        {
+            Level candidate = WhyYouMakeLag.minecraftServer.getLevel(levelKey);
+            if (candidate != null && candidate.dimensionType() == dimensionType)
+            {
+                return CompatFTBChunks.isClaimed(candidate, getChunk());
+            }
+        }
+        return false;
     }
 
     public boolean isForceLoaded()

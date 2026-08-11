@@ -34,3 +34,10 @@ type = "required"
 versionRange = "[${polylib_mod_version},)"
 ordering = "AFTER"
 side = "BOTH"
+
+[[dependencies.wyml]]
+modId = "ftbchunks"
+type = "optional"
+versionRange = "[${ftb_chunks_version},)"
+ordering = "AFTER"
+side = "BOTH"

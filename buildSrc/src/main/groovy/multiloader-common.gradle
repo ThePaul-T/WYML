@@ -30,6 +30,11 @@ repositories {
         name = "CreeperHost"
         url = uri("https://maven.creeperhost.net")
     }
+    maven {
+        name = "FTB"
+        url = uri("https://maven.ftb.dev/releases")
+        content { includeGroup("dev.ftb.mods") }
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -53,6 +58,7 @@ processResources {
             neoforge_loader_version_range : neoforge_loader_version_range,
             polylib_version               : polylib_version,
             polylib_mod_version           : polylib_mod_version,
+            ftb_chunks_version            : ftb_chunks_version,
             java_version                  : java_version
     ]
 

@@ -11,6 +11,7 @@ dependencies {
     compileOnly "org.spongepowered:mixin:0.8.5"
     compileOnly "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
     accessTransformers "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
+    compileOnly "dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}"
     implementation "blue.endless:jankson:1.2.1"
 }
 
