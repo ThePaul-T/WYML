@@ -12,7 +12,6 @@
     "MixinLivingEntity",
     "MixinMinecraftServer",
     "MixinMobCategory",
-    "MixinMobSpawnSettings",
     "MixinNaturalSpawner",
     "MixinServerWorld",
     "MixinSpawnState",

@@ -7,6 +7,7 @@ import net.creeperhost.wyml.config.MobSpawnConfigData;
 import net.creeperhost.wyml.config.ModSpawnConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.data.MobSpawnData;
+import net.creeperhost.wyml.spawn.PerMobLimitPolicy;
 import net.creeperhost.polylib.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -16,15 +17,17 @@ import net.minecraft.world.entity.MobCategory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MobManager {
     public static Jankson gson = Jankson.builder().build();
-    public static boolean canManage = false;
-    private static HashMap<String, ModSpawnConfig> cached = new HashMap<String, ModSpawnConfig>();
+    public static volatile boolean canManage = false;
+    private static final Map<String, ModSpawnConfig> cached = new ConcurrentHashMap<>();
     public static void init()
     {
+        canManage = false;
+        cached.clear();
         for(EntityType<?> entity : BuiltInRegistries.ENTITY_TYPE)
         {
             if(entity.getCategory() != MobCategory.MISC) {
@@ -43,48 +46,35 @@ public class MobManager {
 
                 MobSpawnData _mob = new MobSpawnData();
                 _mob.name = mobName;
-                _mob.limit = 8;
-                switch(catName.toUpperCase(Locale.ROOT))
-                {
-                    case "WATER_CREATURE":
-                        _mob.limit = WymlConfig.cached().WATER_CREATURES_PER_CHUNK;
-                        break;
-                    case "WATER_AMBIENT":
-                        _mob.limit = WymlConfig.cached().WATER_AMBIENT_PER_CHUNK;
-                        break;
-                    case "MONSTER":
-                        _mob.limit = WymlConfig.cached().MONSTER_PER_CHUNK;
-                        break;
-                    case "CREATURE":
-                        _mob.limit = WymlConfig.cached().CREATURES_PER_CHUNK;
-                        break;
-                    case "AMBIENT":
-                        _mob.limit = WymlConfig.cached().AMBIENT_CREATURES_PER_CHUNK;
-                        break;
-                }
+                _mob.limit = PerMobLimitPolicy.defaultLimit(catName, WymlConfig.cached());
                 mod.addMob(catName, mobName, _mob);
             }
         }
-        CompletableFuture.runAsync(MobManager::saveConfigs).thenRun(() -> {canManage = true;});
+        saveConfigs();
+        canManage = true;
     }
     public static boolean saveConfigs()
     {
         Path path = Services.PLATFORM.getConfigFolder().resolve(WhyYouMakeLag.MOD_ID + "-SpawnRules").toAbsolutePath();
-        for(String modName : cached.keySet())
+        boolean success = true;
+        for(Map.Entry<String, ModSpawnConfig> entry : cached.entrySet())
         {
-            ModSpawnConfig mod = cached.get(modName);
-            if(mod.Save(path))
+            String modName = entry.getKey();
+            ModSpawnConfig mod = entry.getValue();
+            if(mod.save(path))
             {
                 System.out.println("Wrote "+modName+" for WYML mob manager with values.");
             } else {
                 System.out.println("Failed to save "+modName+" for WYML mob manager with values.");
+                success = false;
             }
         }
-        return true;
+        return success;
     }
     public static ModSpawnConfig getMod(String name)
     {
-        if(cached.containsKey(name)) return cached.get(name);
+        ModSpawnConfig cachedConfig = cached.get(name);
+        if (cachedConfig != null) return cachedConfig;
         Path path = Services.PLATFORM.getConfigFolder().resolve(WhyYouMakeLag.MOD_ID + "-SpawnRules").toAbsolutePath();
         Path file = path.resolve(name+".json");
         CategorySpawnConfigData tmp = new CategorySpawnConfigData();
@@ -100,23 +90,18 @@ public class MobManager {
                 result = gson.fromJson(jsonObj, ModSpawnConfig.class);
                 System.out.println("Loaded "+file+" for WYML mob manager.");
             } else {
-                if(result.Save(path))
-                {
-                    System.out.println("Wrote "+name+" for WYML mob manager with no values.");
-                } else {
-                    System.out.println("Failed to save "+name+" for WYML mob manager with no values.");
-                }
+                System.out.println("Preparing new WYML mob rules for "+name+".");
             }
         } catch (Throwable e) {
             e.printStackTrace();
-            return result;
         }
         if(result == null) {
             System.out.println("Error loading mob spawn config for "+name);
             result = new ModSpawnConfig(name, new CategorySpawnConfigData());
         }
-        cached.put(name, result);
-        return result;
+        result.normalize(name);
+        ModSpawnConfig raced = cached.putIfAbsent(name, result);
+        return raced == null ? result : raced;
     }
 
 }

@@ -8,6 +8,7 @@ import net.creeperhost.wyml.spawn.ChunkBounds;
 import net.creeperhost.wyml.spawn.ControllerKey;
 import net.creeperhost.wyml.spawn.ControllerState;
 import net.creeperhost.wyml.spawn.PauseEligibility;
+import net.creeperhost.wyml.spawn.PerMobLimitPolicy;
 import net.creeperhost.wyml.spawn.SpawnAttemptSnapshot;
 import net.creeperhost.wyml.spawn.SpawnAttemptTracker;
 import net.creeperhost.wyml.spawn.SpawnControllerState;
@@ -244,7 +245,12 @@ public class ChunkManager
 
     public boolean reachedMobLimit(Identifier resourceLocation)
     {
-        return reachedMobLimit(resourceLocation.getNamespace(), resourceLocation.getPath());
+        return matchesMobLimit(resourceLocation.getNamespace(), resourceLocation.getPath(), false);
+    }
+
+    public boolean exceedsMobLimit(Identifier resourceLocation)
+    {
+        return matchesMobLimit(resourceLocation.getNamespace(), resourceLocation.getPath(), true);
     }
 
     public ServerLevel getLevel()
@@ -254,51 +260,44 @@ public class ChunkManager
 
     public boolean reachedMobLimit(String modName, String mobName)
     {
+        return matchesMobLimit(modName, mobName, false);
+    }
+
+    private boolean matchesMobLimit(String modName, String mobName, boolean afterAdmission)
+    {
         if(!WymlConfig.cached().ENABLE_PER_MOD_CONFIGS||!MobManager.canManage) return false;
         if(level.isClientSide()) return false;
         ProfilerFiller profilerFiller = Profiler.get();
         profilerFiller.push("mobLimit");
-        ChunkPos pos = getChunk();
-        if(pos == null)
-        {
-            profilerFiller.pop();
-            return false;
-        }
-        int count = 0;
         try
         {
+            ChunkPos pos = getChunk();
+            if(pos == null) return false;
+
+            ModSpawnConfig modSpawnConfig = MobManager.getMod(modName);
+            if(modSpawnConfig == null) return false;
+            MobSpawnData mobSpawnData = modSpawnConfig.getMob(mobName);
+            if(mobSpawnData == null || mobSpawnData.limit < 0) return false;
+
             AABB aabb = ChunkBounds.fullHeight(pos, level);
             Identifier resourceLocation = Identifier.fromNamespaceAndPath(modName, mobName);
             EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getValue(resourceLocation);
-            if(type == null)
-            {
-                profilerFiller.pop();
-                return false;
-            }
+            if(type == null) return false;
             List<Entity> list = level.getEntities((Entity) null, aabb, entity -> entity.getType() == type);
-            count = list.size();
-
-        } catch(Exception e)
+            int count = list.size();
+            return afterAdmission
+                    ? PerMobLimitPolicy.isExcessAfterAdmission(count, mobSpawnData.limit)
+                    : PerMobLimitPolicy.blocksProspectiveSpawn(count, mobSpawnData.limit);
+        }
+        catch(Exception exception)
         {
-            e.printStackTrace();
-            profilerFiller.pop();
+            WhyYouMakeLag.LOGGER.warn("Unable to evaluate per-mob limit for {}:{}", modName, mobName, exception);
             return false;
         }
-        ModSpawnConfig modSpawnConfig = MobManager.getMod(modName);
-        if(modSpawnConfig == null)
+        finally
         {
             profilerFiller.pop();
-            return false;
         }
-        MobSpawnData mobSpawnData = modSpawnConfig.getMob(mobName);
-        if(mobSpawnData == null)
-        {
-            profilerFiller.pop();
-            return false;
-        }
-        profilerFiller.pop();
-//        System.out.println(mobName + " " + count + " / " + mobSpawnData.limit);
-        return (count >= mobSpawnData.limit);
     }
 
     public boolean canPause()

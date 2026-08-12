@@ -8,6 +8,7 @@ import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.spawn.SpawnAttemptStage;
 import net.creeperhost.wyml.spawn.SpawnAttemptTracker;
 import net.creeperhost.wyml.spawn.SpawnFailureReason;
+import net.creeperhost.wyml.spawn.PerMobLimitPolicy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -253,6 +254,7 @@ public abstract class MixinNaturalSpawner {
     private static void spawnForChunk(ServerLevelAccessor serverLevelAccessor, Holder<Biome> holder, ChunkPos chunkPos, RandomSource random, CallbackInfo ci)
     {
         if (!WymlConfig.isEnabled()) return;
+        if (!PerMobLimitPolicy.checksWorldGeneration(WymlConfig.cached().DISABLE_COUNTING_CHUNK_GENERATED_MOBS)) return;
         MobSpawnSettings mobSpawnSettings = ((Biome) holder.value()).getMobSettings();
         WeightedList<MobSpawnSettings.SpawnerData> weightedRandomList = mobSpawnSettings.getMobs(MobCategory.CREATURE);
         ServerLevel serverLevel = serverLevelAccessor.getLevel();

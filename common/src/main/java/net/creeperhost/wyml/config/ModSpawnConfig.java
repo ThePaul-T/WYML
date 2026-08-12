@@ -2,12 +2,10 @@ package net.creeperhost.wyml.config;
 
 import net.creeperhost.wyml.MobManager;
 import net.creeperhost.wyml.data.MobSpawnData;
-import org.apache.commons.io.IOUtils;
 
-import java.io.FileOutputStream;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Map;
 
 public class ModSpawnConfig {
     private String mod;
@@ -19,13 +17,13 @@ public class ModSpawnConfig {
         this.mod = name;
         this.spawn = spawns;
     }
-    public boolean Save(Path path)
+    public synchronized boolean save(Path path)
     {
         if(!modified) return true;
         Path file = path.resolve(getName()+".json");
-        try (FileOutputStream configOut = new FileOutputStream(file.toFile()))
+        try
         {
-            IOUtils.write(MobManager.gson.toJson(this).toJson(true, true), configOut, Charset.defaultCharset());
+            AtomicConfigWriter.write(file, MobManager.gson.toJson(this).toJson(true, true));
         } catch (Throwable t)
         {
             t.printStackTrace();
@@ -38,8 +36,40 @@ public class ModSpawnConfig {
     {
         return mod;
     }
+    public synchronized void normalize(String expectedName)
+    {
+        if (!expectedName.equals(mod))
+        {
+            mod = expectedName;
+            modified = true;
+        }
+        if (spawn == null)
+        {
+            spawn = new CategorySpawnConfigData();
+            modified = true;
+        }
+        if (spawn.categories == null)
+        {
+            spawn.categories = new HashMap<>();
+            modified = true;
+        }
+        for (Map.Entry<String, MobSpawnConfigData> entry : spawn.categories.entrySet())
+        {
+            if (entry.getValue() == null)
+            {
+                entry.setValue(new MobSpawnConfigData());
+                modified = true;
+            }
+            else if (entry.getValue().spawns == null)
+            {
+                entry.getValue().spawns = new HashMap<>();
+                modified = true;
+            }
+        }
+    }
     public MobSpawnConfigData getCategory(String categoryName)
     {
+        if (spawn == null) spawn = new CategorySpawnConfigData();
         if(spawn.categories == null) spawn.categories = new HashMap<>();
         if(spawn.categories.containsKey(categoryName)) {
             return spawn.categories.get(categoryName);
@@ -64,7 +94,7 @@ public class ModSpawnConfig {
         for(String cat : spawn.categories.keySet())
         {
             MobSpawnConfigData _c = spawn.categories.get(cat);
-            if(_c == null) continue;
+            if(_c == null || _c.spawns == null) continue;
             for(String mob : _c.spawns.keySet())
             {
                 if(mob.equals(mobName))

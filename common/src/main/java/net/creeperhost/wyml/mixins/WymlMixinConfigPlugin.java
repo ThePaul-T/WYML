@@ -40,7 +40,6 @@ public final class WymlMixinConfigPlugin implements IMixinConfigPlugin
             case "MixinItemEntityMergeScheduling" -> config.enabled("item_merging");
             case "MixinLivingEntity" -> config.enabled("entity_pushing");
             case "MixinMobCategory" -> config.enabled("category_policy");
-            case "MixinMobSpawnSettings" -> config.enabled("per_mob_rules");
             case "MixinNaturalSpawner" -> any("spawn_controller", "per_mob_rules");
             case "AccessorMinecraftServer" -> config.enabled("spawn_controller");
             case "MixinSpawnState" -> config.enabled("spawn_controller");

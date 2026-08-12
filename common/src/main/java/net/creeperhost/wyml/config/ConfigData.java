@@ -193,6 +193,9 @@ public class ConfigData
     @Comment("Make per mob, per category per chunk limitations hard limits or soft (Forcefully stop spawns even when not natural).")
     public boolean HARD_MOB_LIMITS = false;
 
+    @Comment("Legacy escape hatch: use Minecraft's chunk-generation creature path without WYML soft per-mob checks or spawn-controller handling. Hard limits still apply after admission.")
+    public boolean DISABLE_COUNTING_CHUNK_GENERATED_MOBS = false;
+
     // ******************************************
     // * Mob Despawn Distance
     // ******************************************

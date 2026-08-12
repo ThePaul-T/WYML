@@ -55,6 +55,7 @@ The file is JSON with comments. Boolean options are enabled with `true` and disa
   "ALLOW_SLOW": true,
   "ENABLE_PER_MOD_CONFIGS": true,
   "HARD_MOB_LIMITS": false,
+  "DISABLE_COUNTING_CHUNK_GENERATED_MOBS": false,
   "ALLOW_PAPER_BAGS": false,
   "DEBUG_PRINT": false
 }
@@ -78,6 +79,7 @@ The remaining feature switches are:
 | `ALLOW_SLOW` | `true` | Enables spawn-rate limiting in busy chunks. |
 | `ENABLE_PER_MOD_CONFIGS` | `true` | Enables the generated per-mod and per-mob spawn rules. |
 | `HARD_MOB_LIMITS` | `false` | Enforces per-mob limits against non-natural spawns too. Leave off for natural-spawn-only limits. |
+| `DISABLE_COUNTING_CHUNK_GENERATED_MOBS` | `false` | Legacy escape hatch. When `true`, WYML leaves chunk-generation creature spawning to vanilla without its soft per-mob check or spawn-controller handling. The separate hard-limit admission check still applies when enabled. |
 | `ALLOW_PAPER_BAGS` | `false` | Enables Paper Bags for large dropped-item spills. Restart after changing this. |
 | `NORMALIZE_TICKS` | `true` | Deprecated migration value. It is a no-op on 26.1.2; Minecraft already waits against its tick deadline. |
 | `NORMALIZE_PUSHING` | `true` | Gates ordinary server-side living-entity collision queries before the neighborhood lookup. Players, riders, and vehicles are exempt. |
@@ -175,7 +177,7 @@ When `ENABLE_PER_MOD_CONFIGS` is `true`, WYML generates one file per mod namespa
 config/wyml-SpawnRules/
 ```
 
-Each generated mob entry contains a `name` and `limit`. Change only `limit`; the `name` field identifies the registry entry and should not be edited. For example:
+Each generated mob entry contains a `name` and `limit`. Change only `limit`; the `name` field identifies the registry entry and should not be edited. `limit` is the maximum population of that exact entity type in one chunk. It does not change the biome spawn pack's minimum or maximum group size. A negative value, including `-1`, disables the population limit for that entry. For example:
 
 ```json5
 "zombie": {
@@ -184,7 +186,9 @@ Each generated mob entry contains a `name` and `limit`. Change only `limit`; the
 }
 ```
 
-With `HARD_MOB_LIMITS = false`, these rules limit matching natural spawn attempts. With `HARD_MOB_LIMITS = true`, WYML also removes newly added mobs that exceed the configured limit, including mobs created through other spawn paths. Use hard limits carefully around farms, spawners, and other mods.
+With `HARD_MOB_LIMITS = false`, these rules limit matching natural spawn attempts and, unless `DISABLE_COUNTING_CHUNK_GENERATED_MOBS` is enabled, chunk-generation creature spawns. With `HARD_MOB_LIMITS = true`, WYML also removes a newly admitted mob when that addition takes the chunk over its configured population limit. The current hard-limit path applies to admissions from spawners, commands, breeding, structures, conversions, and passenger trees as well as normal spawning; it does not scan for or reconcile mobs that were already over the limit. Persistent, named, tamed, and boss mobs are not exempt. Use hard limits carefully around farms, pets, bosses, spawners, and other mods.
+
+Generated provider files are published atomically so a server or tool should see either the previous complete file or the replacement, not a partially written rule set. Existing `limit` values are retained when WYML adds newly registered mobs.
 
 ### Dropped items and Paper Bags
 

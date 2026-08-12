@@ -35,6 +35,7 @@ public class MixinServerWorld
     public void addEntity2(Entity entity, CallbackInfoReturnable<Boolean> cir)
     {
         if (!WymlConfig.isEnabled()) return;
+        if (!Boolean.TRUE.equals(cir.getReturnValue())) return;
         if (WymlBootConfig.moduleEnabled("per_mob_rules")
                 && entity instanceof Mob && WymlConfig.cached().HARD_MOB_LIMITS)
         {
@@ -44,7 +45,7 @@ public class MixinServerWorld
                     ? WhyYouMakeLag.getChunkManager(level, pos, entity.getType().getCategory())
                     : new ChunkManager(level, pos, entity.getType().getCategory());
             Identifier location = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
-            if (cm.reachedMobLimit(location))
+            if (cm.exceedsMobLimit(location))
             {
                 if(WymlConfig.cached().DEBUG_PRINT) System.out.println("Set entity at " + pos.x() + "," + pos.z() + " to removed as past spawn limits; " + entity.getType().toString());
                 if(entity.isAlive())
