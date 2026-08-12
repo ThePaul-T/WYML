@@ -3,7 +3,11 @@ package net.creeperhost.wyml.mixins;
 import net.creeperhost.wyml.ChunkManager;
 import net.creeperhost.wyml.WYMLReimplementedHooks;
 import net.creeperhost.wyml.WhyYouMakeLag;
+import net.creeperhost.wyml.config.WymlBootConfig;
 import net.creeperhost.wyml.config.WymlConfig;
+import net.creeperhost.wyml.spawn.SpawnAttemptStage;
+import net.creeperhost.wyml.spawn.SpawnAttemptTracker;
+import net.creeperhost.wyml.spawn.SpawnFailureReason;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -31,11 +35,6 @@ import java.util.Optional;
 
 @Mixin(NaturalSpawner.class)
 public abstract class MixinNaturalSpawner {
-    @Final
-    @Mutable
-    @Shadow
-    static int MAGIC_NUMBER;
-
     private static BlockPos getTopNonCollidingPos(LevelReader levelReader, EntityType<?> entityType, int i, int j) {
         int k = levelReader.getHeight(SpawnPlacements.getHeightmapType(entityType), i, j);
         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos(i, k, j);
@@ -52,8 +51,71 @@ public abstract class MixinNaturalSpawner {
         return SpawnPlacements.getPlacementType(entityType).adjustSpawnPosition(levelReader, mutableBlockPos.immutable());
     }
 
+    private static boolean controllerBlocks(ChunkManager manager, ServerLevel level)
+    {
+        if (!WymlBootConfig.moduleEnabled("spawn_controller")) return false;
+        if (manager.isPaused())
+        {
+            if (!manager.isSaved()) WhyYouMakeLag.updateChunkManager(manager);
+            return true;
+        }
+
+        if (manager.isSlowMode() && !WymlConfig.cached().ALLOW_SLOW)
+        {
+            manager.fastMode();
+            WhyYouMakeLag.updateChunkManager(manager);
+        }
+
+        int slowTicks = WymlConfig.cached().SLOW_TICKS;
+        if (manager.isSlowMode())
+        {
+            int attemptBudget = WhyYouMakeLag.getAttemptBudget(level);
+            if (manager.getAttemptsInCurrentWindow() >= attemptBudget) return true;
+            if (manager.ticksSinceSlow() > slowTicks)
+            {
+                manager.fastMode();
+                if (WymlConfig.cached().DEBUG_PRINT)
+                    System.out.println("Entering active spawn mode for class " + manager.getClassification().getName()
+                            + " at " + manager.getChunk() + "[" + manager.getFailRate() + "%]");
+                WhyYouMakeLag.updateChunkManager(manager);
+            }
+        }
+        else if (WymlConfig.cached().ALLOW_SLOW
+                && manager.getSpawnsInSample() >= WymlConfig.cached().MAX_CHUNK_SPAWN_REQ_TICK)
+        {
+            manager.slowMode();
+            if (WymlConfig.cached().DEBUG_PRINT)
+                System.out.println("Entering throttled spawn mode for class " + manager.getClassification().getName()
+                        + " at " + manager.getChunk() + "[" + manager.getFailRate() + "%]");
+            WhyYouMakeLag.updateChunkManager(manager);
+            return true;
+        }
+
+        if (!manager.canEnterBackoff() || manager.ticksSinceSlow() <= slowTicks) return false;
+        boolean claimed = manager.isClaimed();
+        int pauseRate = claimed ? WymlConfig.cached().PAUSE_CLAIMED_RATE : WymlConfig.cached().PAUSE_RATE;
+        if (manager.getFailRate() <= pauseRate
+                || manager.getStartRate() <= WymlConfig.cached().PAUSE_MIN
+                || !manager.canPause())
+        {
+            return false;
+        }
+
+        int pauseTicks = claimed ? WymlConfig.cached().PAUSE_CLAIMED_TICKS : WymlConfig.cached().PAUSE_TICKS;
+        int resumeRate = claimed ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
+        manager.pauseSpawns(pauseTicks);
+        if (WymlConfig.cached().DEBUG_PRINT)
+            System.out.println("Entering spawn backoff for " + pauseTicks + " ticks, followed by a "
+                    + WymlConfig.cached().PROBE_ATTEMPTS + "-attempt probe requiring " + resumeRate
+                    + "% success for class " + manager.getClassification().getName() + " at "
+                    + manager.getChunk() + " due to " + manager.getFailRate() + "% failures.");
+        WhyYouMakeLag.updateChunkManager(manager);
+        return true;
+    }
+
     @Inject(at = @At("HEAD"), method = "spawnCategoryForPosition(Lnet/minecraft/world/entity/MobCategory;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/NaturalSpawner$SpawnPredicate;Lnet/minecraft/world/level/NaturalSpawner$AfterSpawnCallback;)V", cancellable = true)
     private static void spawnCategoryForPosition(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback, CallbackInfo ci) {
+        if (!WymlConfig.isEnabled()) return;
         spawnCategoryForPosition1(mobCategory, serverLevel, chunkAccess, blockPos, spawnPredicate, afterSpawnCallback);
         ci.cancel();
     }
@@ -62,61 +124,12 @@ public abstract class MixinNaturalSpawner {
         if(serverLevel.isClientSide()) return;
         StructureManager structureFeatureManager = serverLevel.structureManager();
         ChunkGenerator chunkGenerator = serverLevel.getChunkSource().getGenerator();
-        int slowTicks = WymlConfig.cached().SLOW_TICKS;
         int i = blockPos.getY();
-        int MAGIC_NUMBER_2_ELECTRIC_BOOGALOO = ((int) (WhyYouMakeLag.getMagicNum() * WhyYouMakeLag.getMagicNum()));
-        if (MAGIC_NUMBER != MAGIC_NUMBER_2_ELECTRIC_BOOGALOO)
-        {
-            //Keep this up to date if scaling is enabled.
-            MAGIC_NUMBER = MAGIC_NUMBER_2_ELECTRIC_BOOGALOO;
-        }
-        ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkAccess.getPos(), serverLevel.dimensionType(), mobCategory);
-        if (spawnManager.isPaused())
-        {
-            if (!spawnManager.isSaved()) WhyYouMakeLag.updateChunkManager(spawnManager);
-            return;
-        }
-        if (spawnManager.isSlowMode())
-        {
-            int tries = WymlConfig.cached().MOB_TRIES;
-            if (WymlConfig.cached().MULTIPLY_BY_PLAYERS)
-                tries = (tries * WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount());
-            if (spawnManager.getSpawnsInSample() > tries)
-            {
-                return;
-            }
-            if (spawnManager.getSpawnsInSample() < tries && spawnManager.ticksSinceSlow() > slowTicks)
-            {
-                spawnManager.fastMode();
-                if (WymlConfig.cached().DEBUG_PRINT)
-                    System.out.println("Entering fast spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
-                WhyYouMakeLag.updateChunkManager(spawnManager);
-            }
-        }
-        else
-        {
-            if(spawnManager.getClassification() != null && WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()) != null)
-            {
-                int maxSpawnRate = WhyYouMakeLag.calculateSpawnCount(spawnManager.getClassification(), WhyYouMakeLag.mobCategoryCounts, WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()));
-                if (spawnManager.getSpawnsInSample() > maxSpawnRate && WymlConfig.cached().ALLOW_SLOW)
-                {
-                    spawnManager.slowMode();
-                    if (WymlConfig.cached().DEBUG_PRINT) System.out.println("Entering slow spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
-                    WhyYouMakeLag.updateChunkManager(spawnManager);
-                    return;
-                }
-            }
-        }
-        if ((spawnManager.getFailRate() > WymlConfig.cached().PAUSE_RATE && spawnManager.getStartRate() > WymlConfig.cached().PAUSE_MIN && spawnManager.ticksSinceSlow() > slowTicks && spawnManager.canPause() && !spawnManager.isClaimed()) || (spawnManager.getFailRate() > WymlConfig.cached().PAUSE_CLAIMED_RATE && spawnManager.getStartRate() > WymlConfig.cached().PAUSE_MIN && spawnManager.ticksSinceSlow() > slowTicks && spawnManager.canPause() && spawnManager.isClaimed()))
-        {
-            int pauseTicks = (spawnManager.isClaimed()) ? WymlConfig.cached().PAUSE_CLAIMED_TICKS : WymlConfig.cached().PAUSE_TICKS;
-            spawnManager.pauseSpawns(pauseTicks);
-            int resumeRate = spawnManager.isClaimed() ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
-            if (WymlConfig.cached().DEBUG_PRINT)
-                System.out.println("Pausing spawns for " + pauseTicks + " ticks or until " + resumeRate + "% success rate for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + " due to high failure rate [" + spawnManager.getFailRate() + "%].");
-            WhyYouMakeLag.updateChunkManager(spawnManager);
-            return;
-        }
+        boolean controllerEnabled = WymlBootConfig.moduleEnabled("spawn_controller");
+        ChunkManager spawnManager = controllerEnabled
+                ? WhyYouMakeLag.getChunkManager(serverLevel, chunkAccess.getPos(), mobCategory)
+                : new ChunkManager(serverLevel, chunkAccess.getPos(), mobCategory);
+        if (controllerBlocks(spawnManager, serverLevel)) return;
         BlockState blockState = chunkAccess.getBlockState(blockPos);
         if (!blockState.isRedstoneConductor(chunkAccess, blockPos)) {
             BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
@@ -130,75 +143,105 @@ public abstract class MixinNaturalSpawner {
                 SpawnGroupData spawnGroupData = null;
                 int o = Mth.ceil(serverLevel.getRandom().nextFloat() * 4.0F);
                 int p = 0;
-                int sampleSpawns = spawnManager.getSpawnsInSample();
-                int maxAttempts = WymlConfig.cached().MAX_CHUNK_SPAWN_REQ_TICK;
                 for(int q = 0; q < o; ++q) {
-                    if (sampleSpawns > maxAttempts)
+                    int candidateBudget = !controllerEnabled
+                            ? Integer.MAX_VALUE
+                            : spawnManager.isSlowMode()
+                            ? WhyYouMakeLag.getAttemptBudget(serverLevel)
+                            : (WymlConfig.cached().ALLOW_SLOW
+                                    ? Math.max(0, WymlConfig.cached().MAX_CHUNK_SPAWN_REQ_TICK)
+                                    : Integer.MAX_VALUE);
+                    if (spawnManager.getAttemptsInCurrentWindow() >= candidateBudget)
                     {
                         if (WymlConfig.cached().DEBUG_PRINT) System.out.println("Skipping spawn as beyond limits..");
                         continue;
                     }
-                    sampleSpawns = spawnManager.getSpawnsInSample();
                     l += serverLevel.getRandom().nextInt(6) - serverLevel.getRandom().nextInt(6);
                     m += serverLevel.getRandom().nextInt(6) - serverLevel.getRandom().nextInt(6);
                     mutableBlockPos.set(l, i, m);
-                    if (spawnManager.isKnownBadLocation(mutableBlockPos))
-                    {
-                        return;
-                    }
                     double d = (double)l + 0.5D;
                     double e = (double)m + 0.5D;
-                    spawnManager.increaseSpawningCount(mutableBlockPos);
-                    WhyYouMakeLag.updateChunkManager(spawnManager);
-                    Player player = serverLevel.getNearestPlayer(d, (double)i, e, -1.0D, false);
-                    if (player != null) {
+                    SpawnAttemptTracker.Attempt nextAttempt = controllerEnabled
+                            ? spawnManager.beginNaturalSpawnAttempt()
+                            : SpawnAttemptTracker.untracked();
+                    if (nextAttempt == null) return;
+                    try (SpawnAttemptTracker.Attempt attempt = nextAttempt) {
+                        WhyYouMakeLag.updateChunkManager(spawnManager);
+                        attempt.advance(SpawnAttemptStage.PLAYER_PROXIMITY);
+                        Player player = serverLevel.getNearestPlayer(d, (double)i, e, -1.0D, false);
+                        if (player == null) {
+                            attempt.fail(SpawnFailureReason.NO_NEARBY_PLAYER);
+                            continue;
+                        }
+
                         double f = player.distanceToSqr(d, (double)i, e);
-                        if (isRightDistanceToPlayerAndSpawnPoint(serverLevel, chunkAccess, mutableBlockPos, f)) {
-                            if (spawnerData == null) {
-                                Optional<MobSpawnSettings.SpawnerData> optional = getRandomSpawnMobAt(serverLevel, structureFeatureManager, chunkGenerator, mobCategory, serverLevel.getRandom(), mutableBlockPos);
-                                if (optional.isEmpty()) {
-                                    break;
-                                }
+                        if (!isRightDistanceToPlayerAndSpawnPoint(serverLevel, chunkAccess, mutableBlockPos, f)) {
+                            attempt.fail(SpawnFailureReason.PLAYER_DISTANCE_OR_SPAWN_POINT);
+                            continue;
+                        }
 
-                                spawnerData = (MobSpawnSettings.SpawnerData)optional.get();
-                                //TODO: Block spawns here too if too many
-                                o = spawnerData.minCount() + serverLevel.getRandom().nextInt(1 + spawnerData.maxCount() - spawnerData.minCount());
+                        attempt.advance(SpawnAttemptStage.SPAWN_ENTRY_SELECTION);
+                        if (spawnerData == null) {
+                            Optional<MobSpawnSettings.SpawnerData> optional = getRandomSpawnMobAt(serverLevel, structureFeatureManager, chunkGenerator, mobCategory, serverLevel.getRandom(), mutableBlockPos);
+                            if (optional.isEmpty()) {
+                                attempt.fail(SpawnFailureReason.NO_SPAWN_ENTRY);
+                                break;
                             }
 
-                            if (isValidSpawnPostitionForType(serverLevel, mobCategory, structureFeatureManager, chunkGenerator, spawnerData, mutableBlockPos, f) && spawnPredicate.test(spawnerData.type(), mutableBlockPos, chunkAccess)) {
-                                Mob mob = getMobForSpawn(serverLevel, spawnerData.type());
-                                if (mob == null) {
-                                    return;
-                                }
-                                Identifier entityReg = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
-                                if(spawnManager.reachedMobLimit(entityReg))
-                                {
-                                    if(WymlConfig.cached().DEBUG_PRINT)
-                                    {
-                                        System.out.println("Stopped spawning "+entityReg+" as over configured limit.");
-                                    }
-                                    return;
-                                }
-                                mob.snapTo(d, (double)i, e, serverLevel.getRandom().nextFloat() * 360.0F, 0.0F);
-                                int canSpawn = WYMLReimplementedHooks.canSpawn(mob, serverLevel, d, i, e, null, EntitySpawnReason.NATURAL);
-                                if (canSpawn != -1 && (canSpawn == 1 || isValidPositionForMob(serverLevel, mob, f)))
-                                {
-                                    if (!WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) e, null, EntitySpawnReason.NATURAL)) {
-                                        spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.NATURAL, spawnGroupData);
-                                        ++j;
-                                        ++p;
-                                        serverLevel.addFreshEntityWithPassengers(mob);
-                                        afterSpawnCallback.run(mob, chunkAccess);
-                                        if (j >= mob.getMaxSpawnClusterSize()) {
-                                            return;
-                                        }
+                            spawnerData = optional.get();
+                            o = spawnerData.minCount() + serverLevel.getRandom().nextInt(1 + spawnerData.maxCount() - spawnerData.minCount());
+                        }
 
-                                        if (mob.isMaxGroupSizeReached(p)) {
-                                            break;
-                                        }
-                                    }
-                                }
+                        attempt.advance(SpawnAttemptStage.PLACEMENT_AND_PREDICATE);
+                        if (!isValidSpawnPostitionForType(serverLevel, mobCategory, structureFeatureManager, chunkGenerator, spawnerData, mutableBlockPos, f)
+                                || !spawnPredicate.test(spawnerData.type(), mutableBlockPos, chunkAccess)) {
+                            attempt.fail(SpawnFailureReason.PLACEMENT_OR_PREDICATE_REJECTED);
+                            continue;
+                        }
+
+                        attempt.advance(SpawnAttemptStage.ENTITY_CREATION);
+                        Mob mob = getMobForSpawn(serverLevel, spawnerData.type());
+                        if (mob == null) {
+                            attempt.fail(SpawnFailureReason.ENTITY_CREATION_FAILED);
+                            continue;
+                        }
+
+                        attempt.advance(SpawnAttemptStage.PER_MOB_POLICY);
+                        Identifier entityReg = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
+                        if (WymlBootConfig.moduleEnabled("per_mob_rules") && spawnManager.reachedMobLimit(entityReg)) {
+                            if (WymlConfig.cached().DEBUG_PRINT) {
+                                System.out.println("Stopped spawning " + entityReg + " as over configured limit.");
                             }
+                            attempt.fail(SpawnFailureReason.PER_MOB_POPULATION_LIMIT);
+                            continue;
+                        }
+
+                        mob.snapTo(d, (double)i, e, serverLevel.getRandom().nextFloat() * 360.0F, 0.0F);
+                        attempt.advance(SpawnAttemptStage.LOADER_AND_POSITION_RULES);
+                        int canSpawn = WYMLReimplementedHooks.canSpawn(mob, serverLevel, d, i, e, null, EntitySpawnReason.NATURAL);
+                        if (canSpawn == -1 || (canSpawn != 1 && !isValidPositionForMob(serverLevel, mob, f))) {
+                            attempt.fail(SpawnFailureReason.LOADER_OR_POSITION_VETO);
+                            continue;
+                        }
+
+                        attempt.advance(SpawnAttemptStage.FINALIZATION);
+                        if (WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) e, null, EntitySpawnReason.NATURAL)) {
+                            attempt.fail(SpawnFailureReason.SPECIAL_SPAWN_HANDLED);
+                            continue;
+                        }
+
+                        spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.NATURAL, spawnGroupData);
+                        ++j;
+                        ++p;
+                        serverLevel.addFreshEntityWithPassengers(mob);
+                        attempt.succeed();
+                        afterSpawnCallback.run(mob, chunkAccess);
+                        if (j >= mob.getMaxSpawnClusterSize()) {
+                            return;
+                        }
+
+                        if (mob.isMaxGroupSizeReached(p)) {
+                            break;
                         }
                     }
                 }
@@ -209,65 +252,15 @@ public abstract class MixinNaturalSpawner {
     @Inject(at = @At("HEAD"), method = "spawnMobsForChunkGeneration", cancellable = true)
     private static void spawnForChunk(ServerLevelAccessor serverLevelAccessor, Holder<Biome> holder, ChunkPos chunkPos, RandomSource random, CallbackInfo ci)
     {
+        if (!WymlConfig.isEnabled()) return;
         MobSpawnSettings mobSpawnSettings = ((Biome) holder.value()).getMobSettings();
         WeightedList<MobSpawnSettings.SpawnerData> weightedRandomList = mobSpawnSettings.getMobs(MobCategory.CREATURE);
-        int slowTicks = WymlConfig.cached().SLOW_TICKS;
-
-        int MAGIC_NUMBER_2_ELECTRIC_BOOGALOO = ((int) (WhyYouMakeLag.getMagicNum() * WhyYouMakeLag.getMagicNum()));
-        if (MAGIC_NUMBER != MAGIC_NUMBER_2_ELECTRIC_BOOGALOO)
+        ServerLevel serverLevel = serverLevelAccessor.getLevel();
+        ChunkManager spawnManager = WymlBootConfig.moduleEnabled("spawn_controller")
+                ? WhyYouMakeLag.getChunkManager(serverLevel, chunkPos, MobCategory.CREATURE)
+                : new ChunkManager(serverLevel, chunkPos, MobCategory.CREATURE);
+        if (controllerBlocks(spawnManager, serverLevel))
         {
-            //Keep this up to date if scaling is enabled.
-            MAGIC_NUMBER = MAGIC_NUMBER_2_ELECTRIC_BOOGALOO;
-        }
-        ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkPos, serverLevelAccessor.dimensionType(), MobCategory.CREATURE);
-        if (spawnManager.isPaused())
-        {
-            if (!spawnManager.isSaved()) WhyYouMakeLag.updateChunkManager(spawnManager);
-            ci.cancel();
-            return;
-        }
-
-        if (spawnManager.isSlowMode())
-        {
-            int tries = WymlConfig.cached().MOB_TRIES;
-            if (WymlConfig.cached().MULTIPLY_BY_PLAYERS)
-                tries = (tries * WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount());
-            if (spawnManager.getSpawnsInSample() > tries)
-            {
-                ci.cancel();
-                return;
-            }
-            if (spawnManager.getSpawnsInSample() < tries && spawnManager.ticksSinceSlow() > slowTicks)
-            {
-                spawnManager.fastMode();
-                if (WymlConfig.cached().DEBUG_PRINT)
-                    System.out.println("Entering fast spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
-                WhyYouMakeLag.updateChunkManager(spawnManager);
-            }
-        }
-        else
-        {
-            if(spawnManager.getClassification() != null && WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()) != null)
-            {
-                int maxSpawnRate = WhyYouMakeLag.calculateSpawnCount(spawnManager.getClassification(), WhyYouMakeLag.mobCategoryCounts, WhyYouMakeLag.spawnableChunkCount.get(spawnManager.getClassification()));
-                if (spawnManager.getSpawnsInSample() > maxSpawnRate && WymlConfig.cached().ALLOW_SLOW)
-                {
-                    spawnManager.slowMode();
-                    if (WymlConfig.cached().DEBUG_PRINT) System.out.println("Entering slow spawn mode for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + "[" + spawnManager.getFailRate() + "%]");
-                    WhyYouMakeLag.updateChunkManager(spawnManager);
-                    ci.cancel();
-                    return;
-                }
-            }
-        }
-        if ((spawnManager.getFailRate() > WymlConfig.cached().PAUSE_RATE && spawnManager.getStartRate() > WymlConfig.cached().PAUSE_MIN && spawnManager.ticksSinceSlow() > slowTicks && spawnManager.canPause() && !spawnManager.isClaimed()) || (spawnManager.getFailRate() > WymlConfig.cached().PAUSE_CLAIMED_RATE && spawnManager.getStartRate() > WymlConfig.cached().PAUSE_MIN && spawnManager.ticksSinceSlow() > slowTicks && spawnManager.canPause() && spawnManager.isClaimed()))
-        {
-            int pauseTicks = (spawnManager.isClaimed()) ? WymlConfig.cached().PAUSE_CLAIMED_TICKS : WymlConfig.cached().PAUSE_TICKS;
-            spawnManager.pauseSpawns(pauseTicks);
-            int resumeRate = spawnManager.isClaimed() ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
-            if (WymlConfig.cached().DEBUG_PRINT)
-                System.out.println("Pausing spawns for " + pauseTicks + " ticks or until " + resumeRate + "% success rate for class " + spawnManager.getClassification().getName() + " at " + spawnManager.getChunk() + " due to high failure rate [" + spawnManager.getFailRate() + "%].");
-            WhyYouMakeLag.updateChunkManager(spawnManager);
             ci.cancel();
             return;
         }
@@ -332,7 +325,7 @@ public abstract class MixinNaturalSpawner {
 
                             Identifier entityReg = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
 
-                            if(spawnManager.reachedMobLimit(entityReg))
+                            if(WymlBootConfig.moduleEnabled("per_mob_rules") && spawnManager.reachedMobLimit(entityReg))
                             {
                                 if(WymlConfig.cached().DEBUG_PRINT)
                                 {

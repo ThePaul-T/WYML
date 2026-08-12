@@ -21,3 +21,13 @@ classes/
 *.launch
 *.log
 MODERNIZATION_TODO.md
+docs/
+
+# Local benchmark reports and disposable same-seed worlds
+build/reports/wyml-runtime/
+fabric/build/reports/wyml-benchmark/
+fabric/build/reports/wyml-runtime/
+neoforge/build/reports/wyml-benchmark/
+neoforge/build/reports/wyml-runtime/
+fabric/runs/runtime-benchmark-*/
+neoforge/runs/runtime-benchmark-*/

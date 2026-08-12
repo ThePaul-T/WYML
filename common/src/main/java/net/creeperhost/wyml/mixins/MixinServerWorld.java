@@ -3,6 +3,7 @@ package net.creeperhost.wyml.mixins;
 import net.creeperhost.wyml.BagHandler;
 import net.creeperhost.wyml.ChunkManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
+import net.creeperhost.wyml.config.WymlBootConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -22,7 +23,9 @@ public class MixinServerWorld
     @Inject(at = @At("HEAD"), method = "addEntity", cancellable = true)
     public void addEntity(Entity entity, CallbackInfoReturnable<Boolean> cir)
     {
-        if (entity instanceof ItemEntity && WymlConfig.cached().ALLOW_PAPER_BAGS)
+        if (!WymlConfig.isEnabled()) return;
+        if (WymlBootConfig.moduleEnabled("paper_bags")
+                && entity instanceof ItemEntity && WymlConfig.cached().ALLOW_PAPER_BAGS)
         {
             BagHandler.itemEntityAdded((ItemEntity) entity);
         }
@@ -31,10 +34,15 @@ public class MixinServerWorld
     @Inject(at = @At("RETURN"), method = "addEntity", cancellable = true)
     public void addEntity2(Entity entity, CallbackInfoReturnable<Boolean> cir)
     {
-        if(entity instanceof Mob && WymlConfig.cached().HARD_MOB_LIMITS)
+        if (!WymlConfig.isEnabled()) return;
+        if (WymlBootConfig.moduleEnabled("per_mob_rules")
+                && entity instanceof Mob && WymlConfig.cached().HARD_MOB_LIMITS)
         {
             ChunkPos pos = entity.chunkPosition();
-            ChunkManager cm = WhyYouMakeLag.getChunkManager(pos, entity.level().dimensionType(), entity.getType().getCategory());
+            ServerLevel level = (ServerLevel) (Object) this;
+            ChunkManager cm = WymlBootConfig.moduleEnabled("spawn_controller")
+                    ? WhyYouMakeLag.getChunkManager(level, pos, entity.getType().getCategory())
+                    : new ChunkManager(level, pos, entity.getType().getCategory());
             Identifier location = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
             if (cm.reachedMobLimit(location))
             {

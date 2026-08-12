@@ -1,5 +1,75 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
 plugins {
     id "net.fabricmc.fabric-loom" version "1.15.5" apply false
     id "net.neoforged.moddev" version "2.0.141" apply false
     id "com.gradleup.shadow" version "9.2.2" apply false
+}
+
+def runtimeBenchmarkSeed = providers.gradleProperty("runtimeBenchmarkSeed").orElse("8675309")
+def runtimeComparisonFile = layout.buildDirectory.file("reports/wyml-runtime/comparison.json")
+
+tasks.register("runtimeBenchmark") {
+    group = "verification"
+    description = "Runs fresh-world Fabric and NeoForge tick-time benchmarks with WYML off and on."
+    dependsOn(
+            ":fabric:runBenchmarkOff",
+            ":fabric:runBenchmarkOn",
+            ":neoforge:runBenchmarkOff",
+            ":neoforge:runBenchmarkOn")
+    outputs.file(runtimeComparisonFile)
+    outputs.upToDateWhen { false }
+    doLast {
+        def slurper = new JsonSlurper()
+        def runs = [
+                fabric: [
+                        off: slurper.parse(project(":fabric").layout.buildDirectory.file("reports/wyml-runtime/off.json").get().asFile),
+                        on : slurper.parse(project(":fabric").layout.buildDirectory.file("reports/wyml-runtime/on.json").get().asFile)
+                ],
+                neoforge: [
+                        off: slurper.parse(project(":neoforge").layout.buildDirectory.file("reports/wyml-runtime/off.json").get().asFile),
+                        on : slurper.parse(project(":neoforge").layout.buildDirectory.file("reports/wyml-runtime/on.json").get().asFile)
+                ]
+        ]
+        def comparisons = [:]
+        runs.each { loader, profiles ->
+            def metricNames = ["mean", "median", "p95", "p99", "min", "max", "standard_deviation"]
+            def tickTime = [:]
+            metricNames.each { metric ->
+                BigDecimal off = profiles.off.tick_time_ms[metric] as BigDecimal
+                BigDecimal on = profiles.on.tick_time_ms[metric] as BigDecimal
+                tickTime[metric] = [
+                        off_ms: off,
+                        on_ms: on,
+                        difference_ms: on - off,
+                        difference_percent: off == 0 ? null : ((on - off) * 100 / off).setScale(4, java.math.RoundingMode.HALF_UP)
+                ]
+            }
+            tickTime.over_50ms_ticks = [
+                    off: profiles.off.tick_time_ms.over_50ms_ticks,
+                    on: profiles.on.tick_time_ms.over_50ms_ticks,
+                    difference: profiles.on.tick_time_ms.over_50ms_ticks - profiles.off.tick_time_ms.over_50ms_ticks
+            ]
+            comparisons[loader] = [tick_time: tickTime]
+        }
+        def comparison = [
+                schema: 1,
+                generated_at: java.time.Instant.now().toString(),
+                seed: runtimeBenchmarkSeed.get() as long,
+                note: "Negative differences mean the WYML-enabled profile was faster.",
+                runs: runs,
+                comparisons: comparisons
+        ]
+        def output = runtimeComparisonFile.get().asFile
+        output.parentFile.mkdirs()
+        output.setText(JsonOutput.prettyPrint(JsonOutput.toJson(comparison)) + System.lineSeparator(), "UTF-8")
+        println("WYML runtime benchmark comparison: ${output.absolutePath}")
+    }
+}
+
+gradle.projectsEvaluated {
+    tasks.getByPath(":fabric:runBenchmarkOn").mustRunAfter(tasks.getByPath(":fabric:runBenchmarkOff"))
+    tasks.getByPath(":neoforge:runBenchmarkOff").mustRunAfter(tasks.getByPath(":fabric:runBenchmarkOn"))
+    tasks.getByPath(":neoforge:runBenchmarkOn").mustRunAfter(tasks.getByPath(":neoforge:runBenchmarkOff"))
 }

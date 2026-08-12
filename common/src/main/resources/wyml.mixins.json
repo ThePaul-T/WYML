@@ -1,20 +1,22 @@
 {
   "required": true,
   "package": "net.creeperhost.wyml.mixins",
+  "plugin": "net.creeperhost.wyml.mixins.WymlMixinConfigPlugin",
   "compatibilityLevel": "JAVA_25",
   "minVersion": "0.8.2",
   "mixins": [
     "AccessorMinecraftServer",
-    "AccessorServerLevel",
     "MixinEntity",
     "MixinItemEntity",
+    "MixinItemEntityMergeScheduling",
     "MixinLivingEntity",
     "MixinMinecraftServer",
     "MixinMobCategory",
     "MixinMobSpawnSettings",
     "MixinNaturalSpawner",
     "MixinServerWorld",
-    "MixinSpawnState"
+    "MixinSpawnState",
+    "MixinSpawnStateCategoryPolicy"
   ],
   "client": [
     "MixinPlayerTabOverlay"

@@ -9,9 +9,11 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -22,6 +24,8 @@ public class WymlConfig
     private static boolean loaded;
     private static Jankson gson = Jankson.builder().build();
     private static boolean HAS_INITIALISED = false;
+    private static WatchService watcher;
+    private static boolean watching;
 
     public static void loadFromFile(File file)
     {
@@ -36,15 +40,14 @@ public class WymlConfig
                 if (!isLoaded())
                 {
                     //Save again immediately, as this makes sure that any missing config values get added with their defaults to the config file, and the comments are restored.
-                    FileWriter tileWriter = new FileWriter(file);
-                    tileWriter.write(WymlConfig.saveConfig());
-                    tileWriter.close();
+                    Files.writeString(file.toPath(), WymlConfig.saveConfig(), StandardCharsets.UTF_8);
                 }
                 loaded = true;
             }
         } catch (Exception ignored)
         {
             data.set(new ConfigData());
+            loaded = true;
         }
     }
 
@@ -67,6 +70,11 @@ public class WymlConfig
     {
         if(!WymlConfig.HAS_INITIALISED) WymlConfig.init();
         return data.get();
+    }
+
+    public static boolean isEnabled()
+    {
+        return cached().ENABLE_WYML;
     }
 
     public static synchronized ConfigData update(ConfigData _data)
@@ -102,46 +110,14 @@ public class WymlConfig
         if (lastFile == null) lastFile = file;
         try
         {
-            try
-            {
-                AtomicReference<WatchService> watcher = new AtomicReference<>();
-                Runnable configWatcher = () ->
-                {
-                    try
-                    {
-                        if (watcher.get() == null)
-                        {
-                            watcher.set(FileSystems.getDefault().newWatchService());
-                            lastFile.toPath().getParent().register(watcher.get(), StandardWatchEventKinds.ENTRY_MODIFY);
-                        }
-                        WatchKey checker = watcher.get().take();
-                        for (WatchEvent<?> event : checker.pollEvents())
-                        {
-                            Path changed = (Path) event.context();
-                            if (changed.endsWith(lastFile.getName()) && isLoaded())
-                            {
-                                if (reload())
-                                    WhyYouMakeLag.LOGGER.info("Config at " + lastFile.getAbsolutePath() + " has changed, reloaded!");
-                            }
-                        }
-                        checker.reset();
-                    } catch (Exception ignored)
-                    {
-                    }
-                };
-                WhyYouMakeLag.scheduledExecutorService2.scheduleAtFixedRate(configWatcher, 0, 10, TimeUnit.SECONDS);
-
-            } catch (Exception ignored)
-            {
-            }
-
+            Path parent = file.toPath().getParent();
+            if (parent != null) Files.createDirectories(parent);
             if (!file.exists())
             {
                 ConfigData configData = new ConfigData();
                 data.set(configData);
-                FileWriter tileWriter = new FileWriter(file);
-                tileWriter.write(WymlConfig.saveConfig());
-                tileWriter.close();
+                Files.writeString(file.toPath(), WymlConfig.saveConfig(), StandardCharsets.UTF_8);
+                loaded = true;
             }
             else
             {
@@ -151,5 +127,54 @@ public class WymlConfig
         {
         }
         WymlConfig.HAS_INITIALISED = true;
+    }
+
+    public static synchronized void startWatcher(ScheduledExecutorService executor)
+    {
+        if (watching || lastFile == null || executor == null) return;
+        try
+        {
+            watcher = FileSystems.getDefault().newWatchService();
+            lastFile.toPath().getParent().register(watcher, StandardWatchEventKinds.ENTRY_MODIFY);
+            watching = true;
+            executor.scheduleWithFixedDelay(WymlConfig::pollWatcher, 10, 10, TimeUnit.SECONDS);
+        }
+        catch (IOException exception)
+        {
+            WhyYouMakeLag.LOGGER.warn("Unable to watch WYML config for changes", exception);
+        }
+    }
+
+    public static synchronized void stopWatcher()
+    {
+        watching = false;
+        if (watcher != null)
+        {
+            try
+            {
+                watcher.close();
+            }
+            catch (IOException ignored)
+            {
+            }
+            watcher = null;
+        }
+    }
+
+    private static void pollWatcher()
+    {
+        WatchKey key;
+        while (watching && watcher != null && (key = watcher.poll()) != null)
+        {
+            for (WatchEvent<?> event : key.pollEvents())
+            {
+                Path changed = (Path) event.context();
+                if (changed.endsWith(lastFile.getName()) && isLoaded() && reload())
+                {
+                    WhyYouMakeLag.LOGGER.info("Config at " + lastFile.getAbsolutePath() + " has changed, reloaded!");
+                }
+            }
+            key.reset();
+        }
     }
 }

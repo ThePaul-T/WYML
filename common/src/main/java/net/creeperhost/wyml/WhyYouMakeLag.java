@@ -1,34 +1,32 @@
 package net.creeperhost.wyml;
 
-import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.creeperhost.polylib.event.events.server.PolyServerLifecycleEvents;
 import net.creeperhost.polylib.platform.Services;
 import net.creeperhost.wyml.config.WymlConfig;
+import net.creeperhost.wyml.config.WymlBootConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
 import net.creeperhost.wyml.init.WYMLContainers;
 import net.creeperhost.wyml.init.WYMLScreens;
 import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
-import net.creeperhost.wyml.mixins.AccessorServerLevel;
-import net.minecraft.resources.ResourceKey;
+import net.creeperhost.wyml.spawn.AttemptBudgetPolicy;
+import net.creeperhost.wyml.spawn.CategoryCapPolicy;
+import net.creeperhost.wyml.spawn.ControllerKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class WhyYouMakeLag
 {
@@ -36,17 +34,11 @@ public class WhyYouMakeLag
     public static int realMax = 0;
     public static int trueCount = 0;
     public static MinecraftServer minecraftServer;
-    public static Object2IntOpenHashMap<MobCategory> mobCategoryCounts;
-    public static HashMap<MobCategory, Integer> spawnableChunkCount = new HashMap<>();
-    public static AtomicReference<List<Long>> cachedForceLoadedChunks = new AtomicReference<>();
-    private static AtomicReference<HashMap<String, ChunkManager>> chunkManager = new AtomicReference<>();
-    public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-    public static ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
+    private static final Map<MinecraftServer, Map<ControllerKey, ChunkManager>> controllerRegistries = new IdentityHashMap<>();
+    public static ScheduledExecutorService scheduledExecutorService;
+    public static ScheduledExecutorService scheduledExecutorService2;
     public static Logger LOGGER = LogManager.getLogger();
     public static Path configFile = Services.PLATFORM.getConfigFolder().resolve(MOD_ID + ".json");
-
-    public static long tickStartNano;
-    public static long tickStopNano;
 
     public static void init()
     {
@@ -58,11 +50,22 @@ public class WhyYouMakeLag
             WYMLScreens.init();
         }
 
-        PolyServerLifecycleEvents.SERVER_STARTED.register(WhyYouMakeLag::serverStarted);
-        PolyServerLifecycleEvents.SERVER_STOPPING.register(server -> WhyYouMakeLag.serverStopping());
+        if (!WymlConfig.isEnabled())
+        {
+            LOGGER.info("WYML feature runtime is disabled; compatibility content remains registered.");
+            return;
+        }
 
-        if (chunkManager.get() == null) chunkManager.set(new HashMap<String, ChunkManager>());
-        if (cachedForceLoadedChunks.get() == null) cachedForceLoadedChunks.set(new ArrayList<Long>());
+        createExecutors();
+        WymlConfig.startWatcher(scheduledExecutorService2);
+
+        if (WymlBootConfig.moduleEnabled("spawn_controller")
+                || WymlBootConfig.moduleEnabled("per_mob_rules")
+                || WymlBootConfig.moduleEnabled("paper_bags"))
+        {
+            PolyServerLifecycleEvents.SERVER_STARTED.register(WhyYouMakeLag::serverStarted);
+        }
+        PolyServerLifecycleEvents.SERVER_STOPPING.register(WhyYouMakeLag::serverStopping);
     }
 
     public static List<ChunkHolder> shuffle(final List<ChunkHolder> input)
@@ -92,67 +95,48 @@ public class WhyYouMakeLag
         return Services.PLATFORM.isModLoaded("ftbchunks");
     }
 
-    public static LongSet getForceLoadedChunks()
+    public static int getTicks(MinecraftServer server)
     {
-        if (minecraftServer == null) return null;
-        if (minecraftServer.getLevel(Level.OVERWORLD) == null) return null;
-        return minecraftServer.getLevel(Level.OVERWORLD).getChunkSource().getForceLoadedChunks();
+        return server == null ? 0 : ((AccessorMinecraftServer) server).getTickCount();
     }
-
-    public static int getTicks()
+    public static void serverStopping(MinecraftServer server)
     {
-        return ((AccessorMinecraftServer) minecraftServer).getTickCount();
-    }
-    public static PersistentEntitySectionManager<Entity> getEntitySectionManager()
-    {
-        return ((AccessorServerLevel) WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD)).getEntityManager();
-    }
-
-    public static void serverStopping()
-    {
-        scheduledExecutorService2.shutdown();
-        scheduledExecutorService2.shutdownNow();
-        scheduledExecutorService.shutdown();
-        scheduledExecutorService.shutdownNow();
-    }
-
-    public synchronized static boolean hasChunkManager(ChunkPos pos, ResourceKey<Level> level, MobCategory classification)
-    {
-        String id = pos + level.toString() + classification.getName();
-        return chunkManager.get().containsKey(id);
-    }
-
-    public synchronized static void removeChunkManager(String id)
-    {
-        chunkManager.getAndUpdate((existing) ->
+        WymlConfig.stopWatcher();
+        if (scheduledExecutorService2 != null) scheduledExecutorService2.shutdownNow();
+        if (scheduledExecutorService != null) scheduledExecutorService.shutdownNow();
+        synchronized (controllerRegistries)
         {
-            existing.remove(id);
-            return existing;
-        });
+            controllerRegistries.remove(server);
+        }
+        if (minecraftServer == server) minecraftServer = null;
+    }
+
+    public synchronized static boolean hasChunkManager(ServerLevel level, ChunkPos pos, MobCategory classification)
+    {
+        Map<ControllerKey, ChunkManager> registry = controllerRegistries.get(level.getServer());
+        return registry != null && registry.containsKey(ControllerKey.of(level, pos, classification));
+    }
+
+    public synchronized static void removeChunkManager(MinecraftServer server, ControllerKey key)
+    {
+        Map<ControllerKey, ChunkManager> registry = controllerRegistries.get(server);
+        if (registry != null) registry.remove(key);
     }
 
     @SuppressWarnings("unused")
     public synchronized static void removeChunkManager(ChunkManager manager)
     {
-        String id = manager.chunk + manager.dimensionType.toString() + manager.classification.getName();
-        chunkManager.getAndUpdate((existing) ->
-        {
-            existing.remove(id);
-            return existing;
-        });
+        removeChunkManager(manager.getLevel().getServer(), manager.getKey());
     }
 
-    public synchronized static ChunkManager getChunkManager(ChunkPos pos, DimensionType dimensionType, MobCategory classification)
+    public synchronized static ChunkManager getChunkManager(ServerLevel level, ChunkPos pos, MobCategory classification)
     {
-        String id = pos + dimensionType.toString() + classification.getName();
-        if (chunkManager.get().containsKey(id))
-        {
-            return chunkManager.get().get(id);
-        }
-        return new ChunkManager(pos, dimensionType, classification);
+        Map<ControllerKey, ChunkManager> registry = controllerRegistries.computeIfAbsent(level.getServer(), ignored -> new HashMap<>());
+        ControllerKey key = ControllerKey.of(level, pos, classification);
+        return registry.computeIfAbsent(key, ignored -> new ChunkManager(level, pos, classification));
     }
 
-    public static double getMagicNum()
+    public static double getCategoryCapRadius()
     {
         double magicNum = WymlConfig.cached().MOJANG_MAGIC_NUM;
         if (WymlConfig.cached().DOWNSCALE_MAGIC_NUM)
@@ -168,121 +152,117 @@ public class WhyYouMakeLag
     public synchronized static void updateChunkManager(ChunkManager manager)
     {
         if (manager.isSaved()) return;
-        String id = manager.chunk + manager.dimensionType.toString() + manager.classification.getName();
-        chunkManager.getAndUpdate((existing) ->
-        {
-            manager.isSaving();
-            existing.put(id, manager);
-            return existing;
-        });
+        Map<ControllerKey, ChunkManager> registry = controllerRegistries.computeIfAbsent(manager.getLevel().getServer(), ignored -> new HashMap<>());
+        manager.isSaving();
+        registry.put(manager.getKey(), manager);
     }
 
     public static void serverStarted(MinecraftServer minecraftServer)
     {
-        if (scheduledExecutorService.isShutdown()) scheduledExecutorService = Executors.newScheduledThreadPool(1);
-        if (scheduledExecutorService2.isShutdown()) scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
+        if (!WymlConfig.isEnabled()) return;
+        createExecutors();
+        WymlConfig.startWatcher(scheduledExecutorService2);
 
         WhyYouMakeLag.minecraftServer = minecraftServer;
-        if (WymlConfig.cached().ALLOW_PAPER_BAGS) BagHandler.create();
+        synchronized (controllerRegistries)
+        {
+            controllerRegistries.computeIfAbsent(minecraftServer, ignored -> new HashMap<>());
+        }
+        if (WymlBootConfig.moduleEnabled("paper_bags") && WymlConfig.cached().ALLOW_PAPER_BAGS) BagHandler.create();
 
-        CompletableFuture.runAsync(MobManager::init).thenRun(() ->
-                LOGGER.info("Finished preparing WYML per-mod per-category per-mob configurations."));
+        if (WymlBootConfig.moduleEnabled("per_mob_rules"))
+        {
+            CompletableFuture.runAsync(MobManager::init).thenRun(() ->
+                    LOGGER.info("Finished preparing WYML per-mod per-category per-mob configurations."));
+        }
 
         Runnable cleanThread = () ->
         {
-            try
+            MinecraftServer server = WhyYouMakeLag.minecraftServer;
+            if (server != null)
             {
-                List<Long> forceLoaded = new ArrayList<>();
-                if (getForceLoadedChunks() != null)
-                {
-                    getForceLoadedChunks().stream().iterator().forEachRemaining(forceLoaded::add);
-                }
-                cachedForceLoadedChunks.set(forceLoaded);
-                int managersRemoved = 0;
-                int managersTotal = 0;
-                int blockCacheRemoved = 0;
-                int blockCacheTotal = 0;
-                HashMap<String, ChunkManager> spawnManagers = new HashMap<>(chunkManager.get());
-                List<String> toRemove = new ArrayList<String>();
-                Set<String> ids = spawnManagers.keySet();
-                for (String id : ids)
-                {
-                    managersTotal++;
-                    ChunkManager sm = spawnManagers.get(id);
-                    if (sm.hasExpired())
-                    {
-                        toRemove.add(id);
-                    }
-                    else
-                    {
-                        blockCacheTotal += sm.countBlockCache();
-                        int amRemoved = sm.cleanBlockCache();
-                        if (amRemoved > 0 || !sm.isSaved())
-                        {
-                            updateChunkManager(sm);
-                        }
-                        blockCacheRemoved += amRemoved;
-                    }
-                }
-                spawnManagers.clear();
-                for (String id : toRemove)
-                {
-                    removeChunkManager(id);
-                    managersRemoved = managersRemoved + 1;
-                }
-                if (true)//WymlConfig.DEBUG_PRINT.get())
-                {
-                    //if (managersRemoved > 0 || blockCacheRemoved > 0)
-                    //{
-                    //HashMap<String, WYMLSpawnManager> penis = spawnManager.get();
-                    long usage = 0;
-                    try
-                    {
-                        //usage = MemoryMeasurer.measureBytes(penis);
-                    } catch (Throwable t)
-                    {
-                        t.printStackTrace();
-                    }
-                    if (WymlConfig.cached().CLEAN_PRINT)
-                        LOGGER.info("Cleaned up caches, removed " + managersRemoved + "/" + managersTotal + " Chunk SpawnManagers and " + blockCacheRemoved + "/" + blockCacheTotal + " block spawn caches. [" + usage + "]");
-                    //}
-                }
-            } catch (Exception ignored)
-            {
+                server.execute(() -> cleanControllers(server));
             }
         };
-        scheduledExecutorService.scheduleAtFixedRate(cleanThread, 0, 10, TimeUnit.SECONDS);
+        if (WymlBootConfig.moduleEnabled("spawn_controller"))
+            scheduledExecutorService.scheduleAtFixedRate(cleanThread, 0, 10, TimeUnit.SECONDS);
     }
 
-    public static int calculateSpawnCount(MobCategory entityClassification, Object2IntOpenHashMap<MobCategory> mobCategoryCounts, int spawnableChunkCount)
+    public static int getAttemptBudget(ServerLevel level)
     {
-        if (WhyYouMakeLag.minecraftServer == null) return 0;
-        WhyYouMakeLag.mobCategoryCounts = mobCategoryCounts;
-        WhyYouMakeLag.spawnableChunkCount.put(entityClassification, spawnableChunkCount);
+        return AttemptBudgetPolicy.resolve(
+                WymlConfig.cached().ATTEMPT_BUDGET_PER_WINDOW,
+                WymlConfig.cached().MOB_TRIES,
+                WymlConfig.cached().ATTEMPT_BUDGET_PLAYER_SCALING,
+                WymlConfig.cached().MULTIPLY_BY_PLAYERS,
+                level.getServer().getPlayerList().getPlayerCount());
+    }
 
-        MinecraftServer minecraftServer = WhyYouMakeLag.minecraftServer;
-        int onlineCount = minecraftServer.getPlayerList().getPlayerCount();
-
-        int i = entityClassification.getMaxInstancesPerChunk() * spawnableChunkCount / (int) Math.pow(17.0D, 2.0D);
-        WhyYouMakeLag.realMax = i;
-        int retVal = 0;
-        int curMobs = mobCategoryCounts.getInt(entityClassification);
-        if (curMobs < i)
+    private static void cleanControllers(MinecraftServer server)
+    {
+        int managersRemoved = 0;
+        int managersTotal = 0;
+        int blockCacheRemoved = 0;
+        int blockCacheTotal = 0;
+        Map<ControllerKey, ChunkManager> snapshot;
+        synchronized (controllerRegistries)
         {
-            int tries = WymlConfig.cached().MOB_TRIES;
-            if (WymlConfig.cached().MULTIPLY_BY_PLAYERS) tries = (tries * onlineCount);
-            retVal = curMobs + tries;
+            Map<ControllerKey, ChunkManager> registry = controllerRegistries.get(server);
+            if (registry == null) return;
+            snapshot = new HashMap<>(registry);
         }
-        if (retVal > WhyYouMakeLag.realMax) retVal = WhyYouMakeLag.realMax;
-        return retVal;
+
+        List<ControllerKey> toRemove = new ArrayList<>();
+        for (Map.Entry<ControllerKey, ChunkManager> entry : snapshot.entrySet())
+        {
+            managersTotal++;
+            ChunkManager manager = entry.getValue();
+            if (manager.hasExpired())
+            {
+                toRemove.add(entry.getKey());
+            }
+            else
+            {
+                blockCacheTotal += manager.countBlockCache();
+                int removed = manager.cleanBlockCache();
+                if (removed > 0 || !manager.isSaved()) updateChunkManager(manager);
+                blockCacheRemoved += removed;
+            }
+        }
+        for (ControllerKey key : toRemove)
+        {
+            removeChunkManager(server, key);
+            managersRemoved++;
+        }
+        if (WymlConfig.cached().CLEAN_PRINT)
+        {
+            LOGGER.info("Cleaned up controllers, removed " + managersRemoved + "/" + managersTotal
+                    + " Chunk SpawnManagers and " + blockCacheRemoved + "/" + blockCacheTotal + " block spawn caches.");
+        }
+    }
+
+    private static synchronized void createExecutors()
+    {
+        if (scheduledExecutorService == null || scheduledExecutorService.isShutdown())
+            scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        if (scheduledExecutorService2 == null || scheduledExecutorService2.isShutdown())
+            scheduledExecutorService2 = Executors.newScheduledThreadPool(1);
+    }
+
+    public static int calculateCategoryCap(MobCategory category, int spawnableChunkCount)
+    {
+        int cap = CategoryCapPolicy.calculate(
+                category.getMaxInstancesPerChunk(), spawnableChunkCount, getCategoryCapRadius());
+        WhyYouMakeLag.realMax = cap;
+        return cap;
     }
 
     public static boolean shouldSpawn(MobCategory entityClassification, Object2IntOpenHashMap<MobCategory> mobCategoryCounts, int spawnableChunkCount)
     {
-        int retVal = calculateSpawnCount(entityClassification, mobCategoryCounts, spawnableChunkCount);
+        int cap = calculateCategoryCap(entityClassification, spawnableChunkCount);
         int curMobs = mobCategoryCounts.getInt(entityClassification);
 
-        boolean value = curMobs < retVal;
+        boolean value = curMobs < cap;
 
         if (value) WhyYouMakeLag.trueCount++;
 

@@ -7,20 +7,35 @@ import java.util.List;
 
 public class ConfigData
 {
+    @Comment("Authoritative WYML runtime switch. Set false together with master_enabled=false in wyml-mixins.properties, then restart, for the vanilla-behaviour baseline.")
+    public boolean ENABLE_WYML = true;
+
     // ******************************************
     // * Misc
     // ******************************************
-    @Comment("Set the max amount of spawn tries base rate")
+    @Comment("Legacy slow-mode attempt allowance. Retained for migration; use ATTEMPT_BUDGET_PER_WINDOW.")
     public int MOB_TRIES = 1;
 
-    @Comment("Set to true to multiply base rate by online player count")
+    @Comment("Legacy slow-mode player scaling. Retained when ATTEMPT_BUDGET_PLAYER_SCALING is legacy.")
     public boolean MULTIPLY_BY_PLAYERS = true;
+
+    @Comment("Natural-spawn candidate budget per SAMPLE_TICKS window while throttled. -1 migrates MOB_TRIES.")
+    public int ATTEMPT_BUDGET_PER_WINDOW = -1;
+
+    @Comment("Throttled budget player scaling: legacy, none, or linear.")
+    public String ATTEMPT_BUDGET_PLAYER_SCALING = "legacy";
+
+    @Comment("Enable WYML category cap scaling and despawn-distance overrides independently of spawn throttling. Restart required.")
+    public boolean ENABLE_CATEGORY_CAP_POLICY = true;
 
     @Comment("Replace Mojang magic number (pow2) with this")
     public double MOJANG_MAGIC_NUM = 17D;
 
     @Comment("Spam your console and make performance terrible...")
     public boolean DEBUG_PRINT = false;
+
+    @Comment("Show numeric latency beside each player in the client player list")
+    public boolean SHOW_NUMERIC_PING = true;
 
     @Comment("Downscale the Mojang Magic Number by the online player count")
     public boolean DOWNSCALE_MAGIC_NUM = true;
@@ -34,10 +49,10 @@ public class ConfigData
 //    @Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), disabling this stops the big ram spike at server start when loading existing worlds [ENABLE THIS IF YOU HAVE ANOTHER DFU CHANGING MOD!]")
 //    public boolean ENABLE_DFU = true;
 
-    @Comment("Force Java garbage collector to run once the levels have been generated or loaded the first time (Frees up memory after the server is initially started)")
-    public boolean ENABLE_GARBAGE_COLLECTION_LOAD = true;
+    @Comment("Advanced, default-off: request one full JVM garbage collection after initial level loading. The JVM may ignore the request or pause the server; review the recorded duration before retaining it.")
+    public boolean ENABLE_GARBAGE_COLLECTION_LOAD = false;
 
-    @Comment("Ensure the tick loop does not run repeatedly, waits until the next tick is due (reduce cpu usage on hardware)")
+    @Comment("Deprecated no-op retained for configuration migration. Modern Minecraft already waits against its own tick deadline.")
     public boolean NORMALIZE_TICKS = true;
 
     @Comment("Set the amount of time it takes for an item to de-spawn in ticks, This can only be reduced (default 6000)")
@@ -67,6 +82,9 @@ public class ConfigData
     @Comment("At what what percentage of successful spawns, after we pause spawning, should we resume spawning")
     public int RESUME_RATE = 10;
 
+    @Comment("Number of natural-spawn candidates allowed in the bounded probe window after backoff")
+    public int PROBE_ATTEMPTS = 8;
+
     @Comment("At what what percentage of failed spawns should we then pause spawning in a chunk in claimed chunks")
     public int PAUSE_CLAIMED_RATE = 65;
 
@@ -79,8 +97,11 @@ public class ConfigData
     @Comment("The minimum amount of attempted spawns of a type in a chunk before we allow pausing")
     public int PAUSE_MIN = 256;
 
-    @Comment("The minimum amount connected players to enable pausing")
+    @Comment("Legacy exclusive player threshold. Retained for migration; PAUSE_MIN_PLAYERS=-1 translates this value by adding one.")
     public int MINIMUM_PAUSE_PLAYERS = 2;
+
+    @Comment("Inclusive online-player minimum for entering backoff. -1 migrates the legacy exclusive threshold.")
+    public int PAUSE_MIN_PLAYERS = -1;
 
 
     // ******************************************
@@ -98,8 +119,17 @@ public class ConfigData
     @Comment("Set to true to spread entity pushing updates between ticks. (Reduces network and CPU usage)")
     public boolean NORMALIZE_PUSHING = true;
 
-    @Comment("Set to true to spread the merging of ItemStacks between ticks. (Reduces CPU usage)")
+    @Comment("Ticks between scheduled collision-neighbour queries for ordinary living entities. Players, riders, and vehicles are exempt.")
+    public int ENTITY_PUSH_INTERVAL = 4;
+
+    @Comment("Set to true to deterministically spread dropped-item merge queries without consuming entity RNG.")
     public boolean NORMALIZE_ITEM_STACK_MERGING = true;
+
+    @Comment("Merge-query interval for an item that crossed a block-coordinate boundary this tick. Vanilla uses 2 ticks.")
+    public int ITEM_MERGE_MOVING_INTERVAL = 2;
+
+    @Comment("Merge-query interval for an item that remained in the same block this tick. Vanilla uses 40 ticks.")
+    public int ITEM_MERGE_STATIONARY_INTERVAL = 40;
 
 
     // ******************************************
@@ -112,7 +142,7 @@ public class ConfigData
     // ******************************************
     // * Caching
     // ******************************************
-    @Comment("How many ticks to remember if we fail spawning in a block position")
+    @Comment("Deprecated migration value. Unsafe legacy failed-position caching is disabled until a type/rule-safe replacement is available.")
     public int SPAWNLOC_CACHE_TICKS = 600;
 
     @Comment("How many ticks to store a SpawnManager for a chunk after it's last update")

@@ -9,10 +9,17 @@ neoForge {
 
 dependencies {
     compileOnly "org.spongepowered:mixin:0.8.5"
+    compileOnly "org.ow2.asm:asm-tree:${asm_version}"
     compileOnly "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
     accessTransformers "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"
     compileOnly "dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}"
     implementation "blue.endless:jankson:1.2.1"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.11.4"
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
 
 configurations {

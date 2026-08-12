@@ -24,6 +24,32 @@ dependencies {
     commonResources project(path: ":common", configuration: "commonResources")
 }
 
+sourceSets {
+    benchmark {
+        java.srcDir(rootProject.file("common/src/benchmark/java"))
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+def benchmarkLabel = providers.gradleProperty("benchmarkLabel").orElse("latest")
+def benchmarkReportDirectory = layout.buildDirectory.dir("reports/wyml-benchmark")
+
+tasks.register("wymlBenchmark", JavaExec) {
+    group = "verification"
+    description = "Runs deterministic WYML before/after work-count benchmarks on the ${project.name} classpath."
+    dependsOn tasks.named("benchmarkClasses")
+    classpath = sourceSets.benchmark.runtimeClasspath
+    mainClass = "net.creeperhost.wyml.benchmark.WymlBenchmarkMain"
+    args benchmarkReportDirectory.get().asFile.absolutePath, benchmarkLabel.get(), project.name
+    outputs.dir benchmarkReportDirectory
+    outputs.upToDateWhen { false }
+}
+
+tasks.named("check") {
+    dependsOn tasks.named("wymlBenchmark")
+}
+
 tasks.named("compileJava", JavaCompile) {
     dependsOn(configurations.commonJava)
     source(configurations.commonJava)

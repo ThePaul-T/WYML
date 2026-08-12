@@ -4,6 +4,13 @@ plugins {
     id "net.neoforged.moddev"
 }
 
+def runtimeBenchmarkSeed = providers.gradleProperty("runtimeBenchmarkSeed").orElse("8675309").get()
+def runtimeBenchmarkWarmup = providers.gradleProperty("runtimeBenchmarkWarmupTicks").orElse("200").get()
+def runtimeBenchmarkTicks = providers.gradleProperty("runtimeBenchmarkMeasureTicks").orElse("600").get()
+def runtimeBenchmarkCows = providers.gradleProperty("runtimeBenchmarkCows").orElse("300").get()
+def runtimeBenchmarkItems = providers.gradleProperty("runtimeBenchmarkItems").orElse("400").get()
+def neoForgeBenchmarkReportDir = layout.buildDirectory.dir("reports/wyml-runtime")
+
 configurations {
     devRuntime
     runtimeClasspath.extendsFrom(devRuntime)
@@ -23,6 +30,44 @@ neoForge {
             server()
             gameDirectory = file("runs/server")
         }
+        benchmarkOff {
+            server()
+            ideName = "NeoForge WYML Runtime Benchmark Off"
+            disableIdeRun()
+            gameDirectory = file("runs/runtime-benchmark-off")
+            programArgument("nogui")
+            systemProperty("wyml.configDir", file("runs/runtime-benchmark-off/config").absolutePath)
+            systemProperty("wyml.runtimeBenchmark.enabled", "true")
+            systemProperty("wyml.runtimeBenchmark.loader", "neoforge")
+            systemProperty("wyml.runtimeBenchmark.profile", "off")
+            systemProperty("wyml.runtimeBenchmark.wymlEnabled", "false")
+            systemProperty("wyml.runtimeBenchmark.seed", runtimeBenchmarkSeed)
+            systemProperty("wyml.runtimeBenchmark.warmupTicks", runtimeBenchmarkWarmup)
+            systemProperty("wyml.runtimeBenchmark.measureTicks", runtimeBenchmarkTicks)
+            systemProperty("wyml.runtimeBenchmark.cows", runtimeBenchmarkCows)
+            systemProperty("wyml.runtimeBenchmark.items", runtimeBenchmarkItems)
+            systemProperty("wyml.runtimeBenchmark.output", neoForgeBenchmarkReportDir.get().file("off.json").asFile.absolutePath)
+            systemProperty("wyml.runtimeBenchmark.worldDirectory", file("runs/runtime-benchmark-off/world").absolutePath)
+        }
+        benchmarkOn {
+            server()
+            ideName = "NeoForge WYML Runtime Benchmark On"
+            disableIdeRun()
+            gameDirectory = file("runs/runtime-benchmark-on")
+            programArgument("nogui")
+            systemProperty("wyml.configDir", file("runs/runtime-benchmark-on/config").absolutePath)
+            systemProperty("wyml.runtimeBenchmark.enabled", "true")
+            systemProperty("wyml.runtimeBenchmark.loader", "neoforge")
+            systemProperty("wyml.runtimeBenchmark.profile", "on")
+            systemProperty("wyml.runtimeBenchmark.wymlEnabled", "true")
+            systemProperty("wyml.runtimeBenchmark.seed", runtimeBenchmarkSeed)
+            systemProperty("wyml.runtimeBenchmark.warmupTicks", runtimeBenchmarkWarmup)
+            systemProperty("wyml.runtimeBenchmark.measureTicks", runtimeBenchmarkTicks)
+            systemProperty("wyml.runtimeBenchmark.cows", runtimeBenchmarkCows)
+            systemProperty("wyml.runtimeBenchmark.items", runtimeBenchmarkItems)
+            systemProperty("wyml.runtimeBenchmark.output", neoForgeBenchmarkReportDir.get().file("on.json").asFile.absolutePath)
+            systemProperty("wyml.runtimeBenchmark.worldDirectory", file("runs/runtime-benchmark-on/world").absolutePath)
+        }
     }
     mods {
         wyml {
@@ -30,6 +75,65 @@ neoForge {
         }
     }
 }
+
+def registerNeoForgeRuntimePreparation = { String profile, boolean enabled ->
+    def capitalized = profile.capitalize()
+    def runDirectory = file("runs/runtime-benchmark-${profile}")
+    def reportFile = neoForgeBenchmarkReportDir.get().file("${profile}.json").asFile
+    tasks.register("prepareRuntimeBenchmark${capitalized}") {
+        outputs.upToDateWhen { false }
+        doLast {
+            delete(runDirectory)
+            delete(reportFile)
+            def configDirectory = new File(runDirectory, "config")
+            configDirectory.mkdirs()
+            new File(runDirectory, "eula.txt").setText("eula=true\n", "UTF-8")
+            new File(runDirectory, "server.properties").setText("""\
+level-name=world
+level-seed=${runtimeBenchmarkSeed}
+online-mode=false
+spawn-protection=0
+view-distance=4
+simulation-distance=4
+max-tick-time=0
+generate-structures=false
+difficulty=normal
+gamemode=creative
+""", "UTF-8")
+            new File(configDirectory, "wyml.json").setText("""{
+  \"ENABLE_WYML\": ${enabled},
+  \"ENABLE_GARBAGE_COLLECTION_LOAD\": false,
+  \"CLEAN_PRINT\": false,
+  \"DEBUG_PRINT\": false,
+  \"ALLOW_PAPER_BAGS\": false
+}\n""", "UTF-8")
+            new File(configDirectory, "wyml-mixins.properties").setText(enabled ? """\
+master_enabled=true
+spawn_controller=true
+category_policy=true
+per_mob_rules=true
+paper_bags=true
+item_lifetime=true
+item_merging=true
+entity_pushing=true
+tick_pacing=true
+post_load_gc=true
+numeric_ping=true
+""" : "master_enabled=false\n", "UTF-8")
+        }
+    }
+    tasks.named("runBenchmark${capitalized}") {
+        dependsOn tasks.named("prepareRuntimeBenchmark${capitalized}")
+        doLast {
+            if (!reportFile.isFile()) {
+                throw new GradleException("NeoForge runtime benchmark ${profile} exited without producing ${reportFile}")
+            }
+        }
+    }
+}
+
+registerNeoForgeRuntimePreparation("off", false)
+registerNeoForgeRuntimePreparation("on", true)
 
 dependencies {
     implementation "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"

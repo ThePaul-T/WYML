@@ -4,52 +4,53 @@ import net.creeperhost.wyml.compat.CompatFTBChunks;
 import net.creeperhost.wyml.config.ModSpawnConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.data.MobSpawnData;
-import net.minecraft.core.BlockPos;
+import net.creeperhost.wyml.spawn.ChunkBounds;
+import net.creeperhost.wyml.spawn.ControllerKey;
+import net.creeperhost.wyml.spawn.ControllerState;
+import net.creeperhost.wyml.spawn.PauseEligibility;
+import net.creeperhost.wyml.spawn.SpawnAttemptSnapshot;
+import net.creeperhost.wyml.spawn.SpawnAttemptTracker;
+import net.creeperhost.wyml.spawn.SpawnControllerState;
+import net.creeperhost.wyml.spawn.TickExpiry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.profiling.Profiler;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.*;
-import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.AABB;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 public class ChunkManager
 {
-    MobCategory classification;
-    ChunkPos chunk;
-    DimensionType dimensionType;
-    Level level;
+    private final ControllerKey key;
+    private final MobCategory classification;
+    private final ChunkPos chunk;
+    private final ServerLevel level;
     int spawningCount;
     private long startRate;
     private long finishRate;
-    private int pauseTick;
-    private int pausedFor;
     private int startSpawnSampleTick;
     private int lastSpawnRequestTick;
     private int spawnsInTick;
-    private int slowModeStart;
     private int lastUpdatedTick;
+    private final SpawnAttemptTracker attemptTracker = new SpawnAttemptTracker();
+    private final SpawnControllerState controllerState = new SpawnControllerState();
     private boolean requiresSave;
-    private boolean isPaused;
-    private HashMap<Long, spawnLocation> prevSpawns = new HashMap<Long, spawnLocation>();
-    boolean slowMode;
 
-    public ChunkManager(ChunkPos pos, DimensionType dimensionType, MobCategory classification)
+    public ChunkManager(ServerLevel level, ChunkPos pos, MobCategory classification)
     {
-        //TODO: Start accepting level name too
+        this.level = level;
         this.classification = classification;
         this.chunk = pos;
-        this.dimensionType = dimensionType;
+        this.key = ControllerKey.of(level, pos, classification);
+    }
+
+    public ControllerKey getKey()
+    {
+        return key;
     }
 
     public ChunkPos getChunk()
@@ -64,7 +65,7 @@ public class ChunkManager
 
     public boolean isSlowMode()
     {
-        return slowMode;
+        return controllerState.current(getTicks()) == ControllerState.THROTTLED;
     }
 
     public long getFinishRate()
@@ -84,21 +85,12 @@ public class ChunkManager
 
     public boolean isClaimed()
     {
-        if (!WhyYouMakeLag.isFtbChunksLoaded() || WhyYouMakeLag.minecraftServer == null) return false;
-        for (ResourceKey<Level> levelKey : WhyYouMakeLag.minecraftServer.levelKeys())
-        {
-            Level candidate = WhyYouMakeLag.minecraftServer.getLevel(levelKey);
-            if (candidate != null && candidate.dimensionType() == dimensionType)
-            {
-                return CompatFTBChunks.isClaimed(candidate, getChunk());
-            }
-        }
-        return false;
+        return WhyYouMakeLag.isFtbChunksLoaded() && CompatFTBChunks.isClaimed(level, getChunk());
     }
 
     public boolean isForceLoaded()
     {
-        return WhyYouMakeLag.cachedForceLoadedChunks.get().contains(getChunk().pack());
+        return level.getChunkSource().getForceLoadedChunks().contains(getChunk().pack());
     }
 
     public double getFailRate()
@@ -118,87 +110,72 @@ public class ChunkManager
         return retVal;
     }
 
-    public synchronized void increaseSpawningCount(BlockPos pos)
+    public synchronized void increaseSpawningCount()
     {
         startRate++;
-        if (WhyYouMakeLag.getTicks() > (startSpawnSampleTick + WymlConfig.cached().SAMPLE_TICKS))
+        int currentTick = getTicks();
+        int windowTicks = Math.max(1, WymlConfig.cached().SAMPLE_TICKS);
+        if (TickExpiry.hasElapsed(startSpawnSampleTick, currentTick, windowTicks))
         {
-            startSpawnSampleTick = WhyYouMakeLag.getTicks();
+            startSpawnSampleTick = currentTick;
             spawnsInTick = 0;
         }
-        spawnLocation sl = new spawnLocation();
-        if (prevSpawns.containsKey(pos.asLong()))
-        {
-            sl = prevSpawns.get(pos.asLong());
-        }
-        if (!sl.success)
-        {
-            sl.position = pos;
-            sl.success = false;
-            sl.lastUpdated = WhyYouMakeLag.getTicks();
-        }
-        prevSpawns.put(pos.asLong(), sl);
         spawnsInTick++;
-        lastSpawnRequestTick = WhyYouMakeLag.getTicks();
+        lastSpawnRequestTick = currentTick;
         spawningCount++;
         requiresSave = true;
+    }
+
+    public SpawnAttemptTracker.Attempt beginNaturalSpawnAttempt()
+    {
+        int currentTick = getTicks();
+        if (!controllerState.tryAcquireAttempt(currentTick)) return null;
+        increaseSpawningCount();
+        return attemptTracker.begin(success ->
+        {
+            int completionTick = getTicks();
+            ControllerState before = controllerState.current(completionTick);
+            controllerState.recordOutcome(success, completionTick);
+            if (before == ControllerState.PROBE && controllerState.current(completionTick) != ControllerState.PROBE)
+            {
+                resetObservationWindow();
+            }
+        });
+    }
+
+    public SpawnAttemptSnapshot getAttemptSnapshot()
+    {
+        return attemptTracker.snapshot();
     }
 
     public void isSaving()
     {
         requiresSave = false;
-        lastUpdatedTick = WhyYouMakeLag.getTicks();
+        lastUpdatedTick = getTicks();
     }
 
     public boolean hasExpired()
     {
-        return ((lastUpdatedTick + WymlConfig.cached().MANAGER_CACHE_TICKS) > WhyYouMakeLag.getTicks() && !isPaused() && isSaved());
+        return isSaved()
+                && getControllerState() == ControllerState.ACTIVE
+                && TickExpiry.hasElapsed(lastUpdatedTick, getTicks(), WymlConfig.cached().MANAGER_CACHE_TICKS);
     }
 
     public int countBlockCache()
     {
-        return prevSpawns.size();
+        return 0;
     }
 
     public synchronized int cleanBlockCache()
     {
-        int removedCache = 0;
-        try
-        {
-            List<Long> toRemove = new ArrayList<Long>();
-            Set<Long> ids = prevSpawns.keySet();
-            for (long id : ids)
-            {
-                spawnLocation sl = prevSpawns.get(id);
-                if (sl.lastUpdated > (WhyYouMakeLag.getTicks() + WymlConfig.cached().SPAWNLOC_CACHE_TICKS) || sl.success)
-                {
-                    toRemove.add(id);
-                }
-            }
-            for (long id : toRemove)
-            {
-                prevSpawns.remove(id);
-                removedCache++;
-            }
-            if (toRemove.size() > 0)
-            {
-                requiresSave = true;
-            }
-        } catch (Exception ignored)
-        {
-        }
-        return removedCache;
+        // The legacy cache was keyed only by block position inside a category.
+        // It is intentionally quarantined until failures have a stable rule/type
+        // identity and an explicit cache-eligibility contract.
+        return 0;
     }
 
-    public synchronized void decreaseSpawningCount(BlockPos pos)
+    public synchronized void decreaseSpawningCount()
     {
-        if (prevSpawns.containsKey(pos.asLong()))
-        {
-            spawnLocation sl = prevSpawns.get(pos.asLong());
-            sl.success = true;
-            sl.lastUpdated = WhyYouMakeLag.getTicks();
-            prevSpawns.put(pos.asLong(), sl);
-        }
         finishRate++;
         if (finishRate > startRate) startRate = finishRate;
         spawningCount--;
@@ -207,14 +184,25 @@ public class ChunkManager
 
     public int getSpawnsInSample()
     {
-        if (WhyYouMakeLag.getTicks() < (startSpawnSampleTick + WymlConfig.cached().SAMPLE_TICKS))
+        int currentTick = getTicks();
+        int windowTicks = Math.max(1, WymlConfig.cached().SAMPLE_TICKS);
+        if (!TickExpiry.hasElapsed(startSpawnSampleTick, currentTick, windowTicks))
         {
             int retVal = spawnsInTick;
-            int sampleLength = (WhyYouMakeLag.getTicks() - startSpawnSampleTick);
+            int sampleLength = (int) Integer.toUnsignedLong(currentTick - startSpawnSampleTick);
             if (sampleLength > 0) retVal = spawnsInTick / sampleLength;
             return retVal;
         }
         return 0;
+    }
+
+    public int getAttemptsInCurrentWindow()
+    {
+        if (TickExpiry.hasElapsed(startSpawnSampleTick, getTicks(), Math.max(1, WymlConfig.cached().SAMPLE_TICKS)))
+        {
+            return 0;
+        }
+        return spawnsInTick;
     }
 
     public void resetSpawningCount()
@@ -226,23 +214,19 @@ public class ChunkManager
     public void slowMode()
     {
         resetSpawningCount();
-        slowMode = true;
-        slowModeStart = WhyYouMakeLag.getTicks();
+        controllerState.throttle(getTicks());
         requiresSave = true;
     }
 
     public int ticksSinceSlow()
     {
-        int diff = WhyYouMakeLag.getTicks() - slowModeStart;
-        if (diff < 0) diff = 99999;
-        return diff;
+        return controllerState.ticksInState(getTicks());
     }
 
     public void fastMode()
     {
-        slowModeStart = 0;
         resetSpawningCount();
-        slowMode = false;
+        controllerState.activate(getTicks());
         requiresSave = true;
     }
 
@@ -253,9 +237,8 @@ public class ChunkManager
 
     public void pauseSpawns(int ticks)
     {
-        isPaused = true;
-        pausedFor = ticks;
-        pauseTick = WhyYouMakeLag.getTicks();
+        int resumeRate = isClaimed() ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
+        controllerState.backoff(getTicks(), ticks, WymlConfig.cached().PROBE_ATTEMPTS, resumeRate);
         requiresSave = true;
     }
 
@@ -264,7 +247,7 @@ public class ChunkManager
         return reachedMobLimit(resourceLocation.getNamespace(), resourceLocation.getPath());
     }
 
-    public Level getLevel()
+    public ServerLevel getLevel()
     {
         return this.level;
     }
@@ -272,18 +255,7 @@ public class ChunkManager
     public boolean reachedMobLimit(String modName, String mobName)
     {
         if(!WymlConfig.cached().ENABLE_PER_MOD_CONFIGS||!MobManager.canManage) return false;
-        if(this.level == null) {
-            for (ResourceKey<Level> levelKey : WhyYouMakeLag.minecraftServer.levelKeys()) {
-                Level _level = WhyYouMakeLag.minecraftServer.getLevel(levelKey);
-                if (_level == null) continue;
-                if (_level.dimensionType() == dimensionType) {
-                    this.level = _level;
-                    break;
-                }
-            }
-        }
-        if(level == null) level = WhyYouMakeLag.minecraftServer.getLevel(Level.OVERWORLD);
-        if(level == null||level.isClientSide()) return false;
+        if(level.isClientSide()) return false;
         ProfilerFiller profilerFiller = Profiler.get();
         profilerFiller.push("mobLimit");
         ChunkPos pos = getChunk();
@@ -295,14 +267,7 @@ public class ChunkManager
         int count = 0;
         try
         {
-            int maxX = pos.getMaxBlockX();
-            int maxZ = pos.getMaxBlockZ();
-            int minX = pos.getMinBlockX();
-            int minZ = pos.getMinBlockZ();
-            int maxY = level.getMaxY();
-            int minY = level.getMinY();
-
-            AABB aabb = new AABB(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
+            AABB aabb = ChunkBounds.fullHeight(pos, level);
             Identifier resourceLocation = Identifier.fromNamespaceAndPath(modName, mobName);
             EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getValue(resourceLocation);
             if(type == null)
@@ -338,7 +303,10 @@ public class ChunkManager
 
     public boolean canPause()
     {
-        boolean isPausable = WymlConfig.cached().ALLOW_PAUSE && (WhyYouMakeLag.minecraftServer.getPlayerList().getPlayerCount() > WymlConfig.cached().MINIMUM_PAUSE_PLAYERS);
+        int minimumPlayers = PauseEligibility.inclusiveMinimum(
+                WymlConfig.cached().PAUSE_MIN_PLAYERS, WymlConfig.cached().MINIMUM_PAUSE_PLAYERS);
+        boolean isPausable = WymlConfig.cached().ALLOW_PAUSE
+                && PauseEligibility.hasMinimumPlayers(level.getServer().getPlayerList().getPlayerCount(), minimumPlayers);
         if (isPausable)
         {
             if (WhyYouMakeLag.isFtbChunksLoaded())
@@ -358,48 +326,37 @@ public class ChunkManager
 
     public boolean isPaused()
     {
-        int resumeRate = isClaimed() ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
-        if ((isPaused && (pauseTick + pausedFor) > WhyYouMakeLag.getTicks()) || (isPaused && getFailRate() < (100d - resumeRate)))
+        ControllerState current = controllerState.current(getTicks());
+        if (!WymlConfig.cached().ALLOW_PAUSE
+                && (current == ControllerState.BACKOFF || current == ControllerState.PROBE))
         {
-            return true;
-        }
-        else
-        {
-            if (isPaused)
-            {
-                if (WymlConfig.cached().DEBUG_PRINT)
-                    System.out.println("Resuming spawns for class " + getClassification().getName() + " at " + getChunk() + " due to timeout or failure rate decease [" + getFailRate() + "%].");
-                isPaused = false;
-                startRate = 0;
-                finishRate = 0;
-                resetSpawningCount();
-                pauseTick = 0;
-                pausedFor = 0;
-                requiresSave = true;
-            }
+            controllerState.activate(getTicks());
+            resetObservationWindow();
             return false;
         }
+        return controllerState.blocksCategory(getTicks());
     }
 
-    public synchronized boolean isKnownBadLocation(BlockPos pos)
+    private void resetObservationWindow()
     {
-        if (prevSpawns == null) return false;
-        if (pos == null) return false;
-        if (prevSpawns.containsKey(pos.asLong()))
-        {
-            spawnLocation sl = prevSpawns.get(pos.asLong());
-            if (sl.lastUpdated < (WhyYouMakeLag.getTicks() + WymlConfig.cached().SPAWNLOC_CACHE_TICKS))
-            {
-                return !sl.success;
-            }
-        }
-        return false;
+        startRate = 0;
+        finishRate = 0;
+        resetSpawningCount();
     }
 
-    class spawnLocation
+    public boolean canEnterBackoff()
     {
-        BlockPos position;
-        boolean success;
-        int lastUpdated;
+        return controllerState.canEnterBackoff(getTicks());
     }
+
+    public ControllerState getControllerState()
+    {
+        return controllerState.current(getTicks());
+    }
+
+    private int getTicks()
+    {
+        return WhyYouMakeLag.getTicks(level.getServer());
+    }
+
 }

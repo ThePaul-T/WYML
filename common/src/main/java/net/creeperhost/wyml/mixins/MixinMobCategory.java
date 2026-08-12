@@ -22,6 +22,7 @@ public class MixinMobCategory
     @Inject(at = @At("TAIL"), method = "<init>")
     private void init(String string2, int j, String bl, int bl2, boolean k, boolean string, int i, CallbackInfo ci)
     {
+        if (!WymlConfig.isEnabled() || !WymlConfig.cached().ENABLE_CATEGORY_CAP_POLICY) return;
         if(string2.equalsIgnoreCase("monster"))
         {
             this.max = WymlConfig.cached().MONSTER_PER_CHUNK;

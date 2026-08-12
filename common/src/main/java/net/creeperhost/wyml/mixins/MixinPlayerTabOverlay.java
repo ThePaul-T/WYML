@@ -1,5 +1,6 @@
 package net.creeperhost.wyml.mixins;
 
+import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerTabOverlay;
@@ -21,6 +22,7 @@ public class MixinPlayerTabOverlay
     @Inject(at = @At("TAIL"), method = "extractPingIcon")
     private void renderLatency(GuiGraphicsExtractor graphics, int slotWidth, int x, int y, PlayerInfo playerInfo, CallbackInfo ci)
     {
+        if (!WymlConfig.isEnabled() || !WymlConfig.cached().SHOW_NUMERIC_PING) return;
         graphics.text(minecraft.font, playerInfo.getLatency() + " ms", x + slotWidth + 2, y, -1);
     }
 }

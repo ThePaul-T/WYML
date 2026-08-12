@@ -3,6 +3,7 @@ package net.creeperhost.wyml.neoforge;
 import net.creeperhost.polylib.neoforge.registry.NeoPolyRegistry;
 import net.creeperhost.polylib.neoforge.registry.NeoPolyScreens;
 import net.creeperhost.wyml.WhyYouMakeLag;
+import net.creeperhost.wyml.benchmark.RuntimeBenchmarkController;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLLoader;
@@ -12,6 +13,7 @@ public class WymlModNeoForge
 {
     public WymlModNeoForge(IEventBus modEventBus)
     {
+        RuntimeBenchmarkController.registerIfRequested();
         WhyYouMakeLag.init();
         NeoPolyRegistry.registerToBus(modEventBus, WhyYouMakeLag.MOD_ID);
         if (FMLLoader.getCurrent().getDist().isClient())

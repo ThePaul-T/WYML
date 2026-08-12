@@ -1,6 +1,5 @@
 package net.creeperhost.wyml.mixins;
 
-import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Entity;
@@ -24,6 +23,7 @@ public abstract class MixinItemEntity extends MixinEntity
     @Inject(at = @At("TAIL"), method = "tick", cancellable = true)
     private void tick(CallbackInfo ci)
     {
+        if (!WymlConfig.isEnabled()) return;
         if ((getThis().tickCount + getTickOffset()) % 20 == 0) {
             if (!getThis().level().isClientSide() && age >= WymlConfig.cached().ITEM_DESPAWN_TIME) {
                 String name = BuiltInRegistries.ITEM.getKey(this.getItem().getItem()).toString();
@@ -32,13 +32,4 @@ public abstract class MixinItemEntity extends MixinEntity
         }
     }
 
-    @Inject(method = "mergeWithNeighbours", at = @At(value = "HEAD"), cancellable = true)
-    private void onMergeWithNeighbours(CallbackInfo ci) {
-        if (WymlConfig.cached().NORMALIZE_ITEM_STACK_MERGING) {
-            if ((getThis().tickCount + getTickOffset()) % 20 != 0) {
-                ci.cancel();
-                return;
-            }
-        }
-    }
 }

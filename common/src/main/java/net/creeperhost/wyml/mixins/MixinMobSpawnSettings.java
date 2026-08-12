@@ -2,6 +2,7 @@ package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.MobManager;
 import net.creeperhost.wyml.config.ModSpawnConfig;
+import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.data.MobSpawnData;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -25,6 +26,7 @@ public class MixinMobSpawnSettings
     @Inject(at = @At("HEAD"), method = "addSpawn", cancellable = true)
     private void addSpawn(MobCategory mobCategory, int weight, MobSpawnSettings.SpawnerData spawnerData, CallbackInfoReturnable<MobSpawnSettings.Builder> cir)
     {
+        if (!WymlConfig.isEnabled()) return;
         Identifier resourceLocation = BuiltInRegistries.ENTITY_TYPE.getKey(spawnerData.type());
         ModSpawnConfig modSpawnConfig = MobManager.getMod(resourceLocation.getNamespace());
         if(modSpawnConfig != null)

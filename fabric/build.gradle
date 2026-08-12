@@ -4,6 +4,13 @@ plugins {
     id "net.fabricmc.fabric-loom"
 }
 
+def runtimeBenchmarkSeed = providers.gradleProperty("runtimeBenchmarkSeed").orElse("8675309").get()
+def runtimeBenchmarkWarmup = providers.gradleProperty("runtimeBenchmarkWarmupTicks").orElse("200").get()
+def runtimeBenchmarkTicks = providers.gradleProperty("runtimeBenchmarkMeasureTicks").orElse("600").get()
+def runtimeBenchmarkCows = providers.gradleProperty("runtimeBenchmarkCows").orElse("300").get()
+def runtimeBenchmarkItems = providers.gradleProperty("runtimeBenchmarkItems").orElse("400").get()
+def fabricBenchmarkReportDir = layout.buildDirectory.dir("reports/wyml-runtime")
+
 configurations {
     devRuntime
     runtimeClasspath.extendsFrom(devRuntime)
@@ -34,8 +41,101 @@ loom {
             ideConfigGenerated(true)
             runDir("runs/server")
         }
+        benchmarkOff {
+            server()
+            ideConfigGenerated(false)
+            runDir("runs/runtime-benchmark-off")
+            property("wyml.configDir", file("runs/runtime-benchmark-off/config").absolutePath)
+            property("wyml.runtimeBenchmark.enabled", "true")
+            property("wyml.runtimeBenchmark.loader", "fabric")
+            property("wyml.runtimeBenchmark.profile", "off")
+            property("wyml.runtimeBenchmark.wymlEnabled", "false")
+            property("wyml.runtimeBenchmark.seed", runtimeBenchmarkSeed)
+            property("wyml.runtimeBenchmark.warmupTicks", runtimeBenchmarkWarmup)
+            property("wyml.runtimeBenchmark.measureTicks", runtimeBenchmarkTicks)
+            property("wyml.runtimeBenchmark.cows", runtimeBenchmarkCows)
+            property("wyml.runtimeBenchmark.items", runtimeBenchmarkItems)
+            property("wyml.runtimeBenchmark.output", fabricBenchmarkReportDir.get().file("off.json").asFile.absolutePath)
+            property("wyml.runtimeBenchmark.worldDirectory", file("runs/runtime-benchmark-off/world").absolutePath)
+        }
+        benchmarkOn {
+            server()
+            ideConfigGenerated(false)
+            runDir("runs/runtime-benchmark-on")
+            property("wyml.configDir", file("runs/runtime-benchmark-on/config").absolutePath)
+            property("wyml.runtimeBenchmark.enabled", "true")
+            property("wyml.runtimeBenchmark.loader", "fabric")
+            property("wyml.runtimeBenchmark.profile", "on")
+            property("wyml.runtimeBenchmark.wymlEnabled", "true")
+            property("wyml.runtimeBenchmark.seed", runtimeBenchmarkSeed)
+            property("wyml.runtimeBenchmark.warmupTicks", runtimeBenchmarkWarmup)
+            property("wyml.runtimeBenchmark.measureTicks", runtimeBenchmarkTicks)
+            property("wyml.runtimeBenchmark.cows", runtimeBenchmarkCows)
+            property("wyml.runtimeBenchmark.items", runtimeBenchmarkItems)
+            property("wyml.runtimeBenchmark.output", fabricBenchmarkReportDir.get().file("on.json").asFile.absolutePath)
+            property("wyml.runtimeBenchmark.worldDirectory", file("runs/runtime-benchmark-on/world").absolutePath)
+        }
     }
 }
+
+def registerFabricRuntimePreparation = { String profile, boolean enabled ->
+    def capitalized = profile.capitalize()
+    def runDirectory = file("runs/runtime-benchmark-${profile}")
+    def reportFile = fabricBenchmarkReportDir.get().file("${profile}.json").asFile
+    tasks.register("prepareRuntimeBenchmark${capitalized}") {
+        outputs.upToDateWhen { false }
+        doLast {
+            delete(runDirectory)
+            delete(reportFile)
+            def configDirectory = new File(runDirectory, "config")
+            configDirectory.mkdirs()
+            new File(runDirectory, "eula.txt").setText("eula=true\n", "UTF-8")
+            new File(runDirectory, "server.properties").setText("""\
+level-name=world
+level-seed=${runtimeBenchmarkSeed}
+online-mode=false
+spawn-protection=0
+view-distance=4
+simulation-distance=4
+max-tick-time=0
+generate-structures=false
+difficulty=normal
+gamemode=creative
+""", "UTF-8")
+            new File(configDirectory, "wyml.json").setText("""{
+  \"ENABLE_WYML\": ${enabled},
+  \"ENABLE_GARBAGE_COLLECTION_LOAD\": false,
+  \"CLEAN_PRINT\": false,
+  \"DEBUG_PRINT\": false,
+  \"ALLOW_PAPER_BAGS\": false
+}\n""", "UTF-8")
+            new File(configDirectory, "wyml-mixins.properties").setText(enabled ? """\
+master_enabled=true
+spawn_controller=true
+category_policy=true
+per_mob_rules=true
+paper_bags=true
+item_lifetime=true
+item_merging=true
+entity_pushing=true
+tick_pacing=true
+post_load_gc=true
+numeric_ping=true
+""" : "master_enabled=false\n", "UTF-8")
+        }
+    }
+    tasks.named("runBenchmark${capitalized}") {
+        dependsOn tasks.named("prepareRuntimeBenchmark${capitalized}")
+        doLast {
+            if (!reportFile.isFile()) {
+                throw new GradleException("Fabric runtime benchmark ${profile} exited without producing ${reportFile}")
+            }
+        }
+    }
+}
+
+registerFabricRuntimePreparation("off", false)
+registerFabricRuntimePreparation("on", true)
 
 jar {
     archiveClassifier = "dev"
