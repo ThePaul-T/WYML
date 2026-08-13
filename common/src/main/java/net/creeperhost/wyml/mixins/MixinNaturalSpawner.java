@@ -9,6 +9,7 @@ import net.creeperhost.wyml.spawn.SpawnAttemptStage;
 import net.creeperhost.wyml.spawn.SpawnAttemptTracker;
 import net.creeperhost.wyml.spawn.SpawnFailureReason;
 import net.creeperhost.wyml.spawn.PerMobLimitPolicy;
+import net.creeperhost.wyml.spawn.SpawnThrottlePolicy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -70,15 +71,49 @@ public abstract class MixinNaturalSpawner {
         int slowTicks = WymlConfig.cached().SLOW_TICKS;
         if (manager.isSlowMode())
         {
+            boolean throttleWindowElapsed = manager.ticksSinceSlow() > slowTicks;
+            boolean shouldEnterBackoff = false;
+            boolean claimed = false;
+            int pauseRate = 0;
+            if (throttleWindowElapsed && manager.canEnterBackoff())
+            {
+                claimed = manager.isClaimed();
+                pauseRate = claimed ? WymlConfig.cached().PAUSE_CLAIMED_RATE : WymlConfig.cached().PAUSE_RATE;
+                shouldEnterBackoff = manager.getFailRate() > pauseRate
+                        && manager.getStartRate() > WymlConfig.cached().PAUSE_MIN
+                        && manager.canPause();
+            }
+
             int attemptBudget = WhyYouMakeLag.getAttemptBudget(level);
-            if (manager.getAttemptsInCurrentWindow() >= attemptBudget) return true;
-            if (manager.ticksSinceSlow() > slowTicks)
+            SpawnThrottlePolicy.Action action = SpawnThrottlePolicy.decide(
+                    throttleWindowElapsed,
+                    shouldEnterBackoff,
+                    manager.getAttemptsInCurrentWindow(),
+                    attemptBudget);
+            if (action == SpawnThrottlePolicy.Action.BACKOFF)
+            {
+                int pauseTicks = claimed ? WymlConfig.cached().PAUSE_CLAIMED_TICKS : WymlConfig.cached().PAUSE_TICKS;
+                int resumeRate = claimed ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
+                manager.pauseSpawns(pauseTicks);
+                if (WymlConfig.cached().DEBUG_PRINT)
+                    System.out.println("Entering spawn backoff for " + pauseTicks + " ticks, followed by a "
+                            + WymlConfig.cached().PROBE_ATTEMPTS + "-attempt probe requiring " + resumeRate
+                            + "% success for class " + manager.getClassification().getName() + " at "
+                            + manager.getChunk() + " due to " + manager.getFailRate() + "% failures.");
+                WhyYouMakeLag.updateChunkManager(manager);
+                return true;
+            }
+            if (action == SpawnThrottlePolicy.Action.ACTIVATE)
             {
                 manager.fastMode();
                 if (WymlConfig.cached().DEBUG_PRINT)
                     System.out.println("Entering active spawn mode for class " + manager.getClassification().getName()
                             + " at " + manager.getChunk() + "[" + manager.getFailRate() + "%]");
                 WhyYouMakeLag.updateChunkManager(manager);
+            }
+            else if (action == SpawnThrottlePolicy.Action.BLOCK)
+            {
+                return true;
             }
         }
         else if (WymlConfig.cached().ALLOW_SLOW
@@ -91,27 +126,7 @@ public abstract class MixinNaturalSpawner {
             WhyYouMakeLag.updateChunkManager(manager);
             return true;
         }
-
-        if (!manager.canEnterBackoff() || manager.ticksSinceSlow() <= slowTicks) return false;
-        boolean claimed = manager.isClaimed();
-        int pauseRate = claimed ? WymlConfig.cached().PAUSE_CLAIMED_RATE : WymlConfig.cached().PAUSE_RATE;
-        if (manager.getFailRate() <= pauseRate
-                || manager.getStartRate() <= WymlConfig.cached().PAUSE_MIN
-                || !manager.canPause())
-        {
-            return false;
-        }
-
-        int pauseTicks = claimed ? WymlConfig.cached().PAUSE_CLAIMED_TICKS : WymlConfig.cached().PAUSE_TICKS;
-        int resumeRate = claimed ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
-        manager.pauseSpawns(pauseTicks);
-        if (WymlConfig.cached().DEBUG_PRINT)
-            System.out.println("Entering spawn backoff for " + pauseTicks + " ticks, followed by a "
-                    + WymlConfig.cached().PROBE_ATTEMPTS + "-attempt probe requiring " + resumeRate
-                    + "% success for class " + manager.getClassification().getName() + " at "
-                    + manager.getChunk() + " due to " + manager.getFailRate() + "% failures.");
-        WhyYouMakeLag.updateChunkManager(manager);
-        return true;
+        return false;
     }
 
     @Inject(at = @At("HEAD"), method = "spawnCategoryForPosition(Lnet/minecraft/world/entity/MobCategory;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/NaturalSpawner$SpawnPredicate;Lnet/minecraft/world/level/NaturalSpawner$AfterSpawnCallback;)V", cancellable = true)
