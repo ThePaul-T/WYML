@@ -12,6 +12,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.LocalMobCapCalculator;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -30,6 +31,9 @@ public class MixinSpawnState
     @Shadow
     @Final
     private Object2IntOpenHashMap<MobCategory> mobCategoryCounts;
+    @Shadow
+    @Final
+    private LocalMobCapCalculator localMobCapCalculator;
 
     /**
      * @author
@@ -38,8 +42,9 @@ public class MixinSpawnState
     @Inject(at = @At("HEAD"), method= "canSpawnForCategory", cancellable = true)
     public void canSpawnForCategory(MobCategory mobCategory, ChunkPos chunkPos, CallbackInfoReturnable<Boolean> cir)
     {
-        boolean spawn = WhyYouMakeLag.shouldSpawn(mobCategory, mobCategoryCounts, spawnableChunkCount);
-        cir.setReturnValue(spawn);
+        int vanillaCap = WhyYouMakeLag.calculateSpawnCount(mobCategory, mobCategoryCounts, spawnableChunkCount);
+        boolean belowGlobalCap = mobCategoryCounts.getInt(mobCategory) < vanillaCap;
+        cir.setReturnValue(belowGlobalCap && localMobCapCalculator.canSpawn(mobCategory, chunkPos));
         cir.cancel();
     }
 

@@ -2,66 +2,34 @@ package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
-import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
-import org.lwjgl.system.CallbackI;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 @Mixin(MinecraftServer.class)
 public abstract class MixinMinecraftServer
 {
-
-    @Shadow
-    public abstract Thread getRunningThread();
-
     @Inject(at = @At("HEAD"), method = "stopServer", cancellable = true)
     private void serverStopped(CallbackInfo ci)
     {
         WhyYouMakeLag.serverStopping();
     }
 
-    @Inject(at = @At("HEAD"), method = "tickServer", cancellable = true)
-    private void tickServerPre(CallbackInfo ci)
-    {
-        if (WymlConfig.cached().NORMALIZE_TICKS)
-        {
-            WhyYouMakeLag.tickStartNano = Util.getNanos();
-        }
-    }
-
-    @Inject(at = @At("TAIL"), method = "tickServer", cancellable = true)
-    private void tickServerPost(CallbackInfo ci)
-    {
-        if (WymlConfig.cached().NORMALIZE_TICKS)
-        {
-            WhyYouMakeLag.tickStopNano = Util.getNanos();
-            long dif = WhyYouMakeLag.tickStopNano - WhyYouMakeLag.tickStartNano;
-            long l = 48000000 - dif;
-            if (l > 0)
-            {
-                try
-                {
-                    TimeUnit.NANOSECONDS.sleep(l);
-                } catch (InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
     @Inject(at = @At("TAIL"), method = "loadLevel")
     private void loadLevel(CallbackInfo ci)
     {
-        if (WymlConfig.cached().ENABLE_GARBAGE_COLLECTION_LOAD) System.gc();
+        if (WymlConfig.cached().ENABLE_GARBAGE_COLLECTION_LOAD)
+        {
+            long started = System.nanoTime();
+            System.gc();
+            WhyYouMakeLag.LOGGER.warn("WYML requested a one-shot full GC after level load; call returned after {} ms",
+                    (System.nanoTime() - started) / 1_000_000L);
+        }
     }
 
     @Inject(at = @At("RETURN"), method = "spin")

@@ -24,13 +24,11 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.pathfinder.PathComputationType;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
 import java.util.Random;
@@ -155,10 +153,6 @@ public abstract class MixinNaturalSpawner {
                     l += serverLevel.random.nextInt(6) - serverLevel.random.nextInt(6);
                     m += serverLevel.random.nextInt(6) - serverLevel.random.nextInt(6);
                     mutableBlockPos.set(l, i, m);
-                    if (spawnManager.isKnownBadLocation(mutableBlockPos))
-                    {
-                        return;
-                    }
                     double d = (double)l + 0.5D;
                     double e = (double)m + 0.5D;
                     spawnManager.increaseSpawningCount(mutableBlockPos);
@@ -219,31 +213,15 @@ public abstract class MixinNaturalSpawner {
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "isSpawnPositionOk", cancellable = true)
-    private static void isSpawnPositionOk(SpawnPlacements.Type type, LevelReader levelReader, BlockPos blockPos, @Nullable EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir)
-    {
-        if (blockPos != null)
-        {
-            if (entityType.getCategory() != null)
-            {
-                ChunkPos chuck = new ChunkPos(blockPos);
-                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chuck, levelReader.dimensionType(), entityType.getCategory());
-                if (spawnManager != null)
-                {
-                    if (spawnManager.isKnownBadLocation(blockPos))
-                    {
-                        cir.setReturnValue(false);
-                        cir.cancel();
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
     @Inject(at = @At("HEAD"), method = "spawnMobsForChunkGeneration", cancellable = true)
     private static void spawnForChunk(ServerLevelAccessor serverLevelAccessor, Holder<Biome> holder, ChunkPos chunkPos, RandomSource random, CallbackInfo ci)
     {
+        if (WymlConfig.cached().DISABLE_COUNTING_CHUNK_GENERATED_MOBS)
+        {
+            // Leave the callback untouched so vanilla performs world-generation
+            // spawning without WYML tracking or intervention.
+            return;
+        }
         MobSpawnSettings mobSpawnSettings = ((Biome) holder.value()).getMobSettings();
         WeightedRandomList<MobSpawnSettings.SpawnerData> weightedRandomList = mobSpawnSettings.getMobs(MobCategory.CREATURE);
         int slowTicks = WymlConfig.cached().SLOW_TICKS;

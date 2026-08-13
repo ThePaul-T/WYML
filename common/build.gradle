@@ -16,7 +16,12 @@ dependencies {
 //    modApi("dev.ftb.mods:ftb-library-fabric:${rootProject.ftb_library_version}") { transitive = false }
 
     implementation "blue.endless:jankson:1.2.1"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.9.0"
 
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
 
 publishing {

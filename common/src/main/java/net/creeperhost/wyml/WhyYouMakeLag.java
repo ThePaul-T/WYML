@@ -285,29 +285,17 @@ public class WhyYouMakeLag
         WhyYouMakeLag.mobCategoryCounts = mobCategoryCounts;
         WhyYouMakeLag.spawnableChunkCount.put(entityClassification, spawnableChunkCount);
 
-        MinecraftServer minecraftServer = WhyYouMakeLag.minecraftServer;
-        int onlineCount = minecraftServer.getPlayerList().getPlayerCount();
-
         int i = entityClassification.getMaxInstancesPerChunk() * spawnableChunkCount / (int) Math.pow(17.0D, 2.0D);
         WhyYouMakeLag.realMax = i;
-        int retVal = 0;
-        int curMobs = mobCategoryCounts.getInt(entityClassification);
-        if (curMobs < i)
-        {
-            int tries = WymlConfig.cached().MOB_TRIES;
-            if (WymlConfig.cached().MULTIPLY_BY_PLAYERS) tries = (tries * onlineCount);
-            retVal = curMobs + tries;
-        }
-        if (retVal > WhyYouMakeLag.realMax) retVal = WhyYouMakeLag.realMax;
-        return retVal;
+        return i;
     }
 
     public static boolean shouldSpawn(MobCategory entityClassification, Object2IntOpenHashMap<MobCategory> mobCategoryCounts, int spawnableChunkCount)
     {
-        int retVal = calculateSpawnCount(entityClassification, mobCategoryCounts, spawnableChunkCount);
+        int vanillaCap = calculateSpawnCount(entityClassification, mobCategoryCounts, spawnableChunkCount);
         int curMobs = mobCategoryCounts.getInt(entityClassification);
 
-        boolean value = curMobs < retVal;
+        boolean value = curMobs < vanillaCap;
 
         if (value) WhyYouMakeLag.trueCount++;
 
