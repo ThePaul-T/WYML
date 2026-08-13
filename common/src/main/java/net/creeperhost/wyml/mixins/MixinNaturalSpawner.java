@@ -23,13 +23,11 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.pathfinder.PathComputationType;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
 import java.util.Random;
@@ -156,7 +154,10 @@ public abstract class MixinNaturalSpawner {
                     mutableBlockPos.set(l, i, m);
                     if (spawnManager.isKnownBadLocation(mutableBlockPos))
                     {
-                        return;
+                        // A cached candidate may never abort the whole
+                        // category/chunk pass. Reuse is currently quarantined
+                        // in ChunkManager until its key and reason are safe.
+                        continue;
                     }
                     double d = (double)l + 0.5D;
                     double e = (double)m + 0.5D;
@@ -212,28 +213,6 @@ public abstract class MixinNaturalSpawner {
                                 }
                             }
                         }
-                    }
-                }
-            }
-        }
-    }
-
-    @Inject(at = @At("HEAD"), method = "isSpawnPositionOk", cancellable = true)
-    private static void isSpawnPositionOk(SpawnPlacements.Type type, LevelReader levelReader, BlockPos blockPos, @Nullable EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir)
-    {
-        if (blockPos != null)
-        {
-            if (entityType.getCategory() != null)
-            {
-                ChunkPos chuck = new ChunkPos(blockPos);
-                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chuck, levelReader.dimensionType(), entityType.getCategory());
-                if (spawnManager != null)
-                {
-                    if (spawnManager.isKnownBadLocation(blockPos))
-                    {
-                        cir.setReturnValue(false);
-                        cir.cancel();
-                        return;
                     }
                 }
             }

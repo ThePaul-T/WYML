@@ -10,10 +10,10 @@ public class ConfigData
     // ******************************************
     // * Misc
     // ******************************************
-    @Comment("Set the max amount of spawn tries base rate")
+    @Comment("Legacy slow-mode attempt budget per sample window. This does not change the global mob cap.")
     public int MOB_TRIES = 1;
 
-    @Comment("Set to true to multiply base rate by online player count")
+    @Comment("Set to true to multiply the slow-mode attempt budget by online player count")
     public boolean MULTIPLY_BY_PLAYERS = true;
 
     @Comment("Replace Mojang magic number (pow2) with this")
@@ -34,11 +34,11 @@ public class ConfigData
 //    @Comment("Enable Minecraft dataFixerUpper (enables you to upgrade worlds between Minecraft versions), disabling this stops the big ram spike at server start when loading existing worlds [ENABLE THIS IF YOU HAVE ANOTHER DFU CHANGING MOD!]")
 //    public boolean ENABLE_DFU = true;
 
-    @Comment("Force Java garbage collector to run once the levels have been generated or loaded the first time (Frees up memory after the server is initially started)")
-    public boolean ENABLE_GARBAGE_COLLECTION_LOAD = true;
+    @Comment("Advanced opt-in request for Java garbage collection after level load. The JVM may ignore it or pause the server.")
+    public boolean ENABLE_GARBAGE_COLLECTION_LOAD = false;
 
-    @Comment("Ensure the tick loop does not run repeatedly, waits until the next tick is due (reduce cpu usage on hardware)")
-    public boolean NORMALIZE_TICKS = true;
+    @Comment("Deprecated compatibility value. The legacy 48ms tail sleep is retired and this setting is a no-op.")
+    public boolean NORMALIZE_TICKS = false;
 
     @Comment("Set the amount of time it takes for an item to de-spawn in ticks, This can only be reduced (default 6000)")
     public int ITEM_DESPAWN_TIME = 6000;
@@ -64,7 +64,7 @@ public class ConfigData
     @Comment("How long to pause spawning if pause spawn failure rate reached")
     public int PAUSE_TICKS = 1800;
 
-    @Comment("At what what percentage of successful spawns, after we pause spawning, should we resume spawning")
+    @Comment("Deprecated compatibility value. A full pause cannot observe successes and now ends at its timeout.")
     public int RESUME_RATE = 10;
 
     @Comment("At what what percentage of failed spawns should we then pause spawning in a chunk in claimed chunks")
@@ -73,7 +73,7 @@ public class ConfigData
     @Comment("How long to pause spawning if pause spawn failure rate reached in claimed chunks")
     public int PAUSE_CLAIMED_TICKS = 1800;
 
-    @Comment("At what what percentage of successful spawns, after we pause spawning, should we resume spawning in claimed chunks")
+    @Comment("Deprecated compatibility value. A full claimed-chunk pause now ends at its timeout.")
     public int RESUME_CLAIMED_RATE = 10;
 
     @Comment("The minimum amount of attempted spawns of a type in a chunk before we allow pausing")
@@ -98,6 +98,9 @@ public class ConfigData
     @Comment("Set to true to spread entity pushing updates between ticks. (Reduces network and CPU usage)")
     public boolean NORMALIZE_PUSHING = true;
 
+    @Comment("Ticks between collision-neighbourhood queries for ordinary living entities. Players, riders and vehicles are exempt.")
+    public int ENTITY_PUSH_INTERVAL = 4;
+
     @Comment("Set to true to spread the merging of ItemStacks between ticks. (Reduces CPU usage)")
     public boolean NORMALIZE_ITEM_STACK_MERGING = true;
 
@@ -112,7 +115,7 @@ public class ConfigData
     // ******************************************
     // * Caching
     // ******************************************
-    @Comment("How many ticks to remember if we fail spawning in a block position")
+    @Comment("Legacy compatibility value. Unsafe category-wide failed-position reuse is quarantined.")
     public int SPAWNLOC_CACHE_TICKS = 600;
 
     @Comment("How many ticks to store a SpawnManager for a chunk after it's last update")

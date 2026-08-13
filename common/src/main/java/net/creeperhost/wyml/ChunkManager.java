@@ -3,6 +3,8 @@ package net.creeperhost.wyml;
 import net.creeperhost.wyml.config.ModSpawnConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.data.MobSpawnData;
+import net.creeperhost.wyml.spawn.ChunkHorizontalBounds;
+import net.creeperhost.wyml.spawn.TickExpiry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
@@ -23,6 +25,12 @@ import java.util.Set;
 
 public class ChunkManager
 {
+    /*
+     * Legacy entries were keyed only by position inside a category manager and
+     * were recorded before transient checks completed. They are not safe to
+     * reuse until the key includes entity/rule identity and the failure reason.
+     */
+    private static final boolean REUSE_FAILED_LOCATIONS = false;
     MobCategory classification;
     ChunkPos chunk;
     DimensionType dimensionType;
@@ -115,18 +123,17 @@ public class ChunkManager
             startSpawnSampleTick = WhyYouMakeLag.getTicks();
             spawnsInTick = 0;
         }
-        spawnLocation sl = new spawnLocation();
-        if (prevSpawns.containsKey(pos.asLong()))
+        if (REUSE_FAILED_LOCATIONS)
         {
-            sl = prevSpawns.get(pos.asLong());
+            spawnLocation sl = prevSpawns.getOrDefault(pos.asLong(), new spawnLocation());
+            if (!sl.success)
+            {
+                sl.position = pos.immutable();
+                sl.success = false;
+                sl.lastUpdated = WhyYouMakeLag.getTicks();
+            }
+            prevSpawns.put(pos.asLong(), sl);
         }
-        if (!sl.success)
-        {
-            sl.position = pos;
-            sl.success = false;
-            sl.lastUpdated = WhyYouMakeLag.getTicks();
-        }
-        prevSpawns.put(pos.asLong(), sl);
         spawnsInTick++;
         lastSpawnRequestTick = WhyYouMakeLag.getTicks();
         spawningCount++;
@@ -141,7 +148,10 @@ public class ChunkManager
 
     public boolean hasExpired()
     {
-        return ((lastUpdatedTick + WymlConfig.cached().MANAGER_CACHE_TICKS) > WhyYouMakeLag.getTicks() && !isPaused() && isSaved());
+        // isPaused() may end a timed-out pause and mark this manager dirty.
+        if (isPaused()) return false;
+        return isSaved() && TickExpiry.hasElapsed(lastUpdatedTick, WhyYouMakeLag.getTicks(),
+                WymlConfig.cached().MANAGER_CACHE_TICKS);
     }
 
     public int countBlockCache()
@@ -159,7 +169,8 @@ public class ChunkManager
             for (long id : ids)
             {
                 spawnLocation sl = prevSpawns.get(id);
-                if (sl.lastUpdated > (WhyYouMakeLag.getTicks() + WymlConfig.cached().SPAWNLOC_CACHE_TICKS) || sl.success)
+                if (sl.success || TickExpiry.hasElapsed(sl.lastUpdated, WhyYouMakeLag.getTicks(),
+                        WymlConfig.cached().SPAWNLOC_CACHE_TICKS))
                 {
                     toRemove.add(id);
                 }
@@ -181,7 +192,7 @@ public class ChunkManager
 
     public synchronized void decreaseSpawningCount(BlockPos pos)
     {
-        if (prevSpawns.containsKey(pos.asLong()))
+        if (REUSE_FAILED_LOCATIONS && prevSpawns.containsKey(pos.asLong()))
         {
             spawnLocation sl = prevSpawns.get(pos.asLong());
             sl.success = true;
@@ -284,14 +295,12 @@ public class ChunkManager
         int count = 0;
         try
         {
-            int maxX = pos.getMaxBlockX();
-            int maxZ = pos.getMaxBlockZ();
-            int minX = pos.getMinBlockX();
-            int minZ = pos.getMinBlockZ();
+            ChunkHorizontalBounds bounds = ChunkHorizontalBounds.fromChunkCoordinates(pos.x, pos.z);
             int maxY = level.getMaxBuildHeight();
             int minY = level.getMinBuildHeight();
 
-            AABB aabb = new AABB(pos.getMiddleBlockX() - minX, minY,  pos.getMiddleBlockX() - minZ,  pos.getMiddleBlockX() + maxX, maxY, pos.getMiddleBlockX() + maxZ);
+            AABB aabb = new AABB(bounds.minX(), minY, bounds.minZ(),
+                    bounds.maxXExclusive(), maxY, bounds.maxZExclusive());
             ResourceLocation resourceLocation = new ResourceLocation(modName, mobName);
             EntityType<?> type = Registry.ENTITY_TYPE.get(resourceLocation);
             if(type == null)
@@ -299,16 +308,16 @@ public class ChunkManager
                 profilerFiller.pop();
                 return false;
             }
-            List<Entity> list = level.getEntities(type.create(level), aabb);
-            List<Entity> cleaned = new ArrayList<>();
+            List<Entity> list = level.getEntities((Entity) null, aabb);
             for (Entity entity : list)
             {
-                if(entity.getType() == type)
+                // AABBs can intersect entities whose authoritative position is
+                // in a neighbouring chunk, so verify the actual entity chunk.
+                if(entity.getType() == type && pos.equals(entity.chunkPosition()))
                 {
-                    cleaned.add(entity);
+                    count++;
                 }
             }
-            count = cleaned.size();
 
         } catch(Exception e)
         {
@@ -355,8 +364,7 @@ public class ChunkManager
 
     public boolean isPaused()
     {
-        int resumeRate = isClaimed() ? WymlConfig.cached().RESUME_CLAIMED_RATE : WymlConfig.cached().RESUME_RATE;
-        if ((isPaused && (pauseTick + pausedFor) > WhyYouMakeLag.getTicks()) || (isPaused && getFailRate() < (100d - resumeRate)))
+        if (isPaused && !TickExpiry.hasElapsed(pauseTick, WhyYouMakeLag.getTicks(), pausedFor))
         {
             return true;
         }
@@ -365,7 +373,7 @@ public class ChunkManager
             if (isPaused)
             {
                 if (WymlConfig.cached().DEBUG_PRINT)
-                    System.out.println("Resuming spawns for class " + getClassification().getName() + " at " + getChunk() + " due to timeout or failure rate decease [" + getFailRate() + "%].");
+                    System.out.println("Resuming spawns for class " + getClassification().getName() + " at " + getChunk() + " due to timeout.");
                 isPaused = false;
                 startRate = 0;
                 finishRate = 0;
@@ -380,12 +388,14 @@ public class ChunkManager
 
     public synchronized boolean isKnownBadLocation(BlockPos pos)
     {
+        if (!REUSE_FAILED_LOCATIONS) return false;
         if (prevSpawns == null) return false;
         if (pos == null) return false;
         if (prevSpawns.containsKey(pos.asLong()))
         {
             spawnLocation sl = prevSpawns.get(pos.asLong());
-            if (sl.lastUpdated < (WhyYouMakeLag.getTicks() + WymlConfig.cached().SPAWNLOC_CACHE_TICKS))
+            if (!TickExpiry.hasElapsed(sl.lastUpdated, WhyYouMakeLag.getTicks(),
+                    WymlConfig.cached().SPAWNLOC_CACHE_TICKS))
             {
                 return !sl.success;
             }
