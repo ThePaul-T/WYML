@@ -1,0 +1,115 @@
+import me.modmuss50.mpp.ReleaseType
+
+plugins {
+    id 'base'
+    id 'net.creeperhost.modpacksch' version '0.1.1'
+}
+
+def wymlProperties = new Properties()
+file('../gradle.properties').withInputStream { wymlProperties.load(it) }
+
+def requiredProperty = { String name ->
+    def value = wymlProperties.getProperty(name)
+    if (value == null || value.isBlank()) {
+        throw new GradleException("Missing ${name} in gradle.properties")
+    }
+    value
+}
+
+def minecraftVersion = requiredProperty('minecraft_version')
+def modVersion = requiredProperty('mod_version')
+def configuredProjectId = requiredProperty('curseforge_id')
+def configuredReleaseType = requiredProperty('curseforge_type').toLowerCase(Locale.ROOT)
+def normalizedReleaseType = configuredReleaseType == 'release' ? 'stable' : configuredReleaseType
+def releaseType = ReleaseType.of(normalizedReleaseType)
+def releaseTag = providers.environmentVariable('GITHUB_REF_NAME')
+        .orElse("${minecraftVersion}-${modVersion}")
+def releaseNotes = providers.environmentVariable('WYML_CHANGELOG')
+        .orElse('See the GitHub release notes for changes in this version.')
+def dryRunValue = providers.environmentVariable('WYML_PUBLISH_DRY_RUN')
+        .map { it.equalsIgnoreCase('true') }
+        .orElse(false)
+def curseForgeProjectId = providers.environmentVariable('CURSEFORGE_PROJECT_ID')
+        .orElse(configuredProjectId)
+def githubRepository = providers.environmentVariable('GITHUB_REPOSITORY')
+        .orElse('ThePaul-T/WYML')
+
+publishMods {
+    version = releaseTag
+    changelog = releaseNotes
+    type = releaseType
+    displayName = "WhyYouMakeLag ${modVersion} for Minecraft ${minecraftVersion}"
+    dryRun = dryRunValue
+
+    github {
+        repository = githubRepository
+        accessToken = providers.environmentVariable('GITHUB_TOKEN')
+        commitish = minecraftVersion
+        tagName = releaseTag
+        allowEmptyFiles = true
+    }
+}
+
+project(':fabric').publishMods {
+    file = rootProject.layout.projectDirectory.file(
+            "../fabric/build/libs/wyml-fabric-${minecraftVersion}-${modVersion}.jar")
+    version = releaseTag
+    changelog = releaseNotes
+    type = releaseType
+    displayName = "WhyYouMakeLag ${modVersion} for Fabric ${minecraftVersion}"
+    modLoaders.add('fabric')
+    dryRun = dryRunValue
+
+    github {
+        accessToken = providers.environmentVariable('GITHUB_TOKEN')
+        parent(rootProject.tasks.named('publishGithub'))
+    }
+
+    curseforge {
+        projectId = curseForgeProjectId
+        accessToken = providers.environmentVariable('CURSEFORGE_TOKEN')
+        minecraftVersions.add(minecraftVersion)
+        javaVersions.add(JavaVersion.VERSION_25)
+        client = true
+        server = true
+        requires('polylib', 'fabric-api')
+        optional('ftb-chunks-fabric')
+        dryRun = dryRunValue
+    }
+}
+
+project(':neoforge').publishMods {
+    file = rootProject.layout.projectDirectory.file(
+            "../neoforge/build/libs/wyml-neoforge-${minecraftVersion}-${modVersion}.jar")
+    version = releaseTag
+    changelog = releaseNotes
+    type = releaseType
+    displayName = "WhyYouMakeLag ${modVersion} for NeoForge ${minecraftVersion}"
+    modLoaders.add('neoforge')
+    dryRun = dryRunValue
+
+    github {
+        accessToken = providers.environmentVariable('GITHUB_TOKEN')
+        parent(rootProject.tasks.named('publishGithub'))
+    }
+
+    curseforge {
+        projectId = curseForgeProjectId
+        accessToken = providers.environmentVariable('CURSEFORGE_TOKEN')
+        minecraftVersions.add(minecraftVersion)
+        javaVersions.add(JavaVersion.VERSION_25)
+        client = true
+        server = true
+        requires('polylib')
+        optional('ftb-chunks-forge')
+        dryRun = dryRunValue
+    }
+}
+
+tasks.register('publishAll') {
+    group = 'publishing'
+    description = 'Publishes the Fabric and NeoForge jars to one GitHub release and CurseForge.'
+    dependsOn(tasks.named('publishMods'))
+    dependsOn(project(':fabric').tasks.named('publishMods'))
+    dependsOn(project(':neoforge').tasks.named('publishMods'))
+}

@@ -1,0 +1,15 @@
+pluginManagement {
+    repositories {
+        maven {
+            name = 'CreeperHost'
+            url = uri('https://maven.creeperhost.net')
+        }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+include('fabric')
+include('neoforge')
+
+rootProject.name = 'WYML Publishing'

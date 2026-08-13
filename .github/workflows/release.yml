@@ -1,0 +1,66 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - '26.1.2-*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wyml-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      CURSEFORGE_TOKEN: ${{ secrets.CURSE_API_KEY || secrets.CURSEFORGE_KEY }}
+      CURSEFORGE_PROJECT_ID: '518076'
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v6
+
+      - name: Validate release inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          minecraft_version="$(sed -n 's/^minecraft_version=//p' gradle.properties)"
+          mod_version="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          configured_project_id="$(sed -n 's/^curseforge_id=//p' gradle.properties)"
+          release_type="$(sed -n 's/^curseforge_type=//p' gradle.properties)"
+
+          test -n "${minecraft_version}"
+          test -n "${mod_version}"
+          test "${GITHUB_REF_NAME}" = "${minecraft_version}-${mod_version}"
+          test "${minecraft_version}" = '26.1.2'
+          test "${configured_project_id}" = "${CURSEFORGE_PROJECT_ID}"
+          test -n "${CURSEFORGE_TOKEN}"
+
+          case "${release_type}" in
+            release|stable|beta|alpha) ;;
+            *)
+              echo "Unsupported CurseForge release type: ${release_type}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build, test and publish
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :common:test :fabric:build :neoforge:build --stacktrace --no-daemon
+          ./gradlew -p publishing publishAll --stacktrace --no-daemon
