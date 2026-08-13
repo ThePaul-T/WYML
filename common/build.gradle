@@ -23,3 +23,19 @@ artifacts {
     dev(jar)
 }
 
+task runCachePolicyHarness(type: JavaExec) {
+    group = "verification"
+    description = "Runs deterministic spawn cache and expiry regressions without a test framework."
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    main = "net.creeperhost.wyml.CachePolicyHarness"
+}
+
+jar {
+    exclude "net/creeperhost/wyml/CachePolicyHarness.class"
+}
+
+sourcesJar {
+    exclude "net/creeperhost/wyml/CachePolicyHarness.java"
+}
+

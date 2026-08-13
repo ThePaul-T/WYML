@@ -64,7 +64,7 @@ public class MixinSpawnState
             if (WhyYouMakeLag.hasChunkManager(chunkPos, mob.level.dimension(), mob.getType().getCategory()))
             {
                 ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chunkPos, mob.level.dimensionType(), mob.getType().getCategory());
-                spawnManager.decreaseSpawningCount(mob.blockPosition());
+                spawnManager.decreaseSpawningCount(mob.blockPosition(), mob.getType());
                 WhyYouMakeLag.updateChunkManager(spawnManager);
                 if (WymlConfig.cached().DEBUG_PRINT)
                     System.out.println("Completed spawn for " + spawnManager.getClassification().getName() + " " + spawnManager.getChunk() + " - " + (100d - spawnManager.getFailRate()) + "% success rate (" + spawnManager.getFinishRate() + "/" + spawnManager.getStartRate() + ")");

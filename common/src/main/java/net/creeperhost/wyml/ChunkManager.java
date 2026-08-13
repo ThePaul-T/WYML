@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ClassInstanceMultiMap;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -18,11 +19,6 @@ import net.minecraft.world.level.chunk.ChunkSource;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.dimension.DimensionType;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
 
 public class ChunkManager
 {
@@ -39,10 +35,10 @@ public class ChunkManager
     private int lastSpawnRequestTick;
     private int spawnsInTick;
     private int slowModeStart;
-    private int lastUpdatedTick;
+    private int lastActivityTick;
     private boolean requiresSave;
     private boolean isPaused;
-    private HashMap<Long, spawnLocation> prevSpawns = new HashMap<Long, spawnLocation>();
+    private final SpawnLocationCache locationFailures = new SpawnLocationCache();
     boolean slowMode;
 
     public ChunkManager(ChunkPos pos, DimensionType dimensionType, MobCategory classification)
@@ -118,82 +114,47 @@ public class ChunkManager
             startSpawnSampleTick = WhyYouMakeLag.getTicks();
             spawnsInTick = 0;
         }
-        spawnLocation sl = new spawnLocation();
-        if (prevSpawns.containsKey(pos.asLong()))
-        {
-            sl = prevSpawns.get(pos.asLong());
-        }
-        if (!sl.success)
-        {
-            sl.position = pos;
-            sl.success = false;
-            sl.lastUpdated = WhyYouMakeLag.getTicks();
-        }
-        prevSpawns.put(pos.asLong(), sl);
+        // Every candidate remains part of slow/pause accounting, but reaching
+        // this point alone is not evidence that its position is reusable as a
+        // failure. Player distance, light/weather, population and loader vetoes
+        // are all evaluated later and must remain transient.
         spawnsInTick++;
         lastSpawnRequestTick = WhyYouMakeLag.getTicks();
         spawningCount++;
+        touchActivity();
         requiresSave = true;
     }
 
     public void isSaving()
     {
         requiresSave = false;
-        lastUpdatedTick = WhyYouMakeLag.getTicks();
     }
 
     public boolean hasExpired()
     {
-        return ((lastUpdatedTick + WymlConfig.cached().MANAGER_CACHE_TICKS) > WhyYouMakeLag.getTicks() && !isPaused() && isSaved());
+        boolean paused = isPaused();
+        return TickExpiry.managerHasExpired(isSaved(), paused, lastActivityTick, WhyYouMakeLag.getTicks(), WymlConfig.cached().MANAGER_CACHE_TICKS);
     }
 
     public int countBlockCache()
     {
-        return prevSpawns.size();
+        return locationFailures.size();
     }
 
     public synchronized int cleanBlockCache()
     {
-        int removedCache = 0;
-        try
-        {
-            List<Long> toRemove = new ArrayList<Long>();
-            Set<Long> ids = prevSpawns.keySet();
-            for (long id : ids)
-            {
-                spawnLocation sl = prevSpawns.get(id);
-                if (sl.lastUpdated > (WhyYouMakeLag.getTicks() + WymlConfig.cached().SPAWNLOC_CACHE_TICKS) || sl.success)
-                {
-                    toRemove.add(id);
-                }
-            }
-            for (long id : toRemove)
-            {
-                prevSpawns.remove(id);
-                removedCache++;
-            }
-            if (toRemove.size() > 0)
-            {
-                requiresSave = true;
-            }
-        } catch (Exception ignored)
-        {
-        }
+        int removedCache = locationFailures.cleanExpired(WymlConfig.generation(), WhyYouMakeLag.getTicks(), WymlConfig.cached().SPAWNLOC_CACHE_TICKS);
+        if (removedCache > 0) requiresSave = true;
         return removedCache;
     }
 
-    public synchronized void decreaseSpawningCount(BlockPos pos)
+    public synchronized void decreaseSpawningCount(BlockPos pos, EntityType<?> entityType)
     {
-        if (prevSpawns.containsKey(pos.asLong()))
-        {
-            spawnLocation sl = prevSpawns.get(pos.asLong());
-            sl.success = true;
-            sl.lastUpdated = WhyYouMakeLag.getTicks();
-            prevSpawns.put(pos.asLong(), sl);
-        }
+        locationFailures.recordSuccess(pos.asLong(), entityTypeKey(entityType));
         finishRate++;
         if (finishRate > startRate) startRate = finishRate;
         spawningCount--;
+        touchActivity();
         requiresSave = true;
     }
 
@@ -212,6 +173,7 @@ public class ChunkManager
     public void resetSpawningCount()
     {
         spawningCount = 0;
+        touchActivity();
         requiresSave = true;
     }
 
@@ -248,6 +210,7 @@ public class ChunkManager
         isPaused = true;
         pausedFor = ticks;
         pauseTick = WhyYouMakeLag.getTicks();
+        touchActivity();
         requiresSave = true;
     }
     public boolean reachedMobLimit(ResourceLocation resourceLocation)
@@ -379,32 +342,36 @@ public class ChunkManager
                 resetSpawningCount();
                 pauseTick = 0;
                 pausedFor = 0;
+                touchActivity();
                 requiresSave = true;
             }
             return false;
         }
     }
 
-    public synchronized boolean isKnownBadLocation(BlockPos pos)
+    public synchronized boolean isKnownBadLocation(BlockPos pos, EntityType<?> entityType, Object placementIdentity)
     {
-        if (prevSpawns == null) return false;
-        if (pos == null) return false;
-        if (prevSpawns.containsKey(pos.asLong()))
-        {
-            spawnLocation sl = prevSpawns.get(pos.asLong());
-            if (sl.lastUpdated < (WhyYouMakeLag.getTicks() + WymlConfig.cached().SPAWNLOC_CACHE_TICKS))
-            {
-                return !sl.success;
-            }
-        }
-        return false;
+        if (pos == null || entityType == null) return false;
+        return locationFailures.isKnownFailure(pos.asLong(), entityTypeKey(entityType), placementIdentity, WymlConfig.generation(), WhyYouMakeLag.getTicks(), WymlConfig.cached().SPAWNLOC_CACHE_TICKS);
     }
 
-    class spawnLocation
+    public synchronized boolean recordFailedSpawnLocation(BlockPos pos, EntityType<?> entityType, Object placementIdentity, SpawnFailureReason reason)
     {
-        BlockPos position;
-        boolean success;
-        int lastUpdated;
+        if (pos == null || entityType == null) return false;
+        boolean recorded = locationFailures.recordFailure(pos.asLong(), entityTypeKey(entityType), placementIdentity, reason, WymlConfig.generation(), WhyYouMakeLag.getTicks(), WymlConfig.cached().SPAWNLOC_CACHE_TICKS);
+        if (recorded) requiresSave = true;
+        return recorded;
+    }
+
+    private static String entityTypeKey(EntityType<?> entityType)
+    {
+        ResourceLocation id = Registry.ENTITY_TYPE.getKey(entityType);
+        return id == null ? null : id.toString();
+    }
+
+    private void touchActivity()
+    {
+        lastActivityTick = WhyYouMakeLag.getTicks();
     }
 
 }

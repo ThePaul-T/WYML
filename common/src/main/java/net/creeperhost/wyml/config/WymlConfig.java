@@ -12,11 +12,13 @@ import java.io.FileWriter;
 import java.nio.charset.Charset;
 import java.nio.file.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class WymlConfig
 {
     private static AtomicReference<ConfigData> data = new AtomicReference<>();
+    private static final AtomicLong generation = new AtomicLong();
     private static File lastFile;
     private static boolean loaded;
     private static Jankson gson = Jankson.builder().build();
@@ -30,7 +32,7 @@ public class WymlConfig
             ConfigData newData = gson.fromJson(jObject, ConfigData.class);
             if (newData != data.get())
             {
-                data.set(newData);
+                replaceData(newData);
                 if (!isLoaded())
                 {
                     //Save again immediately, as this makes sure that any missing config values get added with their defaults to the config file, and the comments are restored.
@@ -42,7 +44,7 @@ public class WymlConfig
             }
         } catch (Exception ignored)
         {
-            data.set(new ConfigData());
+            replaceData(new ConfigData());
         }
     }
 
@@ -66,10 +68,25 @@ public class WymlConfig
         return data.get();
     }
 
+    /**
+     * Monotonically identifies the active rule/config snapshot. Location-cache
+     * decisions made under an older snapshot are never reused after reload.
+     */
+    public static long generation()
+    {
+        return generation.get();
+    }
+
     public static synchronized ConfigData update(ConfigData _data)
     {
-        data.set(_data);
+        replaceData(_data);
         return data.get();
+    }
+
+    private static void replaceData(ConfigData newData)
+    {
+        data.set(newData);
+        generation.incrementAndGet();
     }
 
     public static synchronized boolean reload()
@@ -130,7 +147,7 @@ public class WymlConfig
             if (!file.exists())
             {
                 ConfigData configData = new ConfigData();
-                data.set(configData);
+                replaceData(configData);
                 FileWriter tileWriter = new FileWriter(file);
                 tileWriter.write(WymlConfig.saveConfig());
                 tileWriter.close();

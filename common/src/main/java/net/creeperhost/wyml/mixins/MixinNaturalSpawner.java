@@ -2,6 +2,7 @@ package net.creeperhost.wyml.mixins;
 
 import net.creeperhost.wyml.WYMLReimplementedHooks;
 import net.creeperhost.wyml.ChunkManager;
+import net.creeperhost.wyml.SpawnFailureReason;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.minecraft.core.BlockPos;
@@ -23,6 +24,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -30,11 +32,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Random;
+import java.util.Arrays;
 
 
 @Mixin(value = NaturalSpawner.class, priority = 9001)
 public abstract class MixinNaturalSpawner
 {
+    @Unique
+    private static final ThreadLocal<ChunkManager> wyml$activeSpawnManager = new ThreadLocal<ChunkManager>();
+
     @Shadow
     @Final
     private static Logger LOGGER;
@@ -91,23 +97,44 @@ public abstract class MixinNaturalSpawner
     @Inject(at = @At("HEAD"), method = "isSpawnPositionOk", cancellable = true)
     private static void isSpawnPosition(SpawnPlacements.Type type, LevelReader levelReader, BlockPos blockPos, EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir)
     {
-        if (blockPos != null)
+        ChunkManager spawnManager = wyml$activeSpawnManager.get();
+        if (spawnManager != null && blockPos != null && entityType != null && wyml$mayReusePlacementFailure(type) && levelReader.getWorldBorder().isWithinBounds(blockPos) && spawnManager.isKnownBadLocation(blockPos, entityType, wyml$placementIdentity(type, levelReader, blockPos)))
         {
-            if (entityType.getCategory() != null)
-            {
-                ChunkPos chuck = new ChunkPos(blockPos);
-                ChunkManager spawnManager = WhyYouMakeLag.getChunkManager(chuck, levelReader.dimensionType(), entityType.getCategory());
-                if (spawnManager != null)
-                {
-                    if (spawnManager.isKnownBadLocation(blockPos))
-                    {
-                        cir.setReturnValue(false);
-                        cir.cancel();
-                        return;
-                    }
-                }
-            }
+            cir.setReturnValue(false);
+            cir.cancel();
         }
+    }
+
+    @Inject(at = @At("RETURN"), method = "isSpawnPositionOk")
+    private static void rememberStableSpawnPositionFailure(SpawnPlacements.Type type, LevelReader levelReader, BlockPos blockPos, EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir)
+    {
+        ChunkManager spawnManager = wyml$activeSpawnManager.get();
+        if (spawnManager != null && blockPos != null && entityType != null && Boolean.FALSE.equals(cir.getReturnValue()) && wyml$mayReusePlacementFailure(type) && levelReader.getWorldBorder().isWithinBounds(blockPos) && spawnManager.recordFailedSpawnLocation(blockPos, entityType, wyml$placementIdentity(type, levelReader, blockPos), SpawnFailureReason.STABLE_PLACEMENT_RULE_REJECTED))
+        {
+            WhyYouMakeLag.updateChunkManager(spawnManager);
+        }
+    }
+
+    @Unique
+    private static boolean wyml$mayReusePlacementFailure(SpawnPlacements.Type type)
+    {
+        // ON_GROUND delegates to BlockState#isValidSpawn, which loaders and
+        // mods may override with dynamic vetoes. Fluid geometry has no such
+        // hook in this method and is safe to reuse while its state identity is
+        // unchanged. Light/weather predicates execute later and are never seen
+        // by this cache.
+        return type == SpawnPlacements.Type.IN_WATER || type == SpawnPlacements.Type.IN_LAVA;
+    }
+
+    @Unique
+    private static Object wyml$placementIdentity(SpawnPlacements.Type type, LevelReader levelReader, BlockPos blockPos)
+    {
+        BlockPos below = blockPos.below();
+        BlockPos above = blockPos.above();
+        return Arrays.<Object>asList(type,
+                levelReader.getBlockState(below), levelReader.getFluidState(below),
+                levelReader.getBlockState(blockPos), levelReader.getFluidState(blockPos),
+                levelReader.getBlockState(above), levelReader.getFluidState(above));
     }
 
     private static void spawnCategoryForPosition1(MobCategory mobCategory, ServerLevel serverLevel, ChunkAccess chunkAccess, BlockPos blockPos, NaturalSpawner.SpawnPredicate spawnPredicate, NaturalSpawner.AfterSpawnCallback afterSpawnCallback)
@@ -197,10 +224,6 @@ public abstract class MixinNaturalSpawner
                     l += serverLevel.random.nextInt(6) - serverLevel.random.nextInt(6);
                     m += serverLevel.random.nextInt(6) - serverLevel.random.nextInt(6);
                     mutableBlockPos.set(l, i, m);
-                    if (spawnManager.isKnownBadLocation(mutableBlockPos))
-                    {
-                        return;
-                    }
                     double d = (double) l + 0.5D;
                     double e = (double) m + 0.5D;
                     spawnManager.increaseSpawningCount(mutableBlockPos);
@@ -222,7 +245,18 @@ public abstract class MixinNaturalSpawner
                                 o = spawnerData.minCount + serverLevel.random.nextInt(1 + spawnerData.maxCount - spawnerData.minCount);
                             }
 
-                            if (isValidSpawnPostitionForType(serverLevel, mobCategory, structureFeatureManager, chunkGenerator, spawnerData, mutableBlockPos, f) && spawnPredicate.test(spawnerData.type, mutableBlockPos, chunkAccess))
+                            boolean validSpawnPosition;
+                            wyml$activeSpawnManager.set(spawnManager);
+                            try
+                            {
+                                validSpawnPosition = isValidSpawnPostitionForType(serverLevel, mobCategory, structureFeatureManager, chunkGenerator, spawnerData, mutableBlockPos, f);
+                            }
+                            finally
+                            {
+                                wyml$activeSpawnManager.remove();
+                            }
+
+                            if (validSpawnPosition && spawnPredicate.test(spawnerData.type, mutableBlockPos, chunkAccess))
                             {
                                 Mob mob = getMobForSpawn(serverLevel, spawnerData.type);
                                 if (mob == null)
