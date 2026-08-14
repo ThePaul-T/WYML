@@ -15,8 +15,6 @@ import net.creeperhost.wyml.containers.ContainerPaperBag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
-import java.time.Instant;
-
 import static net.creeperhost.polylib.client.modulargui.lib.geometry.Constraint.match;
 import static net.creeperhost.polylib.client.modulargui.lib.geometry.Constraint.relative;
 import static net.creeperhost.polylib.client.modulargui.lib.geometry.GeoParam.BOTTOM;
@@ -42,9 +40,10 @@ public class ScreenPaperBag extends ContainerGuiProvider<ContainerPaperBag>
         new GuiText(root, gui.getGuiTitle())
                 .setTextColour(0xFF303030)
                 .setShadow(false)
+                .setAlignment(Align.MIN)
                 .constrain(TOP, relative(root.get(TOP), 7))
                 .constrain(LEFT, relative(root.get(LEFT), 8))
-                .constrain(RIGHT, relative(root.get(RIGHT), -8))
+                .constrain(RIGHT, relative(root.get(RIGHT), -112))
                 .constrain(HEIGHT, Constraint.literal(10));
 
         new GuiText(root, () -> Component.literal(statusText(menu)))
@@ -64,9 +63,52 @@ public class ScreenPaperBag extends ContainerGuiProvider<ContainerPaperBag>
                 .constrain(HEIGHT, Constraint.literal(112));
 
         var scrollContent = scrollWindow.primary.getContentElement();
-        new GuiSlots(scrollContent, screenAccess, menu.paperBag, 9)
+        // GuiSlots renders through PolyLib's BackgroundRender pass, which is
+        // outside GuiScrolling's normal child-render scissor. Apply the same
+        // viewport explicitly so scrolling slots cannot draw over the title,
+        // player inventory, or the rest of the screen. GuiScrolling still
+        // handles mouse-event clipping for descendants of its content element.
+        GuiSlots paperBagSlots = new GuiSlots(scrollContent, screenAccess, menu.paperBag, 9)
+        {
+            @Override
+            public void renderBehind(
+                    net.creeperhost.polylib.client.modulargui.lib.GuiRender render,
+                    double mouseX,
+                    double mouseY,
+                    float partialTicks)
+            {
+                render.pushScissorRect(scrollWindow.primary.getRectangle());
+                try
+                {
+                    super.renderBehind(render, mouseX, mouseY, partialTicks);
+                }
+                finally
+                {
+                    render.popScissor();
+                }
+            }
+        };
+        paperBagSlots
                 .constrain(TOP, match(scrollContent.get(TOP)))
                 .constrain(LEFT, match(scrollContent.get(LEFT)));
+
+        // Minecraft 26.1's extracted item render state does not retain the
+        // GuiRender scissor used above. PolyLib skips both item rendering and
+        // interaction for inactive PolySlots, so expose only slots which are
+        // fully contained by the scrolling viewport. The server-side menu has
+        // its own slot instances and remains unaffected by this client state.
+        for (var slot : menu.paperBag.slots())
+        {
+            slot.setEnabled(() ->
+            {
+                double slotLeft = root.xMin() + slot.x;
+                double slotTop = root.yMin() + slot.y;
+                return slotLeft >= scrollWindow.primary.xMin()
+                        && slotLeft + 16 <= scrollWindow.primary.xMax()
+                        && slotTop >= scrollWindow.primary.yMin()
+                        && slotTop + 16 <= scrollWindow.primary.yMax();
+            });
+        }
 
         var playerSlots = GuiSlots.player(root, screenAccess, menu.playerMain, menu.playerHotbar);
         playerSlots.container
@@ -76,7 +118,7 @@ public class ScreenPaperBag extends ContainerGuiProvider<ContainerPaperBag>
 
     private static String statusText(ContainerPaperBag menu)
     {
-        long remaining = Math.max(0, menu.tile.getDespawnTime() - Instant.now().getEpochSecond());
+        long remaining = menu.tile.getRemainingSeconds();
         return String.format("%d/%d slots  %02d:%02d", menu.tile.getUsedSlots(), menu.tile.getInventory().getContainerSize(), remaining / 60, remaining % 60);
     }
 

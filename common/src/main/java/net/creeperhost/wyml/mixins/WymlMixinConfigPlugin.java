@@ -33,35 +33,7 @@ public final class WymlMixinConfigPlugin implements IMixinConfigPlugin
         }
 
         String mixin = mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1);
-        return switch (mixin)
-        {
-            case "MixinEntity" -> any("item_lifetime", "entity_pushing");
-            case "MixinItemEntity" -> config.enabled("item_lifetime");
-            case "MixinItemEntityMergeScheduling" -> config.enabled("item_merging");
-            case "MixinLivingEntity" -> config.enabled("entity_pushing");
-            case "MixinMobCategory" -> config.enabled("category_policy");
-            case "MixinNaturalSpawner" -> any("spawn_controller", "per_mob_rules");
-            case "AccessorMinecraftServer" -> config.enabled("spawn_controller");
-            case "MixinSpawnState" -> config.enabled("spawn_controller");
-            case "MixinSpawnStateCategoryPolicy" -> config.enabled("category_policy");
-            case "MixinServerWorld" -> any("paper_bags", "per_mob_rules");
-            case "MixinMinecraftServer" -> any(
-                    "spawn_controller", "category_policy", "per_mob_rules", "post_load_gc");
-            case "MixinPlayerTabOverlay" -> config.enabled("numeric_ping");
-            default -> true;
-        };
-    }
-
-    private boolean any(String... modules)
-    {
-        for (String module : modules)
-        {
-            if (config.enabled(module))
-            {
-                return true;
-            }
-        }
-        return false;
+        return WymlMixinPolicy.shouldApply(mixin, config::enabled);
     }
 
     @Override

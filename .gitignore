@@ -20,8 +20,10 @@ classes/
 .settings
 *.launch
 *.log
+.worktrees/
 MODERNIZATION_TODO.md
-docs/
+docs/*
+!docs/LOCAL_BENCHMARKING.md
 
 # Local benchmark reports and disposable same-seed worlds
 build/reports/wyml-runtime/

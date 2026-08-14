@@ -4,18 +4,37 @@ WYML is a server-oriented performance mod that reduces work caused by mob spawni
 
 It also provides configurable mob limits and despawn distances, spreads expensive entity work across ticks, can shorten dropped-item lifetimes, and includes an optional Paper Bag system for collecting large item spills.
 
-This branch targets Minecraft 26.1.2 on Fabric and NeoForge. The old Forge and Architectury layers have been replaced with [PolyLib](https://creeperhost.github.io/PolyLib/latest/), which provides the shared platform, registration, screen, and inventory APIs used by both loaders.
+## Latest local benchmark results
 
-Local deterministic before/after benchmarks are available through `./gradlew :fabric:wymlBenchmark :neoforge:wymlBenchmark`. Each loader emits its own JSON report for item merging, entity pushing, pathological spawning, and healthy spawning; see [docs/LOCAL_BENCHMARKING.md](docs/LOCAL_BENCHMARKING.md).
+### Fabric
 
-For actual Minecraft server tick times, `./gradlew runtimeBenchmark` creates four fresh same-seed worlds and runs Fabric/NeoForge with WYML fully off and on. It writes per-loader JSON plus a combined difference report; see the same benchmarking guide for workload and interpretation details.
+| Comparison | Off average (MSPT) | On average (MSPT) | On - off (MSPT) | Difference |
+| --- | ---: | ---: | ---: | ---: |
+| All WYML features | 19.368 | 11.347 | -8.021 | -41.41% |
+| Spawn controller | 13.693 | 11.347 | -2.346 | -17.13% |
+| Category policy | 13.248 | 11.347 | -1.901 | -14.35% |
+| Per-mob rules | 14.339 | 11.347 | -2.992 | -20.87% |
+| Item lifetime (1,600-item expiry) | 4.234 | 0.632 | -3.602 | -85.08% |
+| Paper Bags (200-item spill) | 3.182 | 0.620 | -2.562 | -80.53% |
+| Item merging | 11.619 | 11.347 | -0.272 | -2.34% |
+| Entity pushing | 20.296 | 11.347 | -8.949 | -44.09% |
 
-## Requirements
+### NeoForge
 
-- Minecraft 26.1.2
-- Java 25
-- Fabric Loader 0.19.3 or newer with Fabric API, or NeoForge 26.1.2.94 or newer
-- PolyLib 2.0.11 or newer for the matching loader (Maven artifact `26.1.2-2.0.11`)
+| Comparison | Off average (MSPT) | On average (MSPT) | On - off (MSPT) | Difference |
+| --- | ---: | ---: | ---: | ---: |
+| All WYML features | 16.865 | 11.653 | -5.212 | -30.91% |
+| Spawn controller | 11.769 | 11.653 | -0.116 | -0.99% |
+| Category policy | 10.810 | 11.653 | +0.843 | +7.79% |
+| Per-mob rules | 11.084 | 11.653 | +0.569 | +5.13% |
+| Item lifetime (1,600-item expiry) | 4.381 | 0.720 | -3.661 | -83.56% |
+| Paper Bags (200-item spill) | 3.317 | 0.637 | -2.681 | -80.81% |
+| Item merging | 12.094 | 11.653 | -0.441 | -3.65% |
+| Entity pushing | 21.306 | 11.653 | -9.653 | -45.31% |
+
+All rows except item lifetime and Paper Bags use a dense workload of 300 cows and 400 non-merging items, with the named feature disabled compared against the shared all-on profile. Item lifetime uses a matched expiry workload instead: 1,600 no-gravity items are spread two blocks apart, the enabled profile gives them a 400-tick lifetime, and measurement starts after a 500-tick warmup. Every disabled run retained all 1,600 items; every enabled run had zero remaining. The matched Paper Bag workload starts with 200 item entities; every off run retained all 200 in the world, while every on run finished with zero live items and exactly one bag containing all 200. Each profile is run three times in a fresh same-seed world, and the table reports the average of 600 measured ticks from those runs.
+
+The dense workload directly stresses entity pushing and item merging. Spawn control, category policy, and per-mob rules primarily show their overhead under this particular workload; use the deterministic pathological-spawn scenarios for direct spawn-controller work-reduction evidence. Absolute Fabric and NeoForge values should not be compared as a loader performance ranking because their development runtimes differ.
 
 ## What WYML does
 
@@ -77,6 +96,8 @@ The remaining feature switches are:
 | `ENABLE_CATEGORY_CAP_POLICY` | `true` | Independently enables WYML category maximums, despawn distances, and cap scaling. Restart after changing. |
 | `ALLOW_PAUSE` | `true` | Enables temporary spawn pauses in chunks with a high failed-spawn rate. |
 | `ALLOW_SLOW` | `true` | Enables spawn-rate limiting in busy chunks. |
+| `ALLOW_SLOW_CLAIMED` | `true` | Allows slow-mode throttling in FTB Chunks claims, preserving historical behavior. |
+| `ALLOW_SLOW_FORCED` | `true` | Allows slow-mode throttling in force-loaded chunks, preserving historical behavior. |
 | `ENABLE_PER_MOD_CONFIGS` | `true` | Enables the generated per-mod and per-mob spawn rules. |
 | `HARD_MOB_LIMITS` | `false` | Enforces per-mob limits against non-natural spawns too. Leave off for natural-spawn-only limits. |
 | `DISABLE_COUNTING_CHUNK_GENERATED_MOBS` | `false` | Legacy escape hatch. When `true`, WYML leaves chunk-generation creature spawning to vanilla without its soft per-mob check or spawn-controller handling. The separate hard-limit admission check still applies when enabled. |
@@ -100,7 +121,7 @@ Every property in `wyml-mixins.properties` is a Boolean. `master_enabled=false` 
 
 Some Minecraft targets are shared by multiple modules, so a shared mixin remains applied while any module that needs it is enabled. Disabling a boot module prevents its dedicated mixin from applying where the target is not shared. These switches cover WYML's own mixins; PolyLib can have loader bridge mixins of its own.
 
-If the boot file does not exist, WYML generates a legacy-compatible profile with the modules enabled. This preserves existing installations while the new-install default profile is finalized.
+If the boot file does not exist, WYML currently generates a legacy-compatible profile with the modules enabled. This preserves an administrator's established behavior. A different default for verifiably new installations remains an explicit release-policy decision.
 
 For a mostly vanilla setup with WYML's spawn throttling disabled, start with:
 
@@ -149,7 +170,7 @@ When FTB Chunks 26.1.2.7 or newer is installed, WYML detects claims through the 
 | `MAX_CHUNK_SPAWN_REQ_TICK` | `12` | Maximum sampled spawn requests per chunk per tick. |
 | `SLOW_TICKS` | `600` | How long slow mode remains active after rates return under control. |
 | `SAMPLE_TICKS` | `5` | Number of ticks over which spawn activity is sampled and averaged. |
-| `SPAWNLOC_CACHE_TICKS` | `600` | Deprecated migration value. The unsafe legacy position-only cache is disabled pending its type/rule-safe replacement. |
+| `SPAWNLOC_CACHE_TICKS` | `600` | Deprecated no-op migration value. Unsafe reusable location caching is retired; bounded backoff saves repeated work without persisting transient or loader-dependent failures. |
 | `MANAGER_CACHE_TICKS` | `600` | How long an inactive per-chunk spawn manager remains cached. |
 | `MOJANG_MAGIC_NUM` | `17.0` | Base value used in WYML's spawn-cap calculation. |
 | `DOWNSCALE_MAGIC_NUM_MIN` | `8.0` | Minimum value allowed when downscaling is enabled. |
@@ -199,6 +220,10 @@ Generated provider files are published atomically so a server or tool should see
 | `MIN_ITEM_AGE` | `60` | Minimum dropped-item age before it can be collected into a Paper Bag. |
 | `MIN_ITEM_COUNT` | `20` | Minimum number of items in a spill before a Paper Bag is created. |
 | `PAPER_BAG_DESPAWN_TIME` | `300` | Paper Bag lifetime in seconds. |
+| `PAPER_BAG_CANDIDATES_PER_TICK` | `4` | Maximum queued spill locations examined per server tick. Values below 1 behave as 1. |
+| `PAPER_BAG_COLLECTION_BUDGET` | `128` | Maximum eligible item entities visited for one spill in one tick. Partial work is re-queued. |
+| `PAPER_BAG_SCAN_RADIUS` | `4` | Spill and safe-placement search radius, clamped to 1-16 blocks. |
+| `PAPER_BAG_EXPIRY_POLICY` | `legacy_void_with_warning` | `legacy_void_with_warning` prevents the original spill from being recreated; `persist_while_non_empty` keeps a non-empty bag. |
 
 Example denylist:
 
@@ -210,6 +235,10 @@ Example denylist:
 ```
 
 Set `ALLOW_PAPER_BAGS` to `true` and restart the server to enable spill collection. Set it back to `false` and restart to disable it.
+
+Paper Bag thresholds count eligible item entities, including the entity that triggered the spill—not the number of items inside their stacks. Collection runs later on the server thread with bounded work, waits for newly admitted entities to become spatially visible, never overwrites a non-air block, and leaves any uninserted remainder in the world. Its 180 inventory slots are exposed through a scrolling PolyLib menu.
+
+The default expiry policy preserves the historical anti-lag behavior: an expired non-empty bag is voided after a warning that records its item and slot counts. Set `PAPER_BAG_EXPIRY_POLICY` to `persist_while_non_empty` if item preservation is more important for your server; the bag then renews its deadline until emptied. Breaking a bag normally drops its contents. WYML registers custom Paper Bag content on both loaders, so clients connecting to a server with WYML currently need the mod installed as well, even when automatic spill collection is disabled.
 
 ## Units and tuning advice
 

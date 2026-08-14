@@ -4,10 +4,11 @@ import net.creeperhost.wyml.compat.CompatFTBChunks;
 import net.creeperhost.wyml.config.ModSpawnConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.data.MobSpawnData;
-import net.creeperhost.wyml.spawn.ChunkBounds;
 import net.creeperhost.wyml.spawn.ControllerKey;
 import net.creeperhost.wyml.spawn.ControllerState;
 import net.creeperhost.wyml.spawn.PauseEligibility;
+import net.creeperhost.wyml.spawn.ChunkInterventionPolicy;
+import net.creeperhost.wyml.spawn.MobPopulationIndex;
 import net.creeperhost.wyml.spawn.PerMobLimitPolicy;
 import net.creeperhost.wyml.spawn.SpawnAttemptSnapshot;
 import net.creeperhost.wyml.spawn.SpawnAttemptTracker;
@@ -20,9 +21,6 @@ import net.minecraft.util.profiling.Profiler;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.phys.AABB;
-
-import java.util.List;
 
 public class ChunkManager
 {
@@ -279,12 +277,10 @@ public class ChunkManager
             MobSpawnData mobSpawnData = modSpawnConfig.getMob(mobName);
             if(mobSpawnData == null || mobSpawnData.limit < 0) return false;
 
-            AABB aabb = ChunkBounds.fullHeight(pos, level);
             Identifier resourceLocation = Identifier.fromNamespaceAndPath(modName, mobName);
             EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getValue(resourceLocation);
             if(type == null) return false;
-            List<Entity> list = level.getEntities((Entity) null, aabb, entity -> entity.getType() == type);
-            int count = list.size();
+            int count = MobPopulationIndex.count(level, pos, type);
             return afterAdmission
                     ? PerMobLimitPolicy.isExcessAfterAdmission(count, mobSpawnData.limit)
                     : PerMobLimitPolicy.blocksProspectiveSpawn(count, mobSpawnData.limit);
@@ -304,23 +300,24 @@ public class ChunkManager
     {
         int minimumPlayers = PauseEligibility.inclusiveMinimum(
                 WymlConfig.cached().PAUSE_MIN_PLAYERS, WymlConfig.cached().MINIMUM_PAUSE_PLAYERS);
-        boolean isPausable = WymlConfig.cached().ALLOW_PAUSE
+        boolean enabledForPlayers = WymlConfig.cached().ALLOW_PAUSE
                 && PauseEligibility.hasMinimumPlayers(level.getServer().getPlayerList().getPlayerCount(), minimumPlayers);
-        if (isPausable)
-        {
-            if (WhyYouMakeLag.isFtbChunksLoaded())
-            {
-                if (!WymlConfig.cached().ALLOW_PAUSE_CLAIMED)
-                {
-                    if (isClaimed()) return false;
-                }
-            }
-            if (!WymlConfig.cached().ALLOW_PAUSE_FORCED)
-            {
-                if (isForceLoaded()) return false;
-            }
-        }
-        return isPausable;
+        return ChunkInterventionPolicy.allows(
+                enabledForPlayers,
+                isClaimed(),
+                isForceLoaded(),
+                WymlConfig.cached().ALLOW_PAUSE_CLAIMED,
+                WymlConfig.cached().ALLOW_PAUSE_FORCED);
+    }
+
+    public boolean canSlow()
+    {
+        return ChunkInterventionPolicy.allows(
+                WymlConfig.cached().ALLOW_SLOW,
+                isClaimed(),
+                isForceLoaded(),
+                WymlConfig.cached().ALLOW_SLOW_CLAIMED,
+                WymlConfig.cached().ALLOW_SLOW_FORCED);
     }
 
     public boolean isPaused()

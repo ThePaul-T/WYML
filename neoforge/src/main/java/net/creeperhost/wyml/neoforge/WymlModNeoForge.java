@@ -13,8 +13,8 @@ public class WymlModNeoForge
 {
     public WymlModNeoForge(IEventBus modEventBus)
     {
-        RuntimeBenchmarkController.registerIfRequested();
         WhyYouMakeLag.init();
+        RuntimeBenchmarkController.registerIfRequested();
         NeoPolyRegistry.registerToBus(modEventBus, WhyYouMakeLag.MOD_ID);
         if (FMLLoader.getCurrent().getDist().isClient())
         {

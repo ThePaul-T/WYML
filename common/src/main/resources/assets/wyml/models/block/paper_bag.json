@@ -2,12 +2,12 @@
 	"credit": "Made with Blockbench",
 	"parent": "block/block",
 	"textures": {
-		"0": "wyml:blocks/paper_bag",
+		"0": "wyml:block/paper_bag",
 		"1": "minecraft:block/diamond_block",
 		"2": "minecraft:block/iron_block",
 		"3": "minecraft:block/gold_block",
-		"4": "wyml:blocks/paper_bag_front",
-		"particle": "wyml:blocks/paper_bag_front"
+		"4": "wyml:block/paper_bag_front",
+		"particle": "wyml:block/paper_bag_front"
 	},
 	"elements": [
 		{

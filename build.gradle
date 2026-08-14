@@ -8,58 +8,177 @@ plugins {
 }
 
 def runtimeBenchmarkSeed = providers.gradleProperty("runtimeBenchmarkSeed").orElse("8675309")
+def runtimeBenchmarkRepetitions = providers.gradleProperty("runtimeBenchmarkRepetitions").orElse("3").map {
+    int repetitions = it as int
+    if (repetitions < 1) throw new GradleException("runtimeBenchmarkRepetitions must be positive")
+    repetitions
+}
+def runtimeBenchmarkReportOnly = providers.gradleProperty("runtimeBenchmarkReportOnly").orElse("false").map {
+    it.toBoolean()
+}
+def runtimeBenchmarkLifetimeItems = providers.gradleProperty("runtimeBenchmarkLifetimeItems").orElse("1600").map {
+    int items = it as int
+    if (items < 1) throw new GradleException("runtimeBenchmarkLifetimeItems must be positive")
+    items
+}
+def runtimeBenchmarkPaperBagItems = providers.gradleProperty("runtimeBenchmarkPaperBagItems").orElse("200").map {
+    int items = it as int
+    if (items < 20) throw new GradleException("runtimeBenchmarkPaperBagItems must be at least 20")
+    items
+}
 def runtimeComparisonFile = layout.buildDirectory.file("reports/wyml-runtime/comparison.json")
+
+def benchmarkedFeatures = [
+        "spawn_controller",
+        "category_policy",
+        "per_mob_rules",
+        "item_lifetime",
+        "item_merging",
+        "entity_pushing"
+]
+def moduleNames = benchmarkedFeatures + ["paper_bags"]
+def enabledModules = moduleNames.collectEntries { [(it): true] }
+def disabledModules = moduleNames.collectEntries { [(it): false] }
+def runtimeProfiles = new LinkedHashMap<String, Map>()
+runtimeProfiles.all_off = [wymlEnabled: false, modules: disabledModules]
+runtimeProfiles.all_on = [wymlEnabled: true, modules: enabledModules]
+benchmarkedFeatures.each { feature ->
+    def modules = new LinkedHashMap(enabledModules)
+    modules[feature] = false
+    runtimeProfiles["without_${feature}"] = [wymlEnabled: true, modules: modules]
+}
+def lifetimeWorkload = [
+        workload: "item_lifetime_expiry",
+        cows: 1,
+        items: runtimeBenchmarkLifetimeItems.get(),
+        warmupTicks: 500,
+        spreadItems: true,
+        itemDespawnTime: 400
+]
+runtimeProfiles.without_item_lifetime.putAll(lifetimeWorkload)
+runtimeProfiles.without_item_lifetime.expectedLiveItems = runtimeBenchmarkLifetimeItems.get()
+runtimeProfiles.item_lifetime_on = [wymlEnabled: true, modules: new LinkedHashMap(enabledModules)] + lifetimeWorkload
+runtimeProfiles.item_lifetime_on.expectedLiveItems = 0
+def paperBagWorkload = [
+        workload: "paper_bag_spill",
+        cows: 1,
+        items: runtimeBenchmarkPaperBagItems.get(),
+        warmupTicks: 100,
+        allowPaperBags: true,
+        paperBagMinimumAge: 20,
+        expectedLiveItems: 0,
+        expectedPaperBags: 1,
+        expectedPaperBagItems: runtimeBenchmarkPaperBagItems.get()
+]
+def paperBagOffModules = new LinkedHashMap(enabledModules)
+paperBagOffModules.paper_bags = false
+runtimeProfiles.paper_bag_off = [wymlEnabled: true, modules: paperBagOffModules] + paperBagWorkload
+runtimeProfiles.paper_bag_off.allowPaperBags = false
+runtimeProfiles.paper_bag_off.expectedLiveItems = runtimeBenchmarkPaperBagItems.get()
+runtimeProfiles.paper_bag_off.expectedPaperBags = 0
+runtimeProfiles.paper_bag_off.expectedPaperBagItems = 0
+runtimeProfiles.paper_bag_on = [wymlEnabled: true, modules: new LinkedHashMap(enabledModules)] + paperBagWorkload
+
+ext.runtimeBenchmarkProfiles = runtimeProfiles
+ext.runtimeBenchmarkRepetitions = runtimeBenchmarkRepetitions
+ext.runtimeBenchmarkTaskSuffix = { String profile ->
+    profile.split("_").collect { it.capitalize() }.join("")
+}
 
 tasks.register("runtimeBenchmark") {
     group = "verification"
-    description = "Runs fresh-world Fabric and NeoForge tick-time benchmarks with WYML off and on."
-    dependsOn(
-            ":fabric:runBenchmarkOff",
-            ":fabric:runBenchmarkOn",
-            ":neoforge:runBenchmarkOff",
-            ":neoforge:runBenchmarkOn")
-    outputs.file(runtimeComparisonFile)
+    description = "Runs fresh-world samples of each Fabric and NeoForge WYML feature profile (three by default) and averages them."
+    def benchmarkTasks = []
+    ["fabric", "neoforge"].each { loader ->
+        runtimeProfiles.keySet().each { profile ->
+            (1..runtimeBenchmarkRepetitions.get()).each { repetition ->
+                benchmarkTasks << ":${loader}:runBenchmark${runtimeBenchmarkTaskSuffix(profile)}Run${repetition}"
+            }
+        }
+    }
+    if (!runtimeBenchmarkReportOnly.get()) dependsOn(benchmarkTasks)
+    outputs.files(
+            runtimeComparisonFile,
+            project(":fabric").layout.buildDirectory.file("reports/wyml-runtime/summary.json"),
+            project(":neoforge").layout.buildDirectory.file("reports/wyml-runtime/summary.json"))
     outputs.upToDateWhen { false }
     doLast {
         def slurper = new JsonSlurper()
-        def runs = [
-                fabric: [
-                        off: slurper.parse(project(":fabric").layout.buildDirectory.file("reports/wyml-runtime/off.json").get().asFile),
-                        on : slurper.parse(project(":fabric").layout.buildDirectory.file("reports/wyml-runtime/on.json").get().asFile)
-                ],
-                neoforge: [
-                        off: slurper.parse(project(":neoforge").layout.buildDirectory.file("reports/wyml-runtime/off.json").get().asFile),
-                        on : slurper.parse(project(":neoforge").layout.buildDirectory.file("reports/wyml-runtime/on.json").get().asFile)
-                ]
-        ]
-        def comparisons = [:]
-        runs.each { loader, profiles ->
-            def metricNames = ["mean", "median", "p95", "p99", "min", "max", "standard_deviation"]
-            def tickTime = [:]
-            metricNames.each { metric ->
-                BigDecimal off = profiles.off.tick_time_ms[metric] as BigDecimal
-                BigDecimal on = profiles.on.tick_time_ms[metric] as BigDecimal
-                tickTime[metric] = [
-                        off_ms: off,
-                        on_ms: on,
-                        difference_ms: on - off,
-                        difference_percent: off == 0 ? null : ((on - off) * 100 / off).setScale(4, java.math.RoundingMode.HALF_UP)
+        def metricNames = ["mean", "median", "p95", "p99", "min", "max", "standard_deviation", "over_50ms_ticks"]
+        def loaderSummaries = [:]
+
+        ["fabric", "neoforge"].each { loader ->
+            def profileSummaries = new LinkedHashMap()
+            runtimeProfiles.each { profile, profileConfig ->
+                def samples = (1..runtimeBenchmarkRepetitions.get()).collect { repetition ->
+                    def raw = project(":${loader}").layout.buildDirectory.file(
+                            "reports/wyml-runtime/raw/${profile}/run-${repetition}.json").get().asFile
+                    if (!raw.isFile()) throw new GradleException("Missing runtime benchmark sample ${raw}")
+                    slurper.parse(raw)
+                }
+                def average = [:]
+                metricNames.each { metric ->
+                    BigDecimal total = samples.collect { it.tick_time_ms[metric] as BigDecimal }.sum() as BigDecimal
+                    average[metric] = (total / samples.size()).setScale(6, java.math.RoundingMode.HALF_UP)
+                }
+                profileSummaries[profile] = [
+                        wyml_enabled: profileConfig.wymlEnabled,
+                        feature_states: profileConfig.modules,
+                        samples: samples,
+                        average_tick_time_ms: average
                 ]
             }
-            tickTime.over_50ms_ticks = [
-                    off: profiles.off.tick_time_ms.over_50ms_ticks,
-                    on: profiles.on.tick_time_ms.over_50ms_ticks,
-                    difference: profiles.on.tick_time_ms.over_50ms_ticks - profiles.off.tick_time_ms.over_50ms_ticks
+
+            def comparisonFor = { String offProfile, String onProfile ->
+                def off = profileSummaries[offProfile].average_tick_time_ms
+                def on = profileSummaries[onProfile].average_tick_time_ms
+                def tickTime = [:]
+                metricNames.each { metric ->
+                    BigDecimal offValue = off[metric] as BigDecimal
+                    BigDecimal onValue = on[metric] as BigDecimal
+                    tickTime[metric] = [
+                            off: offValue,
+                            on: onValue,
+                            difference: (onValue - offValue).setScale(6, java.math.RoundingMode.HALF_UP),
+                            difference_percent: offValue == 0 ? null :
+                                    ((onValue - offValue) * 100 / offValue).setScale(4, java.math.RoundingMode.HALF_UP)
+                    ]
+                }
+                [off_profile: offProfile, on_profile: onProfile, tick_time_ms: tickTime]
+            }
+
+            def featureComparisons = new LinkedHashMap()
+            benchmarkedFeatures.each { feature ->
+                String onProfile = feature == "item_lifetime" ? "item_lifetime_on" : "all_on"
+                featureComparisons[feature] = comparisonFor("without_${feature}", onProfile)
+            }
+            featureComparisons.paper_bags = comparisonFor("paper_bag_off", "paper_bag_on")
+            def summary = [
+                    schema: 2,
+                    generated_at: java.time.Instant.now().toString(),
+                    loader: loader,
+                    seed: runtimeBenchmarkSeed.get() as long,
+                    repetitions_per_profile: runtimeBenchmarkRepetitions.get(),
+                    profiles: profileSummaries,
+                    comparisons: [
+                            overall: comparisonFor("all_off", "all_on"),
+                            features: featureComparisons
+                    ]
             ]
-            comparisons[loader] = [tick_time: tickTime]
+            def summaryFile = project(":${loader}").layout.buildDirectory.file(
+                    "reports/wyml-runtime/summary.json").get().asFile
+            summaryFile.parentFile.mkdirs()
+            summaryFile.setText(JsonOutput.prettyPrint(JsonOutput.toJson(summary)) + System.lineSeparator(), "UTF-8")
+            loaderSummaries[loader] = summary
         }
+
         def comparison = [
-                schema: 1,
+                schema: 2,
                 generated_at: java.time.Instant.now().toString(),
                 seed: runtimeBenchmarkSeed.get() as long,
-                note: "Negative differences mean the WYML-enabled profile was faster.",
-                runs: runs,
-                comparisons: comparisons
+                repetitions_per_profile: runtimeBenchmarkRepetitions.get(),
+                note: "Samples and loaders run sequentially. Negative differences mean the on profile was faster.",
+                loaders: loaderSummaries
         ]
         def output = runtimeComparisonFile.get().asFile
         output.parentFile.mkdirs()
@@ -69,7 +188,17 @@ tasks.register("runtimeBenchmark") {
 }
 
 gradle.projectsEvaluated {
-    tasks.getByPath(":fabric:runBenchmarkOn").mustRunAfter(tasks.getByPath(":fabric:runBenchmarkOff"))
-    tasks.getByPath(":neoforge:runBenchmarkOff").mustRunAfter(tasks.getByPath(":fabric:runBenchmarkOn"))
-    tasks.getByPath(":neoforge:runBenchmarkOn").mustRunAfter(tasks.getByPath(":neoforge:runBenchmarkOff"))
+    def orderedTasks = []
+    ["fabric", "neoforge"].each { loader ->
+        runtimeProfiles.keySet().each { profile ->
+            (1..runtimeBenchmarkRepetitions.get()).each { repetition ->
+                orderedTasks << tasks.getByPath(
+                        ":${loader}:runBenchmark${runtimeBenchmarkTaskSuffix(profile)}Run${repetition}")
+            }
+        }
+    }
+    for (int index = 1; index < orderedTasks.size(); index++)
+    {
+        orderedTasks[index].mustRunAfter(orderedTasks[index - 1])
+    }
 }

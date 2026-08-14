@@ -29,6 +29,6 @@ public class WYMLReimplementedHooksImpl implements WymlPlatformHooks
     @Override
     public boolean isValidPickup(ItemStack itemStack, Level level)
     {
-        return true;
+        return !itemStack.isEmpty();
     }
 }

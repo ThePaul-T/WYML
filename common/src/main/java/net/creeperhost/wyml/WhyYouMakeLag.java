@@ -12,6 +12,7 @@ import net.creeperhost.wyml.mixins.AccessorMinecraftServer;
 import net.creeperhost.wyml.spawn.AttemptBudgetPolicy;
 import net.creeperhost.wyml.spawn.CategoryCapPolicy;
 import net.creeperhost.wyml.spawn.ControllerKey;
+import net.creeperhost.wyml.spawn.MobPopulationIndex;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerLevel;
@@ -108,6 +109,7 @@ public class WhyYouMakeLag
         {
             controllerRegistries.remove(server);
         }
+        MobPopulationIndex.clear(server);
         if (minecraftServer == server) minecraftServer = null;
     }
 
@@ -176,12 +178,12 @@ public class WhyYouMakeLag
                     LOGGER.info("Finished preparing WYML per-mod per-category per-mob configurations."));
         }
 
+        MinecraftServer startedServer = minecraftServer;
         Runnable cleanThread = () ->
         {
-            MinecraftServer server = WhyYouMakeLag.minecraftServer;
-            if (server != null)
+            if (startedServer.isRunning())
             {
-                server.execute(() -> cleanControllers(server));
+                startedServer.execute(() -> cleanControllers(startedServer));
             }
         };
         if (WymlBootConfig.moduleEnabled("spawn_controller"))

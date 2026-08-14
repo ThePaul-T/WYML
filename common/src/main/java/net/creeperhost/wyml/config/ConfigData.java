@@ -110,6 +110,12 @@ public class ConfigData
     @Comment("Allow slowing of spawns in specific chunks")
     public boolean ALLOW_SLOW = true;
 
+    @Comment("Allow slow-mode throttling in FTB Chunks claimed chunks; true preserves historical behavior")
+    public boolean ALLOW_SLOW_CLAIMED = true;
+
+    @Comment("Allow slow-mode throttling in force-loaded chunks; true preserves historical behavior")
+    public boolean ALLOW_SLOW_FORCED = true;
+
     @Comment("Maximum spawn requests per chunk per tick based off average spawn rate in sample spawn rate")
     public int MAX_CHUNK_SPAWN_REQ_TICK = 12;
 
@@ -142,7 +148,7 @@ public class ConfigData
     // ******************************************
     // * Caching
     // ******************************************
-    @Comment("Deprecated migration value. Unsafe legacy failed-position caching is disabled until a type/rule-safe replacement is available.")
+    @Comment("Deprecated no-op. Location caching is retired because current spawn failures combine transient, random, collision, and loader-dependent checks; bounded backoff replaces it safely.")
     public int SPAWNLOC_CACHE_TICKS = 600;
 
     @Comment("How many ticks to store a SpawnManager for a chunk after it's last update")
@@ -165,6 +171,18 @@ public class ConfigData
 
     @Comment("The amount of time in seconds before a Paper bag will de-spawn (default 300)")
     public int PAPER_BAG_DESPAWN_TIME = 300;
+
+    @Comment("Maximum queued spill locations processed on the server thread per tick")
+    public int PAPER_BAG_CANDIDATES_PER_TICK = 4;
+
+    @Comment("Maximum item entities transferred into Paper Bags per processed spill and tick")
+    public int PAPER_BAG_COLLECTION_BUDGET = 128;
+
+    @Comment("Bounded block/entity search radius for one spill candidate (1-16)")
+    public int PAPER_BAG_SCAN_RADIUS = 4;
+
+    @Comment("Expiry behavior: legacy_void_with_warning or persist_while_non_empty")
+    public String PAPER_BAG_EXPIRY_POLICY = "legacy_void_with_warning";
 
     // ******************************************
     // * Spawn Limit

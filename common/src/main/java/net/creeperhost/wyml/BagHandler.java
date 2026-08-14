@@ -1,153 +1,265 @@
 package net.creeperhost.wyml;
 
-import net.creeperhost.wyml.tiles.TilePaperBag;
+import net.creeperhost.polylib.event.events.server.PolyServerLifecycleEvents;
+import net.creeperhost.polylib.event.events.server.PolyServerTickEvents;
+import net.creeperhost.wyml.config.WymlBootConfig;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.init.WYMLBlocks;
+import net.creeperhost.wyml.paperbag.PaperBagSpillPolicy;
+import net.creeperhost.wyml.tiles.TilePaperBag;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class BagHandler
+/**
+ * Deferred, server-thread-only Paper Bag spill processing.
+ *
+ * <p>The loader add-entity hook only enqueues a successfully admitted item.
+ * World scans, placement, and inventory mutation happen later at tick end and
+ * are bounded by the configured candidate and collection budgets.</p>
+ */
+public final class BagHandler
 {
-    public static HashMap<Long, ItemEntity> MAP = new HashMap<>();
-    public static List<Long> LIST_TO_REMOVE = new ArrayList<>();
-    public static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-    public static boolean updating = false;
-    public static int MIN_AGE = WymlConfig.cached().MIN_ITEM_AGE;
-    public static int MIN_ITEMS = WymlConfig.cached().MIN_ITEM_COUNT;
+    private static final AtomicBoolean REGISTERED = new AtomicBoolean();
+    private static final int ENTITY_VISIBILITY_RETRIES = 2;
+    private static final Map<MinecraftServer, LinkedHashMap<SpillKey, PendingSpill>> PENDING =
+            new IdentityHashMap<>();
+
+    private BagHandler()
+    {
+    }
 
     public static void create()
     {
-        if (MAP == null) MAP = new HashMap<>();
-        if (scheduledExecutorService.isShutdown()) scheduledExecutorService = Executors.newScheduledThreadPool(1);
-
-        Runnable runnable = BagHandler::clean;
-
-        scheduledExecutorService.scheduleAtFixedRate(runnable, 0, 10, TimeUnit.SECONDS);
+        if (!REGISTERED.compareAndSet(false, true)) return;
+        PolyServerTickEvents.TICK_END.register(BagHandler::tickEnd);
+        PolyServerLifecycleEvents.SERVER_STOPPING.register(BagHandler::serverStopping);
     }
 
+    /** Called only after the item was successfully added to a ServerLevel. */
     public static void itemEntityAdded(ItemEntity itemEntity)
     {
-        if (itemEntity == null) return;
-        if (itemEntity.level().isClientSide()) return;
-        ChunkPos chunk = itemEntity.level().getChunkAt(itemEntity.blockPosition()).getPos();
-        if (chunk == null) return;
-        if (MAP.containsKey(chunk.pack()))
+        if (!(itemEntity.level() instanceof ServerLevel level)
+                || !itemEntity.isAlive()
+                || itemEntity.getItem().isEmpty())
         {
-            if (!updating) update(chunk.pack());
             return;
         }
 
-        if (!MAP.containsKey(chunk.pack()) && getOtherItemsEntities(itemEntity).size() > MIN_ITEMS && itemEntity.isAlive() && !itemEntity.getItem().isEmpty())
+        SpillKey key = new SpillKey(level.dimension(), itemEntity.chunkPosition().pack());
+        synchronized (PENDING)
         {
-            MAP.put(chunk.pack(), itemEntity);
-            WhyYouMakeLag.LOGGER.info("added " + itemEntity.getItem().getDisplayName().getString() + " To MAP " + chunk.toString());
-            if (!updating) update(chunk.pack());
+            LinkedHashMap<SpillKey, PendingSpill> queue =
+                    PENDING.computeIfAbsent(level.getServer(), ignored -> new LinkedHashMap<>());
+            queue.putIfAbsent(key,
+                    new PendingSpill(itemEntity.blockPosition().immutable(), ENTITY_VISIBILITY_RETRIES));
         }
     }
 
-    public static void clean()
+    private static void tickEnd(MinecraftServer server)
     {
-        if (LIST_TO_REMOVE.isEmpty()) return;
-
-        WhyYouMakeLag.LOGGER.info("Cleaned up caches for BagHandler");
-
-        for (Long aLong : LIST_TO_REMOVE)
+        if (!WymlConfig.isEnabled()
+                || !WymlBootConfig.moduleEnabled("paper_bags")
+                || !WymlConfig.cached().ALLOW_PAPER_BAGS)
         {
-            MAP.remove(aLong);
+            clear(server);
+            return;
+        }
+
+        int budget = PaperBagSpillPolicy.positiveBudget(WymlConfig.cached().PAPER_BAG_CANDIDATES_PER_TICK);
+        List<Map.Entry<SpillKey, PendingSpill>> work = take(server, budget);
+        for (Map.Entry<SpillKey, PendingSpill> candidate : work)
+        {
+            process(server, candidate.getKey(), candidate.getValue());
         }
     }
 
-    public static void update(long chunkLong)
+    private static List<Map.Entry<SpillKey, PendingSpill>> take(MinecraftServer server, int budget)
     {
-        updating = true;
-        try
+        List<Map.Entry<SpillKey, PendingSpill>> result = new ArrayList<>(budget);
+        synchronized (PENDING)
         {
-            if (MAP.isEmpty()) return;
-
-            ItemEntity itemEntity = MAP.get(chunkLong);
-
-            if (itemEntity == null)
+            LinkedHashMap<SpillKey, PendingSpill> queue = PENDING.get(server);
+            if (queue == null) return result;
+            var iterator = queue.entrySet().iterator();
+            while (iterator.hasNext() && result.size() < budget)
             {
-                updating = false;
-                MAP.remove(chunkLong);
-                return;
+                Map.Entry<SpillKey, PendingSpill> entry = iterator.next();
+                result.add(Map.entry(entry.getKey(), entry.getValue()));
+                iterator.remove();
             }
-            if (!itemEntity.isAlive())
-            {
-                updating = false;
-                return;
-            }
-
-            WhyYouMakeLag.LOGGER.info("Running update for BagHandler " + itemEntity.getItem().getDisplayName().getString() + " Size " + getOtherItemsEntities(itemEntity).size());
-
-            if (shouldSpawnBag(itemEntity))
-            {
-                WhyYouMakeLag.LOGGER.info("More than " + MIN_ITEMS + " entities in chunk " + chunkLong);
-                createBag(itemEntity);
-            }
-            LIST_TO_REMOVE.add(chunkLong);
-        } catch (Exception e)
-        {
-            updating = false;
-            e.printStackTrace();
+            if (queue.isEmpty()) PENDING.remove(server);
         }
-        updating = false;
+        return result;
     }
 
-    public static boolean shouldSpawnBag(ItemEntity itemEntity)
+    private static void process(MinecraftServer server, SpillKey key, PendingSpill pending)
     {
-        List<ItemEntity> itemEntityList = getOtherItemsEntities(itemEntity);
-        int maxAge = 0;
-        if (itemEntityList.size() > MIN_ITEMS)
+        BlockPos anchor = pending.anchor();
+        ServerLevel level = server.getLevel(key.dimension());
+        if (level == null || !level.hasChunkAt(anchor)) return;
+
+        int radius = PaperBagSpillPolicy.radius(WymlConfig.cached().PAPER_BAG_SCAN_RADIUS);
+        AABB searchArea = new AABB(anchor).inflate(radius);
+        List<ItemEntity> eligible = level.getEntitiesOfClass(
+                ItemEntity.class,
+                searchArea,
+                BagHandler::isEligible);
+        if (eligible.isEmpty())
         {
-            for (ItemEntity entity : itemEntityList)
+            if (pending.emptyVisibilityRetries() > 0)
             {
-                if (entity.getAge() > maxAge) maxAge = entity.getAge();
+                enqueue(server, key,
+                        new PendingSpill(anchor, pending.emptyVisibilityRetries() - 1));
             }
-            return maxAge > MIN_AGE;
+            return;
         }
-        return false;
+
+        TilePaperBag existing = findExistingBag(level, searchArea);
+        if (existing != null)
+        {
+            collectAndRequeue(existing, eligible, level, key, anchor);
+            return;
+        }
+
+        int oldestAge = eligible.stream().mapToInt(ItemEntity::getAge).max().orElse(0);
+        if (!PaperBagSpillPolicy.qualifies(
+                eligible.size(),
+                oldestAge,
+                WymlConfig.cached().MIN_ITEM_COUNT,
+                WymlConfig.cached().MIN_ITEM_AGE))
+        {
+            if (PaperBagSpillPolicy.shouldRetryAwaitingAge(
+                    eligible.size(),
+                    oldestAge,
+                    WymlConfig.cached().MIN_ITEM_COUNT,
+                    WymlConfig.cached().MIN_ITEM_AGE))
+            {
+                enqueue(server, key, pending);
+            }
+            return;
+        }
+
+        BlockPos placement = findSafePlacement(level, anchor, radius);
+        if (placement == null) return;
+        if (!level.setBlock(placement, WYMLBlocks.PAPER_BAG.get().defaultBlockState(), 3)) return;
+
+        if (!(level.getBlockEntity(placement) instanceof TilePaperBag paperBag))
+        {
+            // Placement produced no usable inventory. No item was touched.
+            level.removeBlock(placement, false);
+            WhyYouMakeLag.LOGGER.error("Paper Bag placement at {} produced no Paper Bag block entity", placement);
+            return;
+        }
+
+        collectAndRequeue(paperBag, eligible, level, key, placement);
     }
 
-    public static boolean createBag(ItemEntity itemEntity)
+    private static void collectAndRequeue(
+            TilePaperBag paperBag,
+            List<ItemEntity> eligible,
+            ServerLevel level,
+            SpillKey key,
+            BlockPos anchor)
     {
-        ServerLevel serverLevel = (ServerLevel) itemEntity.level();
-        BlockPos paperBagPos = itemEntity.blockPosition();
-
-        BlockPos first = getOtherItemsEntities(itemEntity).get(0).blockPosition();
-        paperBagPos = first;
-
-        if (paperBagPos == null)
+        int collectionBudget = PaperBagSpillPolicy.positiveBudget(
+                WymlConfig.cached().PAPER_BAG_COLLECTION_BUDGET);
+        TilePaperBag.CollectionResult result = paperBag.collectItems(eligible, collectionBudget);
+        if (result.remaining() || result.visited() < eligible.size())
         {
-            WhyYouMakeLag.LOGGER.error("Unable to find location to spawn bag");
-            return false;
+            enqueue(level.getServer(), key, new PendingSpill(anchor, ENTITY_VISIBILITY_RETRIES));
         }
-
-        if (serverLevel.getBlockEntity(paperBagPos) == null || serverLevel.getBlockEntity(paperBagPos) != null)
-        {
-            if (!(serverLevel.getBlockEntity(paperBagPos) instanceof TilePaperBag))
-                serverLevel.removeBlockEntity(paperBagPos);
-            if (serverLevel.getBlockState(paperBagPos) != WYMLBlocks.PAPER_BAG.get().defaultBlockState())
-            {
-                serverLevel.setBlock(paperBagPos, WYMLBlocks.PAPER_BAG.get().defaultBlockState(), 3);
-                TilePaperBag tilePaperBag = (TilePaperBag) serverLevel.getBlockEntity(paperBagPos);
-                if (tilePaperBag != null) tilePaperBag.collectItems();
-            }
-        }
-        return true;
     }
 
-    public static List<ItemEntity> getOtherItemsEntities(ItemEntity itemEntity)
+    private static boolean isEligible(ItemEntity itemEntity)
     {
-        return itemEntity.level().getEntitiesOfClass(ItemEntity.class, itemEntity.getBoundingBox().inflate(4.0D, 4.0D, 4.0D));
+        return itemEntity.isAlive()
+                && !itemEntity.isRemoved()
+                && !itemEntity.getItem().isEmpty()
+                && WYMLReimplementedHooks.isValidPickup(itemEntity.getItem(), itemEntity.level());
+    }
+
+    private static TilePaperBag findExistingBag(ServerLevel level, AABB searchArea)
+    {
+        int minX = (int) Math.floor(searchArea.minX);
+        int minY = (int) Math.floor(searchArea.minY);
+        int minZ = (int) Math.floor(searchArea.minZ);
+        int maxX = (int) Math.ceil(searchArea.maxX);
+        int maxY = (int) Math.ceil(searchArea.maxY);
+        int maxZ = (int) Math.ceil(searchArea.maxZ);
+        for (BlockPos pos : BlockPos.betweenClosed(minX, minY, minZ, maxX, maxY, maxZ))
+        {
+            if (level.getBlockEntity(pos) instanceof TilePaperBag paperBag)
+            {
+                return paperBag;
+            }
+        }
+        return null;
+    }
+
+    private static BlockPos findSafePlacement(ServerLevel level, BlockPos anchor, int radius)
+    {
+        for (int distance = 0; distance <= radius; distance++)
+        {
+            for (int yOffset = 0; yOffset <= 1; yOffset++)
+            {
+                for (int xOffset = -distance; xOffset <= distance; xOffset++)
+                {
+                    for (int zOffset = -distance; zOffset <= distance; zOffset++)
+                    {
+                        if (distance > 0 && Math.max(Math.abs(xOffset), Math.abs(zOffset)) != distance) continue;
+                        BlockPos pos = anchor.offset(xOffset, yOffset, zOffset);
+                        if (level.hasChunkAt(pos)
+                                && level.getBlockState(pos).isAir()
+                                && level.getBlockEntity(pos) == null)
+                        {
+                            return pos.immutable();
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void enqueue(MinecraftServer server, SpillKey key, PendingSpill pending)
+    {
+        synchronized (PENDING)
+        {
+            PENDING.computeIfAbsent(server, ignored -> new LinkedHashMap<>())
+                    .putIfAbsent(key, pending);
+        }
+    }
+
+    private static void serverStopping(MinecraftServer server)
+    {
+        clear(server);
+    }
+
+    private static void clear(MinecraftServer server)
+    {
+        synchronized (PENDING)
+        {
+            PENDING.remove(server);
+        }
+    }
+
+    private record SpillKey(ResourceKey<Level> dimension, long chunk)
+    {
+    }
+
+    private record PendingSpill(BlockPos anchor, int emptyVisibilityRetries)
+    {
     }
 }

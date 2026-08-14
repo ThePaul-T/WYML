@@ -62,7 +62,7 @@ public abstract class MixinNaturalSpawner {
             return true;
         }
 
-        if (manager.isSlowMode() && !WymlConfig.cached().ALLOW_SLOW)
+        if (manager.isSlowMode() && !manager.canSlow())
         {
             manager.fastMode();
             WhyYouMakeLag.updateChunkManager(manager);
@@ -116,7 +116,7 @@ public abstract class MixinNaturalSpawner {
                 return true;
             }
         }
-        else if (WymlConfig.cached().ALLOW_SLOW
+        else if (manager.canSlow()
                 && manager.getSpawnsInSample() >= WymlConfig.cached().MAX_CHUNK_SPAWN_REQ_TICK)
         {
             manager.slowMode();
@@ -241,18 +241,17 @@ public abstract class MixinNaturalSpawner {
                         }
 
                         attempt.advance(SpawnAttemptStage.FINALIZATION);
-                        if (WYMLReimplementedHooks.doSpecialSpawn(mob, serverLevel, (float) d, i, (float) e, null, EntitySpawnReason.NATURAL)) {
-                            attempt.fail(SpawnFailureReason.SPECIAL_SPAWN_HANDLED);
+                        spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.NATURAL, spawnGroupData);
+                        serverLevel.addFreshEntityWithPassengers(mob);
+                        if (serverLevel.getEntity(mob.getId()) != mob) {
+                            attempt.fail(SpawnFailureReason.ADMISSION_REJECTED);
                             continue;
                         }
-
-                        spawnGroupData = mob.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.NATURAL, spawnGroupData);
                         ++j;
                         ++p;
-                        serverLevel.addFreshEntityWithPassengers(mob);
                         attempt.succeed();
                         afterSpawnCallback.run(mob, chunkAccess);
-                        if (j >= mob.getMaxSpawnClusterSize()) {
+                        if (j >= WYMLReimplementedHooks.getMaxGroupSize(mob)) {
                             return;
                         }
 

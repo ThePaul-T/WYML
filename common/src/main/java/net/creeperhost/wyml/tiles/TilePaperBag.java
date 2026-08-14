@@ -10,6 +10,7 @@ import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlConfig;
 import net.creeperhost.wyml.containers.ContainerPaperBag;
 import net.creeperhost.wyml.init.WYMLBlocks;
+import net.creeperhost.wyml.paperbag.PaperBagExpiryPolicy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -23,22 +24,22 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
+import java.util.List;
 
 public class TilePaperBag extends PolyBlockEntity implements PolyInventoryBlock, MenuProvider
 {
     private final BlockInventory inventory = new BlockInventory(this, 180);
-    private final int despawnDuration = WymlConfig.cached().PAPER_BAG_DESPAWN_TIME;
+    private final long despawnDurationTicks = Math.max(1L, WymlConfig.cached().PAPER_BAG_DESPAWN_TIME) * 20L;
     private final LongData despawnTime;
     private final IntData usedSlots;
+    private boolean deadlineChecked;
 
     public TilePaperBag(BlockPos pos, BlockState state)
     {
         super(WYMLBlocks.PAPER_BAG_TILE.get(), pos, state);
-        despawnTime = register("despawn", new LongData(Instant.now().getEpochSecond() + despawnDuration), SAVE, SYNC);
+        despawnTime = register("despawn", new LongData(0), SAVE, SYNC);
         usedSlots = register("used_slots", new IntData(0), SYNC);
     }
 
@@ -63,16 +64,31 @@ public class TilePaperBag extends PolyBlockEntity implements PolyInventoryBlock,
             return;
         }
 
+        ensureGameTimeDeadline();
         updateUsedCount();
-        if (Instant.now().getEpochSecond() >= getDespawnTime())
-        {
-            WhyYouMakeLag.LOGGER.info("Removing Paper Bag from {} because it expired", getBlockPos());
-            remove();
-        }
-        else if (inventory.isEmpty())
+        if (inventory.isEmpty())
         {
             WhyYouMakeLag.LOGGER.info("Removing empty Paper Bag from {}", getBlockPos());
             remove();
+        }
+        else if (level.getGameTime() >= getDespawnTime())
+        {
+            PaperBagExpiryPolicy policy = PaperBagExpiryPolicy.parse(WymlConfig.cached().PAPER_BAG_EXPIRY_POLICY);
+            if (policy == PaperBagExpiryPolicy.PERSIST_WHILE_NON_EMPTY)
+            {
+                WhyYouMakeLag.LOGGER.info(
+                        "Paper Bag at {} reached its expiry while non-empty; preserving it for another {} seconds",
+                        getBlockPos(), Math.max(1, WymlConfig.cached().PAPER_BAG_DESPAWN_TIME));
+                resetDespawnTime();
+            }
+            else
+            {
+                WhyYouMakeLag.LOGGER.warn(
+                        "Paper Bag at {} expired under legacy_void_with_warning; voiding {} item(s) in {} occupied slot(s) "
+                                + "rather than recreating the original spill",
+                        getBlockPos(), getStoredItemCount(), getUsedSlots());
+                remove();
+            }
         }
     }
 
@@ -116,7 +132,34 @@ public class TilePaperBag extends PolyBlockEntity implements PolyInventoryBlock,
 
     public void resetDespawnTime()
     {
-        despawnTime.set(Instant.now().getEpochSecond() + despawnDuration);
+        if (level == null)
+        {
+            despawnTime.set(0L);
+            deadlineChecked = false;
+            return;
+        }
+        despawnTime.set(level.getGameTime() + despawnDurationTicks);
+        deadlineChecked = true;
+    }
+
+    public long getRemainingSeconds()
+    {
+        if (level == null) return Math.max(0, despawnDurationTicks / 20L);
+        return Math.max(0, getDespawnTime() - level.getGameTime()) / 20L;
+    }
+
+    private void ensureGameTimeDeadline()
+    {
+        if (deadlineChecked || level == null) return;
+        long deadline = despawnTime.get();
+        long current = level.getGameTime();
+        // Old saves stored an epoch-second value under this key. A deadline
+        // implausibly far beyond the configured tick duration is migrated.
+        if (deadline <= 0 || deadline > current + despawnDurationTicks * 4L)
+        {
+            despawnTime.set(current + despawnDurationTicks);
+        }
+        deadlineChecked = true;
     }
 
     private void updateUsedCount()
@@ -137,32 +180,52 @@ public class TilePaperBag extends PolyBlockEntity implements PolyInventoryBlock,
         return usedSlots.get();
     }
 
-    public void collectItems()
+    public CollectionResult collectItems(List<ItemEntity> itemEntities, int budget)
     {
         if (level == null || level.isClientSide())
         {
-            return;
+            return new CollectionResult(0, false);
         }
 
-        AABB searchArea = new AABB(getBlockPos()).inflate(4.0D);
-        for (ItemEntity itemEntity : level.getEntitiesOfClass(ItemEntity.class, searchArea))
+        int visited = 0;
+        boolean remaining = false;
+        for (ItemEntity itemEntity : itemEntities)
         {
+            if (visited >= Math.max(1, budget)) break;
+            visited++;
             ItemStack stack = itemEntity.getItem();
             if (!itemEntity.isAlive() || !WYMLReimplementedHooks.isValidPickup(stack, level))
             {
                 continue;
             }
 
-            int remaining = inventory.insertStack(stack, false);
-            if (remaining == 0)
+            int remainder = inventory.insertStack(stack.copy(), false);
+            if (remainder == 0)
             {
                 itemEntity.discard();
             }
             else
             {
-                stack.setCount(remaining);
+                stack.setCount(remainder);
                 itemEntity.setItem(stack);
+                remaining = true;
             }
         }
+        updateUsedCount();
+        return new CollectionResult(visited, remaining);
+    }
+
+    private int getStoredItemCount()
+    {
+        int count = 0;
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++)
+        {
+            count += inventory.getItem(slot).getCount();
+        }
+        return count;
+    }
+
+    public record CollectionResult(int visited, boolean remaining)
+    {
     }
 }

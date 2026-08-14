@@ -7,6 +7,7 @@
   "mixins": [
     "AccessorMinecraftServer",
     "MixinEntity",
+    "MixinEntityPopulationIndex",
     "MixinItemEntity",
     "MixinItemEntityMergeScheduling",
     "MixinLivingEntity",

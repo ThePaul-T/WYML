@@ -10,6 +10,9 @@ def runtimeBenchmarkTicks = providers.gradleProperty("runtimeBenchmarkMeasureTic
 def runtimeBenchmarkCows = providers.gradleProperty("runtimeBenchmarkCows").orElse("300").get()
 def runtimeBenchmarkItems = providers.gradleProperty("runtimeBenchmarkItems").orElse("400").get()
 def neoForgeBenchmarkReportDir = layout.buildDirectory.dir("reports/wyml-runtime")
+def runtimeProfiles = rootProject.ext.runtimeBenchmarkProfiles
+def runtimeRepetitions = rootProject.ext.runtimeBenchmarkRepetitions.get()
+def benchmarkTaskSuffix = rootProject.ext.runtimeBenchmarkTaskSuffix
 
 configurations {
     devRuntime
@@ -30,43 +33,45 @@ neoForge {
             server()
             gameDirectory = file("runs/server")
         }
-        benchmarkOff {
-            server()
-            ideName = "NeoForge WYML Runtime Benchmark Off"
-            disableIdeRun()
-            gameDirectory = file("runs/runtime-benchmark-off")
-            programArgument("nogui")
-            systemProperty("wyml.configDir", file("runs/runtime-benchmark-off/config").absolutePath)
-            systemProperty("wyml.runtimeBenchmark.enabled", "true")
-            systemProperty("wyml.runtimeBenchmark.loader", "neoforge")
-            systemProperty("wyml.runtimeBenchmark.profile", "off")
-            systemProperty("wyml.runtimeBenchmark.wymlEnabled", "false")
-            systemProperty("wyml.runtimeBenchmark.seed", runtimeBenchmarkSeed)
-            systemProperty("wyml.runtimeBenchmark.warmupTicks", runtimeBenchmarkWarmup)
-            systemProperty("wyml.runtimeBenchmark.measureTicks", runtimeBenchmarkTicks)
-            systemProperty("wyml.runtimeBenchmark.cows", runtimeBenchmarkCows)
-            systemProperty("wyml.runtimeBenchmark.items", runtimeBenchmarkItems)
-            systemProperty("wyml.runtimeBenchmark.output", neoForgeBenchmarkReportDir.get().file("off.json").asFile.absolutePath)
-            systemProperty("wyml.runtimeBenchmark.worldDirectory", file("runs/runtime-benchmark-off/world").absolutePath)
-        }
-        benchmarkOn {
-            server()
-            ideName = "NeoForge WYML Runtime Benchmark On"
-            disableIdeRun()
-            gameDirectory = file("runs/runtime-benchmark-on")
-            programArgument("nogui")
-            systemProperty("wyml.configDir", file("runs/runtime-benchmark-on/config").absolutePath)
-            systemProperty("wyml.runtimeBenchmark.enabled", "true")
-            systemProperty("wyml.runtimeBenchmark.loader", "neoforge")
-            systemProperty("wyml.runtimeBenchmark.profile", "on")
-            systemProperty("wyml.runtimeBenchmark.wymlEnabled", "true")
-            systemProperty("wyml.runtimeBenchmark.seed", runtimeBenchmarkSeed)
-            systemProperty("wyml.runtimeBenchmark.warmupTicks", runtimeBenchmarkWarmup)
-            systemProperty("wyml.runtimeBenchmark.measureTicks", runtimeBenchmarkTicks)
-            systemProperty("wyml.runtimeBenchmark.cows", runtimeBenchmarkCows)
-            systemProperty("wyml.runtimeBenchmark.items", runtimeBenchmarkItems)
-            systemProperty("wyml.runtimeBenchmark.output", neoForgeBenchmarkReportDir.get().file("on.json").asFile.absolutePath)
-            systemProperty("wyml.runtimeBenchmark.worldDirectory", file("runs/runtime-benchmark-on/world").absolutePath)
+        runtimeProfiles.each { profile, profileConfig ->
+            def profileWarmup = profileConfig.containsKey("warmupTicks") ? profileConfig.warmupTicks : runtimeBenchmarkWarmup
+            def profileCows = profileConfig.containsKey("cows") ? profileConfig.cows : runtimeBenchmarkCows
+            def profileItems = profileConfig.containsKey("items") ? profileConfig.items : runtimeBenchmarkItems
+            def expectedLiveItems = profileConfig.containsKey("expectedLiveItems") ? profileConfig.expectedLiveItems : profileItems
+            def workload = profileConfig.containsKey("workload") ? profileConfig.workload : "dense"
+            def spreadItems = profileConfig.containsKey("spreadItems") && profileConfig.spreadItems
+            def expectedPaperBags = profileConfig.containsKey("expectedPaperBags") ? profileConfig.expectedPaperBags : 0
+            def expectedPaperBagItems = profileConfig.containsKey("expectedPaperBagItems") ? profileConfig.expectedPaperBagItems : 0
+            (1..runtimeRepetitions).each { repetition ->
+                def runName = "benchmark${benchmarkTaskSuffix(profile)}Run${repetition}"
+                def runDirectory = "runs/runtime-benchmark-${profile}-run-${repetition}"
+                create(runName) {
+                    server()
+                    ideName = "NeoForge WYML Runtime Benchmark ${profile} Run ${repetition}"
+                    disableIdeRun()
+                    gameDirectory = file(runDirectory)
+                    programArgument("nogui")
+                    systemProperty("wyml.configDir", file("${runDirectory}/config").absolutePath)
+                    systemProperty("wyml.runtimeBenchmark.enabled", "true")
+                    systemProperty("wyml.runtimeBenchmark.loader", "neoforge")
+                    systemProperty("wyml.runtimeBenchmark.profile", profile)
+                    systemProperty("wyml.runtimeBenchmark.repetition", repetition.toString())
+                    systemProperty("wyml.runtimeBenchmark.workload", workload.toString())
+                    systemProperty("wyml.runtimeBenchmark.wymlEnabled", profileConfig.wymlEnabled.toString())
+                    systemProperty("wyml.runtimeBenchmark.seed", runtimeBenchmarkSeed)
+                    systemProperty("wyml.runtimeBenchmark.warmupTicks", profileWarmup.toString())
+                    systemProperty("wyml.runtimeBenchmark.measureTicks", runtimeBenchmarkTicks)
+                    systemProperty("wyml.runtimeBenchmark.cows", profileCows.toString())
+                    systemProperty("wyml.runtimeBenchmark.items", profileItems.toString())
+                    systemProperty("wyml.runtimeBenchmark.expectedLiveItems", expectedLiveItems.toString())
+                    systemProperty("wyml.runtimeBenchmark.spreadItems", spreadItems.toString())
+                    systemProperty("wyml.runtimeBenchmark.expectedPaperBags", expectedPaperBags.toString())
+                    systemProperty("wyml.runtimeBenchmark.expectedPaperBagItems", expectedPaperBagItems.toString())
+                    systemProperty("wyml.runtimeBenchmark.output", neoForgeBenchmarkReportDir.get().file(
+                            "raw/${profile}/run-${repetition}.json").asFile.absolutePath)
+                    systemProperty("wyml.runtimeBenchmark.worldDirectory", file("${runDirectory}/world").absolutePath)
+                }
+            }
         }
     }
     mods {
@@ -76,22 +81,29 @@ neoForge {
     }
 }
 
-def registerNeoForgeRuntimePreparation = { String profile, boolean enabled ->
-    def capitalized = profile.capitalize()
-    def runDirectory = file("runs/runtime-benchmark-${profile}")
-    def reportFile = neoForgeBenchmarkReportDir.get().file("${profile}.json").asFile
-    tasks.register("prepareRuntimeBenchmark${capitalized}") {
-        outputs.upToDateWhen { false }
-        doLast {
-            delete(runDirectory)
-            delete(reportFile)
-            def configDirectory = new File(runDirectory, "config")
-            configDirectory.mkdirs()
-            new File(runDirectory, "eula.txt").setText("eula=true\n", "UTF-8")
-            new File(runDirectory, "server.properties").setText("""\
+runtimeProfiles.each { profile, profileConfig ->
+    (1..runtimeRepetitions).each { repetition ->
+        def suffix = "${benchmarkTaskSuffix(profile)}Run${repetition}"
+        def runDirectory = file("runs/runtime-benchmark-${profile}-run-${repetition}")
+        def reportFile = neoForgeBenchmarkReportDir.get().file("raw/${profile}/run-${repetition}.json").asFile
+        def modules = profileConfig.modules
+        def itemDespawnTime = profileConfig.containsKey("itemDespawnTime") ? profileConfig.itemDespawnTime : 6000
+        def allowPaperBags = profileConfig.containsKey("allowPaperBags") && profileConfig.allowPaperBags
+        def paperBagMinimumAge = profileConfig.containsKey("paperBagMinimumAge") ? profileConfig.paperBagMinimumAge : 60
+        tasks.register("prepareRuntimeBenchmark${suffix}") {
+            outputs.upToDateWhen { false }
+            doLast {
+                delete(reportFile)
+                def configDirectory = new File(runDirectory, "config")
+                delete(new File(runDirectory, "world"))
+                delete(configDirectory)
+                configDirectory.mkdirs()
+                new File(runDirectory, "eula.txt").setText("eula=true\n", "UTF-8")
+                new File(runDirectory, "server.properties").setText("""\
 level-name=world
 level-seed=${runtimeBenchmarkSeed}
 online-mode=false
+server-port=0
 spawn-protection=0
 view-distance=4
 simulation-distance=4
@@ -100,40 +112,50 @@ generate-structures=false
 difficulty=normal
 gamemode=creative
 """, "UTF-8")
-            new File(configDirectory, "wyml.json").setText("""{
-  \"ENABLE_WYML\": ${enabled},
+                new File(configDirectory, "wyml.json").setText("""{
+  \"ENABLE_WYML\": ${profileConfig.wymlEnabled},
   \"ENABLE_GARBAGE_COLLECTION_LOAD\": false,
   \"CLEAN_PRINT\": false,
   \"DEBUG_PRINT\": false,
-  \"ALLOW_PAPER_BAGS\": false
-}\n""", "UTF-8")
-            new File(configDirectory, "wyml-mixins.properties").setText(enabled ? """\
-master_enabled=true
-spawn_controller=true
-category_policy=true
-per_mob_rules=true
-paper_bags=true
-item_lifetime=true
-item_merging=true
-entity_pushing=true
-tick_pacing=true
-post_load_gc=true
-numeric_ping=true
-""" : "master_enabled=false\n", "UTF-8")
+  \"ALLOW_PAPER_BAGS\": ${allowPaperBags},
+  \"MIN_ITEM_AGE\": ${paperBagMinimumAge},
+  \"MIN_ITEM_COUNT\": 20,
+  \"PAPER_BAG_EXPIRY_POLICY\": \"persist_while_non_empty\",
+  \"ITEM_DESPAWN_TIME\": ${itemDespawnTime},
+  \"ALLOW_PAUSE\": ${modules.spawn_controller},
+  \"ALLOW_SLOW\": ${modules.spawn_controller},
+  \"ENABLE_CATEGORY_CAP_POLICY\": ${modules.category_policy},
+  \"ENABLE_PER_MOD_CONFIGS\": ${modules.per_mob_rules},
+  \"HARD_MOB_LIMITS\": false,
+  \"NORMALIZE_ITEM_STACK_MERGING\": ${modules.item_merging},
+  \"NORMALIZE_PUSHING\": ${modules.entity_pushing}
+}
+""", "UTF-8")
+                new File(configDirectory, "wyml-mixins.properties").setText("""\
+master_enabled=${profileConfig.wymlEnabled}
+spawn_controller=${modules.spawn_controller}
+category_policy=${modules.category_policy}
+per_mob_rules=${modules.per_mob_rules}
+paper_bags=${modules.paper_bags}
+item_lifetime=${modules.item_lifetime}
+item_merging=${modules.item_merging}
+entity_pushing=${modules.entity_pushing}
+tick_pacing=false
+post_load_gc=false
+numeric_ping=false
+""", "UTF-8")
+            }
         }
-    }
-    tasks.named("runBenchmark${capitalized}") {
-        dependsOn tasks.named("prepareRuntimeBenchmark${capitalized}")
-        doLast {
-            if (!reportFile.isFile()) {
-                throw new GradleException("NeoForge runtime benchmark ${profile} exited without producing ${reportFile}")
+        tasks.named("runBenchmark${suffix}") {
+            dependsOn tasks.named("prepareRuntimeBenchmark${suffix}")
+            doLast {
+                if (!reportFile.isFile()) {
+                    throw new GradleException("NeoForge runtime benchmark ${profile} run ${repetition} exited without producing ${reportFile}")
+                }
             }
         }
     }
 }
-
-registerNeoForgeRuntimePreparation("off", false)
-registerNeoForgeRuntimePreparation("on", true)
 
 dependencies {
     implementation "net.creeperhost.polylib:polylib-neoforge:${polylib_version}"

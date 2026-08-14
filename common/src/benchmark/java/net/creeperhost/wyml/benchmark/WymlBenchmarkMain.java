@@ -22,6 +22,7 @@ public final class WymlBenchmarkMain
     private static final int SCHEDULING_TICKS = 400;
     private static final int SPAWN_TICKS = 20_000;
     private static final int CANDIDATES_PER_TICK = 12;
+    private static final int REPETITIONS = 3;
 
     private WymlBenchmarkMain()
     {
@@ -32,15 +33,19 @@ public final class WymlBenchmarkMain
         Path outputDirectory = Path.of(args.length > 0 ? args[0] : "build/reports/wyml-benchmark");
         String label = sanitizeLabel(args.length > 1 ? args[1] : "latest");
         String loader = sanitizeLabel(args.length > 2 ? args[2] : "unknown");
-        List<Scenario> scenarios = List.of(
-                benchmarkStationaryItemMerging(),
-                benchmarkEntityPushing(),
-                benchmarkPathologicalSpawning(),
-                benchmarkHealthySpawning());
+        List<BenchmarkRun> runs = new ArrayList<>();
+        for (int repetition = 1; repetition <= REPETITIONS; repetition++)
+        {
+            runs.add(new BenchmarkRun(repetition, List.of(
+                    benchmarkStationaryItemMerging(),
+                    benchmarkEntityPushing(),
+                    benchmarkPathologicalSpawning(),
+                    benchmarkHealthySpawning())));
+        }
 
         Files.createDirectories(outputDirectory);
         Path json = outputDirectory.resolve(label + ".json");
-        Files.writeString(json, toJson(label, loader, scenarios), StandardCharsets.UTF_8);
+        Files.writeString(json, toJson(label, loader, runs), StandardCharsets.UTF_8);
 
         System.out.println("WYML deterministic benchmark passed for " + loader + ".");
         System.out.println("JSON report: " + json.toAbsolutePath());
@@ -214,15 +219,17 @@ public final class WymlBenchmarkMain
                         "predicate_calls", baselinePredicateCalls, modernPredicateCalls, "calls")));
     }
 
-    private static String toJson(String label, String loader, List<Scenario> scenarios)
+    private static String toJson(String label, String loader, List<BenchmarkRun> runs)
     {
+        List<Scenario> scenarios = runs.getFirst().scenarios();
         StringBuilder json = new StringBuilder();
         json.append("{\n")
-                .append("  \"schema\": 1,\n")
+                .append("  \"schema\": 2,\n")
                 .append("  \"label\": \"").append(escape(label)).append("\",\n")
                 .append("  \"loader\": \"").append(escape(loader)).append("\",\n")
                 .append("  \"generated_at\": \"").append(Instant.now()).append("\",\n")
                 .append("  \"java_version\": \"").append(escape(System.getProperty("java.version"))).append("\",\n")
+                .append("  \"repetitions\": ").append(runs.size()).append(",\n")
                 .append("  \"scenarios\": [\n");
         for (int scenarioIndex = 0; scenarioIndex < scenarios.size(); scenarioIndex++)
         {
@@ -230,22 +237,63 @@ public final class WymlBenchmarkMain
             json.append("    {\n")
                     .append("      \"id\": \"").append(escape(scenario.id())).append("\",\n")
                     .append("      \"description\": \"").append(escape(scenario.description())).append("\",\n")
-                    .append("      \"metrics\": [\n");
+                    .append("      \"runs\": [\n");
+            for (int runIndex = 0; runIndex < runs.size(); runIndex++)
+            {
+                Scenario runScenario = runs.get(runIndex).scenarios().get(scenarioIndex);
+                require(runScenario.id().equals(scenario.id()), "Benchmark scenario order changed between repetitions");
+                json.append("        {\"repetition\": ").append(runs.get(runIndex).repetition())
+                        .append(", \"metrics\": [");
+                appendMetrics(json, runScenario.metrics());
+                json.append("]}");
+                if (runIndex + 1 < runs.size()) json.append(',');
+                json.append('\n');
+            }
+            json.append("      ],\n")
+                    .append("      \"average_metrics\": [");
             for (int metricIndex = 0; metricIndex < scenario.metrics().size(); metricIndex++)
             {
                 Metric metric = scenario.metrics().get(metricIndex);
-                json.append("        {\"name\": \"").append(escape(metric.name()))
-                        .append("\", \"before\": ").append(metric.before())
-                        .append(", \"after\": ").append(metric.after())
+                double before = 0.0D;
+                double after = 0.0D;
+                for (BenchmarkRun run : runs)
+                {
+                    Metric sample = run.scenarios().get(scenarioIndex).metrics().get(metricIndex);
+                    require(sample.name().equals(metric.name()), "Benchmark metric order changed between repetitions");
+                    before += sample.before();
+                    after += sample.after();
+                }
+                before /= runs.size();
+                after /= runs.size();
+                json.append("{\"name\": \"").append(escape(metric.name()))
+                        .append("\", \"before\": ").append(decimal(before))
+                        .append(", \"after\": ").append(decimal(after))
                         .append(", \"unit\": \"").append(escape(metric.unit())).append("\"}");
                 if (metricIndex + 1 < scenario.metrics().size()) json.append(',');
-                json.append('\n');
             }
-            json.append("      ]\n    }");
+            json.append("]\n    }");
             if (scenarioIndex + 1 < scenarios.size()) json.append(',');
             json.append('\n');
         }
         return json.append("  ]\n}\n").toString();
+    }
+
+    private static void appendMetrics(StringBuilder json, List<Metric> metrics)
+    {
+        for (int metricIndex = 0; metricIndex < metrics.size(); metricIndex++)
+        {
+            Metric metric = metrics.get(metricIndex);
+            json.append("{\"name\": \"").append(escape(metric.name()))
+                    .append("\", \"before\": ").append(metric.before())
+                    .append(", \"after\": ").append(metric.after())
+                    .append(", \"unit\": \"").append(escape(metric.unit())).append("\"}");
+            if (metricIndex + 1 < metrics.size()) json.append(',');
+        }
+    }
+
+    private static String decimal(double value)
+    {
+        return String.format(java.util.Locale.ROOT, "%.3f", value);
     }
 
     private static long countZeroes(int[] values)
@@ -285,6 +333,10 @@ public final class WymlBenchmarkMain
         {
             metrics = new ArrayList<>(metrics);
         }
+    }
+
+    private record BenchmarkRun(int repetition, List<Scenario> scenarios)
+    {
     }
 
     private record Metric(String name, long before, long after, String unit)

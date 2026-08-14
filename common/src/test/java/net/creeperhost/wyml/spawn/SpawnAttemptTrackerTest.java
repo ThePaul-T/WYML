@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SpawnAttemptTrackerTest
 {
@@ -43,9 +42,11 @@ class SpawnAttemptTrackerTest
         assertFalse(SpawnFailureReason.PLAYER_DISTANCE_OR_SPAWN_POINT.mayCache());
         assertFalse(SpawnFailureReason.PER_MOB_POPULATION_LIMIT.mayCache());
         assertFalse(SpawnFailureReason.LOADER_OR_POSITION_VETO.mayCache());
-        assertTrue(SpawnFailureReason.STABLE_PLACEMENT_RULE_REJECTED.mayCache());
-        assertEquals(SpawnCacheScope.ENTITY_RULE_AND_GENERATION,
-                SpawnFailureReason.STABLE_PLACEMENT_RULE_REJECTED.cacheScope());
+        for (SpawnFailureReason reason : SpawnFailureReason.values())
+        {
+            assertFalse(reason.mayCache());
+            assertEquals(SpawnCacheScope.NONE, reason.cacheScope());
+        }
     }
 
     @Test

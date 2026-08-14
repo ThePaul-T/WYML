@@ -5,6 +5,7 @@ import net.creeperhost.wyml.ChunkManager;
 import net.creeperhost.wyml.WhyYouMakeLag;
 import net.creeperhost.wyml.config.WymlBootConfig;
 import net.creeperhost.wyml.config.WymlConfig;
+import net.creeperhost.wyml.spawn.MobPopulationIndex;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -20,22 +21,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ServerLevel.class)
 public class MixinServerWorld
 {
-    @Inject(at = @At("HEAD"), method = "addEntity", cancellable = true)
-    public void addEntity(Entity entity, CallbackInfoReturnable<Boolean> cir)
-    {
-        if (!WymlConfig.isEnabled()) return;
-        if (WymlBootConfig.moduleEnabled("paper_bags")
-                && entity instanceof ItemEntity && WymlConfig.cached().ALLOW_PAPER_BAGS)
-        {
-            BagHandler.itemEntityAdded((ItemEntity) entity);
-        }
-    }
-
     @Inject(at = @At("RETURN"), method = "addEntity", cancellable = true)
     public void addEntity2(Entity entity, CallbackInfoReturnable<Boolean> cir)
     {
         if (!WymlConfig.isEnabled()) return;
         if (!Boolean.TRUE.equals(cir.getReturnValue())) return;
+        if (WymlBootConfig.moduleEnabled("paper_bags")
+                && entity instanceof ItemEntity itemEntity
+                && WymlConfig.cached().ALLOW_PAPER_BAGS)
+        {
+            BagHandler.itemEntityAdded(itemEntity);
+        }
+        if (WymlBootConfig.moduleEnabled("per_mob_rules") && entity instanceof Mob)
+        {
+            MobPopulationIndex.admitted(entity);
+        }
         if (WymlBootConfig.moduleEnabled("per_mob_rules")
                 && entity instanceof Mob && WymlConfig.cached().HARD_MOB_LIMITS)
         {
